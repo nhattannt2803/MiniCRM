@@ -1,6 +1,9 @@
 import React, { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { ConfigProvider, Spin } from 'antd';
+import vi_VN from 'antd/locale/vi_VN';
+import en_US from 'antd/locale/en_US';
+import { useTranslation } from 'react-i18next';
 import { useAuthStore } from './stores/authStore';
 import { MainLayout } from './layouts/MainLayout';
 import { LoginPage } from './features/auth/LoginPage';
@@ -40,6 +43,9 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
 
 export const App: React.FC = () => {
   const { fetchMe } = useAuthStore();
+  const { i18n } = useTranslation();
+
+  const currentLocale = i18n.language.startsWith('vi') ? vi_VN : en_US;
 
   useEffect(() => {
     fetchMe();
@@ -47,6 +53,7 @@ export const App: React.FC = () => {
 
   return (
     <ConfigProvider
+      locale={currentLocale}
       theme={{
         token: {
           colorPrimary: '#6366f1',

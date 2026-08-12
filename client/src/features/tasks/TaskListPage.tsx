@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Table, Button, Tag, Select, Checkbox, notification } from 'antd';
 import { PlusOutlined, AlertOutlined } from '@ant-design/icons';
+import { useTranslation } from 'react-i18next';
 import { crmService } from '../../services/crmService';
 import { Task } from '../../types';
 
@@ -9,6 +10,7 @@ export const TaskListPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<string | undefined>();
   const [overdueOnly, setOverdueOnly] = useState(false);
+  const { t, i18n } = useTranslation();
 
   const fetchTasks = async () => {
     setLoading(true);
@@ -30,33 +32,33 @@ export const TaskListPage: React.FC = () => {
     const newStatus = task.status === 'COMPLETED' ? 'TODO' : 'COMPLETED';
     try {
       await crmService.updateTaskStatus(task.id, newStatus);
-      notification.success({ message: `Task marked as ${newStatus}` });
+      notification.success({ message: t('common.success'), description: `Đã cập nhật trạng thái nhiệm vụ!` });
       fetchTasks();
     } catch (err: any) {
-      notification.error({ message: 'Error', description: err.message });
+      notification.error({ message: t('common.error'), description: err.message });
     }
   };
 
   const getPriorityTag = (p: string) => {
     switch (p) {
-      case 'URGENT': return <Tag color="red">URGENT</Tag>;
-      case 'HIGH': return <Tag color="orange">HIGH</Tag>;
-      case 'MEDIUM': return <Tag color="blue">MEDIUM</Tag>;
-      default: return <Tag color="default">LOW</Tag>;
+      case 'URGENT': return <Tag color="red">{t('tasks.priority.URGENT')}</Tag>;
+      case 'HIGH': return <Tag color="orange">{t('tasks.priority.HIGH')}</Tag>;
+      case 'MEDIUM': return <Tag color="blue">{t('tasks.priority.MEDIUM')}</Tag>;
+      default: return <Tag color="default">{t('tasks.priority.LOW')}</Tag>;
     }
   };
 
   const columns = [
     {
-      title: 'Done',
+      title: 'Hoàn thành',
       key: 'done',
-      width: 60,
+      width: 100,
       render: (_: any, r: Task) => (
         <Checkbox checked={r.status === 'COMPLETED'} onChange={() => handleStatusToggle(r)} />
       ),
     },
     {
-      title: 'Task Title',
+      title: t('tasks.taskName'),
       key: 'title',
       render: (_: any, r: Task) => (
         <div>
@@ -65,34 +67,33 @@ export const TaskListPage: React.FC = () => {
           </span>
           {r.isOverdue && (
             <Tag color="red" className="ml-2 animate-pulse">
-              <AlertOutlined /> OVERDUE
+              <AlertOutlined /> QUÁ HẠN
             </Tag>
           )}
           {r.description && <p className="text-xs text-slate-500 mt-0.5">{r.description}</p>}
         </div>
       ),
     },
-    { title: 'Priority', dataIndex: 'priority', key: 'priority', render: (p: string) => getPriorityTag(p) },
+    { title: 'Độ ưu tiên', dataIndex: 'priority', key: 'priority', render: (p: string) => getPriorityTag(p) },
     {
-      title: 'Due Date',
+      title: t('tasks.dueDate'),
       dataIndex: 'dueAt',
       key: 'dueAt',
       render: (d: string, r: Task) => (
         <span className={`text-xs font-semibold ${r.isOverdue ? 'text-rose-600' : 'text-slate-700'}`}>
-          {new Date(d).toLocaleString('vi-VN')}
+          {new Date(d).toLocaleString(i18n.language === 'vi' ? 'vi-VN' : 'en-US')}
         </span>
       ),
     },
     {
-      title: 'Assigned To',
-      key: 'assignee',
-      render: (_: any, r: Task) => r.assignee ? `${r.assignee.firstName} ${r.assignee.lastName}` : 'Unassigned',
-    },
-    {
-      title: 'Status',
+      title: t('common.status'),
       dataIndex: 'status',
       key: 'status',
-      render: (s: string) => <Tag color={s === 'COMPLETED' ? 'green' : 'orange'}>{s}</Tag>,
+      render: (s: string) => (
+        <Tag color={s === 'COMPLETED' ? 'green' : 'orange'}>
+          {s === 'COMPLETED' ? t('tasks.status.COMPLETED') : s === 'IN_PROGRESS' ? t('tasks.status.IN_PROGRESS') : t('tasks.status.PENDING')}
+        </Tag>
+      ),
     },
   ];
 
@@ -100,20 +101,20 @@ export const TaskListPage: React.FC = () => {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Tasks Management</h1>
-          <p className="text-sm text-slate-500">Action items, follow-ups, and automated reminder tasks</p>
+          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">{t('tasks.title')}</h1>
+          <p className="text-sm text-slate-500">Quản lý danh sách công việc, nhắc nhở và theo dõi tiến độ</p>
         </div>
       </div>
 
       <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs flex items-center gap-4">
-        <Select placeholder="Filter Status" className="w-40" allowClear onChange={(v) => setStatusFilter(v)}>
-          <Select.Option value="TODO">TODO</Select.Option>
-          <Select.Option value="IN_PROGRESS">IN_PROGRESS</Select.Option>
-          <Select.Option value="COMPLETED">COMPLETED</Select.Option>
+        <Select placeholder={t('common.status')} className="w-40" allowClear onChange={(v) => setStatusFilter(v)}>
+          <Select.Option value="TODO">{t('tasks.status.PENDING')}</Select.Option>
+          <Select.Option value="IN_PROGRESS">{t('tasks.status.IN_PROGRESS')}</Select.Option>
+          <Select.Option value="COMPLETED">{t('tasks.status.COMPLETED')}</Select.Option>
         </Select>
 
         <Checkbox checked={overdueOnly} onChange={(e) => setOverdueOnly(e.target.checked)}>
-          Show Overdue Tasks Only
+          Chỉ xem nhiệm vụ quá hạn
         </Checkbox>
       </div>
 

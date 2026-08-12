@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Table, Button, Input, Select, Tag, Drawer, Form, Popconfirm, notification } from 'antd';
 import { PlusOutlined, SearchOutlined, EyeOutlined, SwapOutlined, DeleteOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { crmService } from '../../services/crmService';
 import { Lead } from '../../types';
 import { LeadConvertModal } from './LeadConvertModal';
@@ -21,6 +22,7 @@ export const LeadListPage: React.FC = () => {
 
   const [form] = Form.useForm();
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   const fetchLeads = async () => {
     setLoading(true);
@@ -51,50 +53,50 @@ export const LeadListPage: React.FC = () => {
     try {
       const res: any = await crmService.createLead(values);
       if (res.success) {
-        notification.success({ message: 'Lead Created', description: 'New lead added to system!' });
+        notification.success({ message: t('common.success'), description: t('leads.addLead') });
         setCreateDrawerVisible(false);
         form.resetFields();
         fetchLeads();
       }
     } catch (err: any) {
-      notification.error({ message: 'Create Lead Failed', description: err.message });
+      notification.error({ message: t('common.error'), description: err.message });
     }
   };
 
   const handleDeleteLead = async (id: string) => {
     try {
       await crmService.deleteLead(id);
-      notification.success({ message: 'Lead Deleted' });
+      notification.success({ message: t('common.success') });
       fetchLeads();
     } catch (err: any) {
-      notification.error({ message: 'Delete Failed', description: err.message });
+      notification.error({ message: t('common.error'), description: err.message });
     }
   };
 
   const getStatusTag = (status: string) => {
     switch (status) {
-      case 'NEW': return <Tag color="blue">NEW</Tag>;
-      case 'CONTACTED': return <Tag color="purple">CONTACTED</Tag>;
-      case 'QUALIFIED': return <Tag color="cyan">QUALIFIED</Tag>;
-      case 'UNQUALIFIED': return <Tag color="default">UNQUALIFIED</Tag>;
-      case 'CONVERTED': return <Tag color="green">CONVERTED</Tag>;
-      case 'LOST': return <Tag color="red">LOST</Tag>;
+      case 'NEW': return <Tag color="blue">{t('leads.status.NEW')}</Tag>;
+      case 'CONTACTED': return <Tag color="purple">{t('leads.status.CONTACTED')}</Tag>;
+      case 'QUALIFIED': return <Tag color="cyan">{t('leads.status.QUALIFIED')}</Tag>;
+      case 'UNQUALIFIED': return <Tag color="default">{t('leads.status.UNQUALIFIED')}</Tag>;
+      case 'CONVERTED': return <Tag color="green">{t('leads.status.CONVERTED')}</Tag>;
+      case 'LOST': return <Tag color="red">Mất</Tag>;
       default: return <Tag>{status}</Tag>;
     }
   };
 
   const getRatingTag = (rating: string) => {
     switch (rating) {
-      case 'HOT': return <Tag color="red">🔥 HOT</Tag>;
-      case 'WARM': return <Tag color="orange">⚡ WARM</Tag>;
-      case 'COLD': return <Tag color="blue">❄ COLD</Tag>;
+      case 'HOT': return <Tag color="red">🔥 {t('tasks.priority.HIGH')}</Tag>;
+      case 'WARM': return <Tag color="orange">⚡ {t('tasks.priority.MEDIUM')}</Tag>;
+      case 'COLD': return <Tag color="blue">❄ {t('tasks.priority.LOW')}</Tag>;
       default: return <Tag>{rating}</Tag>;
     }
   };
 
   const columns = [
     {
-      title: 'Lead Name',
+      title: t('leads.form.firstName') + ' / ' + t('leads.form.lastName'),
       key: 'name',
       render: (_: any, record: Lead) => (
         <div>
@@ -104,18 +106,18 @@ export const LeadListPage: React.FC = () => {
           >
             {record.firstName} {record.lastName}
           </div>
-          <div className="text-xs text-slate-400">{record.jobTitle || 'No title'}</div>
+          <div className="text-xs text-slate-400">{record.jobTitle || '—'}</div>
         </div>
       ),
     },
     {
-      title: 'Company',
+      title: t('leads.form.company'),
       dataIndex: 'companyName',
       key: 'companyName',
       render: (val: string) => <span className="font-medium text-slate-700">{val || '—'}</span>,
     },
     {
-      title: 'Contact Details',
+      title: t('common.email') + ' / ' + t('common.phone'),
       key: 'contact',
       render: (_: any, record: Lead) => (
         <div className="text-xs space-y-0.5">
@@ -125,34 +127,25 @@ export const LeadListPage: React.FC = () => {
       ),
     },
     {
-      title: 'Source',
+      title: t('leads.source'),
       dataIndex: 'source',
       key: 'source',
       render: (source: string) => <Tag>{source}</Tag>,
     },
     {
-      title: 'Status',
+      title: t('common.status'),
       dataIndex: 'status',
       key: 'status',
       render: (status: string) => getStatusTag(status),
     },
     {
-      title: 'Rating',
+      title: 'Đánh giá',
       dataIndex: 'rating',
       key: 'rating',
       render: (rating: string) => getRatingTag(rating),
     },
     {
-      title: 'Owner',
-      key: 'owner',
-      render: (_: any, record: Lead) => (
-        <span className="text-xs font-medium text-slate-600">
-          {record.owner ? `${record.owner.firstName} ${record.owner.lastName}` : 'Unassigned'}
-        </span>
-      ),
-    },
-    {
-      title: 'Actions',
+      title: t('common.actions'),
       key: 'actions',
       render: (_: any, record: Lead) => (
         <div className="flex items-center gap-2">
@@ -172,10 +165,10 @@ export const LeadListPage: React.FC = () => {
                 setConvertModalVisible(true);
               }}
             >
-              Convert
+              {t('leads.convertLead')}
             </Button>
           )}
-          <Popconfirm title="Delete this lead?" onConfirm={() => handleDeleteLead(record.id)}>
+          <Popconfirm title={t('common.confirmDelete')} onConfirm={() => handleDeleteLead(record.id)}>
             <Button size="small" danger icon={<DeleteOutlined />} />
           </Popconfirm>
         </div>
@@ -187,8 +180,8 @@ export const LeadListPage: React.FC = () => {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Leads Registry</h1>
-          <p className="text-sm text-slate-500">Manage prospect lifecycle from initial contact to qualification</p>
+          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">{t('leads.title')}</h1>
+          <p className="text-sm text-slate-500">Quản lý vòng đời tiềm năng từ tiếp cận đến chuyển đổi</p>
         </div>
         <Button
           type="primary"
@@ -197,7 +190,7 @@ export const LeadListPage: React.FC = () => {
           className="bg-indigo-600 font-semibold rounded-lg"
           onClick={() => setCreateDrawerVisible(true)}
         >
-          Create Lead
+          {t('leads.addLead')}
         </Button>
       </div>
 
@@ -205,34 +198,23 @@ export const LeadListPage: React.FC = () => {
       <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs flex flex-wrap items-center gap-3">
         <Input
           prefix={<SearchOutlined className="text-slate-400" />}
-          placeholder="Search name, email, phone, company..."
+          placeholder={t('common.searchPlaceholder')}
           className="w-72"
           allowClear
           onChange={(e) => setSearch(e.target.value)}
         />
 
         <Select
-          placeholder="Filter Status"
+          placeholder={t('common.status')}
           className="w-40"
           allowClear
           onChange={(val) => setStatusFilter(val)}
         >
-          <Select.Option value="NEW">NEW</Select.Option>
-          <Select.Option value="CONTACTED">CONTACTED</Select.Option>
-          <Select.Option value="QUALIFIED">QUALIFIED</Select.Option>
-          <Select.Option value="UNQUALIFIED">UNQUALIFIED</Select.Option>
-          <Select.Option value="CONVERTED">CONVERTED</Select.Option>
-        </Select>
-
-        <Select
-          placeholder="Filter Rating"
-          className="w-36"
-          allowClear
-          onChange={(val) => setRatingFilter(val)}
-        >
-          <Select.Option value="HOT">HOT</Select.Option>
-          <Select.Option value="WARM">WARM</Select.Option>
-          <Select.Option value="COLD">COLD</Select.Option>
+          <Select.Option value="NEW">{t('leads.status.NEW')}</Select.Option>
+          <Select.Option value="CONTACTED">{t('leads.status.CONTACTED')}</Select.Option>
+          <Select.Option value="QUALIFIED">{t('leads.status.QUALIFIED')}</Select.Option>
+          <Select.Option value="UNQUALIFIED">{t('leads.status.UNQUALIFIED')}</Select.Option>
+          <Select.Option value="CONVERTED">{t('leads.status.CONVERTED')}</Select.Option>
         </Select>
       </div>
 
@@ -254,65 +236,65 @@ export const LeadListPage: React.FC = () => {
 
       {/* Create Drawer */}
       <Drawer
-        title="Create New Prospect Lead"
+        title={t('leads.addLead')}
         open={createDrawerVisible}
         onClose={() => setCreateDrawerVisible(false)}
         width={480}
         extra={
           <Button type="primary" onClick={() => form.submit()} className="bg-indigo-600">
-            Submit Lead
+            {t('common.save')}
           </Button>
         }
       >
         <Form form={form} layout="vertical" onFinish={handleCreateLead}>
           <div className="grid grid-cols-2 gap-3">
-            <Form.Item name="firstName" label="First Name" rules={[{ required: true }]}>
-              <Input placeholder="John" />
+            <Form.Item name="firstName" label={t('leads.form.firstName')} rules={[{ required: true }]}>
+              <Input placeholder="Văn A" />
             </Form.Item>
-            <Form.Item name="lastName" label="Last Name" rules={[{ required: true }]}>
-              <Input placeholder="Doe" />
+            <Form.Item name="lastName" label={t('leads.form.lastName')} rules={[{ required: true }]}>
+              <Input placeholder="Nguyễn" />
             </Form.Item>
           </div>
 
-          <Form.Item name="email" label="Email Address">
-            <Input placeholder="john@example.com" />
+          <Form.Item name="email" label={t('common.email')}>
+            <Input placeholder="nguyenvana@example.com" />
           </Form.Item>
 
-          <Form.Item name="phone" label="Phone Number">
+          <Form.Item name="phone" label={t('common.phone')}>
             <Input placeholder="0901234567" />
           </Form.Item>
 
-          <Form.Item name="companyName" label="Company Name">
-            <Input placeholder="Acme Corp" />
+          <Form.Item name="companyName" label={t('leads.form.company')}>
+            <Input placeholder="Công ty ABC" />
           </Form.Item>
 
-          <Form.Item name="jobTitle" label="Job Title / Position">
-            <Input placeholder="Director of Sales" />
+          <Form.Item name="jobTitle" label={t('leads.form.title')}>
+            <Input placeholder="Giám đốc kinh doanh" />
           </Form.Item>
 
           <div className="grid grid-cols-2 gap-3">
-            <Form.Item name="source" label="Acquisition Source" initialValue="WEBSITE">
+            <Form.Item name="source" label={t('leads.source')} initialValue="WEBSITE">
               <Select>
-                <Select.Option value="WEBSITE">WEBSITE</Select.Option>
-                <Select.Option value="REFERRAL">REFERRAL</Select.Option>
-                <Select.Option value="FB_ADS">FB_ADS</Select.Option>
-                <Select.Option value="GOOGLE_ADS">GOOGLE_ADS</Select.Option>
-                <Select.Option value="EVENT">EVENT</Select.Option>
-                <Select.Option value="OUTBOUND">OUTBOUND</Select.Option>
+                <Select.Option value="WEBSITE">Website</Select.Option>
+                <Select.Option value="REFERRAL">Giới thiệu</Select.Option>
+                <Select.Option value="FB_ADS">Facebook Ads</Select.Option>
+                <Select.Option value="GOOGLE_ADS">Google Ads</Select.Option>
+                <Select.Option value="EVENT">Hội thảo / Sự kiện</Select.Option>
+                <Select.Option value="OUTBOUND">Trực tiếp</Select.Option>
               </Select>
             </Form.Item>
 
-            <Form.Item name="rating" label="Rating" initialValue="WARM">
+            <Form.Item name="rating" label="Đánh giá" initialValue="WARM">
               <Select>
-                <Select.Option value="HOT">HOT</Select.Option>
-                <Select.Option value="WARM">WARM</Select.Option>
-                <Select.Option value="COLD">COLD</Select.Option>
+                <Select.Option value="HOT">Nóng (Hot)</Select.Option>
+                <Select.Option value="WARM">Ấm (Warm)</Select.Option>
+                <Select.Option value="COLD">Lạnh (Cold)</Select.Option>
               </Select>
             </Form.Item>
           </div>
 
-          <Form.Item name="notes" label="Lead Notes">
-            <Input.TextArea rows={3} placeholder="Additional background notes..." />
+          <Form.Item name="notes" label={t('common.notes')}>
+            <Input.TextArea rows={3} placeholder="Ghi chú thêm về tiềm năng..." />
           </Form.Item>
         </Form>
       </Drawer>

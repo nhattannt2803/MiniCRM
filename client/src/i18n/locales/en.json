@@ -1,0 +1,253 @@
+{
+  "common": {
+    "appName": "Mini CRM",
+    "save": "Save",
+    "cancel": "Cancel",
+    "edit": "Edit",
+    "delete": "Delete",
+    "add": "Add New",
+    "create": "Create",
+    "update": "Update",
+    "search": "Search",
+    "searchPlaceholder": "Search...",
+    "filter": "Filter",
+    "actions": "Actions",
+    "status": "Status",
+    "createdAt": "Created At",
+    "updatedAt": "Updated At",
+    "viewDetails": "View Details",
+    "back": "Back",
+    "loading": "Loading...",
+    "noData": "No Data",
+    "confirmDelete": "Are you sure you want to delete?",
+    "confirmDeleteTitle": "Confirm Deletion",
+    "yes": "Yes",
+    "no": "No",
+    "success": "Success",
+    "error": "Error",
+    "all": "All",
+    "close": "Close",
+    "submit": "Submit",
+    "refresh": "Refresh",
+    "description": "Description",
+    "name": "Name",
+    "email": "Email",
+    "phone": "Phone",
+    "total": "Total",
+    "notes": "Notes"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "leads": "Leads",
+    "companies": "Companies",
+    "contacts": "Contacts",
+    "customers": "Customers",
+    "opportunities": "Opportunities",
+    "products": "Products & Services",
+    "quotes": "Quotes",
+    "tasks": "Tasks",
+    "activities": "Activities",
+    "automations": "Automations",
+    "settings": "Settings",
+    "notifications": "Notifications",
+    "markAllRead": "Mark all as read",
+    "noNotifications": "No new notifications",
+    "logout": "Logout",
+    "profile": "Profile",
+    "language": "Language"
+  },
+  "auth": {
+    "loginTitle": "Sign in to Mini CRM",
+    "loginSubtitle": "Enter your account credentials to continue",
+    "emailLabel": "Email Address",
+    "emailPlaceholder": "user@example.com",
+    "passwordLabel": "Password",
+    "passwordPlaceholder": "Enter password",
+    "rememberMe": "Remember me",
+    "loginButton": "Sign In",
+    "loginSuccess": "Login successful!",
+    "loginError": "Invalid credentials."
+  },
+  "dashboard": {
+    "title": "Dashboard Overview",
+    "subtitle": "Track your sales performance and CRM activity",
+    "totalLeads": "Total Leads",
+    "totalCompanies": "Total Companies",
+    "totalContacts": "Total Contacts",
+    "totalCustomers": "Total Customers",
+    "openOpportunities": "Open Opportunities",
+    "wonDeals": "Won Deals",
+    "expectedRevenue": "Expected Revenue",
+    "conversionRate": "Conversion Rate",
+    "pipelineTitle": "Sales Pipeline",
+    "recentActivities": "Recent Activities",
+    "topDeals": "Top High Value Deals",
+    "dealName": "Deal Name",
+    "amount": "Amount",
+    "stage": "Stage",
+    "expectedClose": "Expected Close"
+  },
+  "leads": {
+    "title": "Lead Management",
+    "addLead": "Add New Lead",
+    "leadDetails": "Lead Details",
+    "convertLead": "Convert to Customer",
+    "convertSuccess": "Lead converted successfully!",
+    "source": "Lead Source",
+    "status": {
+      "NEW": "New",
+      "CONTACTED": "Contacted",
+      "QUALIFIED": "Qualified",
+      "UNQUALIFIED": "Unqualified",
+      "CONVERTED": "Converted"
+    },
+    "form": {
+      "firstName": "First Name",
+      "lastName": "Last Name",
+      "company": "Company",
+      "title": "Job Title",
+      "email": "Email",
+      "phone": "Phone Number",
+      "value": "Lead Value",
+      "notes": "Notes"
+    },
+    "convertModal": {
+      "title": "Convert Lead",
+      "description": "This will create a Customer, Contact, and Opportunity record.",
+      "opportunityName": "Opportunity Name",
+      "opportunityAmount": "Opportunity Amount",
+      "confirmButton": "Confirm Conversion"
+    }
+  },
+  "companies": {
+    "title": "Company Management",
+    "addCompany": "Add Company",
+    "companyDetails": "Company Details",
+    "industry": "Industry",
+    "website": "Website",
+    "revenue": "Annual Revenue",
+    "employees": "Employee Count",
+    "address": "Address",
+    "phone": "Phone Number"
+  },
+  "contacts": {
+    "title": "Contact Directory",
+    "addContact": "Add Contact",
+    "contactDetails": "Contact Details",
+    "fullName": "Full Name",
+    "company": "Company",
+    "department": "Department",
+    "position": "Job Title"
+  },
+  "customers": {
+    "title": "Customer Management",
+    "addCustomer": "Add Customer",
+    "customerDetails": "Customer Details",
+    "tier": "Tier",
+    "segment": "Segment",
+    "totalValue": "Total Value"
+  },
+  "opportunities": {
+    "title": "Opportunity Management",
+    "addOpportunity": "Add Opportunity",
+    "kanbanView": "Kanban Board",
+    "listView": "List View",
+    "amount": "Deal Amount",
+    "probability": "Probability",
+    "expectedCloseDate": "Expected Close Date",
+    "stage": {
+      "PROSPECTING": "Prospecting",
+      "QUALIFICATION": "Qualification",
+      "PROPOSAL": "Proposal",
+      "NEGOTIATION": "Negotiation",
+      "CLOSED_WON": "Closed Won",
+      "CLOSED_LOST": "Closed Lost"
+    }
+  },
+  "products": {
+    "title": "Product & Service Catalog",
+    "addProduct": "Add Product",
+    "sku": "SKU",
+    "price": "Price",
+    "category": "Category",
+    "stock": "Stock Quantity",
+    "active": "Active",
+    "inactive": "Inactive"
+  },
+  "quotes": {
+    "title": "Quote Management",
+    "createQuote": "Create Quote",
+    "quoteNumber": "Quote #",
+    "customer": "Customer",
+    "totalAmount": "Total Amount",
+    "expirationDate": "Expiration Date",
+    "discount": "Discount (%)",
+    "tax": "Tax (%)",
+    "status": {
+      "DRAFT": "Draft",
+      "SENT": "Sent",
+      "ACCEPTED": "Accepted",
+      "REJECTED": "Rejected",
+      "EXPIRED": "Expired"
+    },
+    "items": "Quote Line Items",
+    "addItem": "Add Line Item"
+  },
+  "tasks": {
+    "title": "Task Management",
+    "addTask": "Add Task",
+    "taskName": "Task Name",
+    "dueDate": "Due Date",
+    "priority": {
+      "LOW": "Low",
+      "MEDIUM": "Medium",
+      "HIGH": "High",
+      "URGENT": "Urgent"
+    },
+    "status": {
+      "PENDING": "Pending",
+      "IN_PROGRESS": "In Progress",
+      "COMPLETED": "Completed",
+      "CANCELLED": "Cancelled"
+    }
+  },
+  "activities": {
+    "title": "Activity History",
+    "addActivity": "Record Activity",
+    "subject": "Subject",
+    "activityType": "Activity Type",
+    "types": {
+      "CALL": "Call",
+      "MEETING": "Meeting",
+      "EMAIL": "Email",
+      "NOTE": "Note",
+      "TASK": "Task"
+    }
+  },
+  "automations": {
+    "title": "Workflow Automations",
+    "addAutomation": "Create Workflow",
+    "trigger": "Trigger Event",
+    "action": "Action",
+    "executionHistory": "Execution Log",
+    "status": {
+      "ACTIVE": "Active",
+      "INACTIVE": "Inactive"
+    }
+  },
+  "settings": {
+    "title": "System Settings",
+    "general": "General Settings",
+    "language": "Display Language",
+    "languageDesc": "Select your preferred user interface language",
+    "vietnamese": "Tiếng Việt (Vietnamese)",
+    "english": "Tiếng Anh (English)",
+    "apiKey": "Webhook API Key",
+    "apiKeyDesc": "Use this key to authorize incoming external Webhook requests",
+    "generateApiKey": "Generate New API Key",
+    "copyApiKey": "Copy Key",
+    "apiKeyCopied": "API Key copied to clipboard!",
+    "profile": "Profile Info",
+    "theme": "Theme (Light / Dark)"
+  }
+}

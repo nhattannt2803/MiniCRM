@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Table, Button, Input, Tag } from 'antd';
 import { SearchOutlined, EyeOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { crmService } from '../../services/crmService';
 import { Customer } from '../../types';
 
@@ -13,6 +14,7 @@ export const CustomerListPage: React.FC = () => {
   const [search, setSearch] = useState('');
 
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   const fetchCustomers = async () => {
     setLoading(true);
@@ -35,7 +37,7 @@ export const CustomerListPage: React.FC = () => {
 
   const columns = [
     {
-      title: 'Customer Code',
+      title: 'Mã khách hàng',
       dataIndex: 'customerCode',
       key: 'customerCode',
       render: (code: string, r: Customer) => (
@@ -48,7 +50,7 @@ export const CustomerListPage: React.FC = () => {
       ),
     },
     {
-      title: 'Account Name',
+      title: 'Tên tài khoản',
       key: 'account',
       render: (_: any, r: Customer) => (
         <span className="font-bold text-slate-900">
@@ -57,13 +59,13 @@ export const CustomerListPage: React.FC = () => {
       ),
     },
     {
-      title: 'Entity Type',
+      title: 'Loại hình',
       dataIndex: 'entityType',
       key: 'entityType',
-      render: (t: string) => <Tag color={t === 'COMPANY' ? 'purple' : 'blue'}>{t}</Tag>,
+      render: (t: string) => <Tag color={t === 'COMPANY' ? 'purple' : 'blue'}>{t === 'COMPANY' ? 'DOANH NGHIỆP' : 'CÁ NHÂN'}</Tag>,
     },
     {
-      title: 'Lifetime Value (LTV)',
+      title: 'Giá trị vòng đời (LTV)',
       dataIndex: 'lifetimeValue',
       key: 'lifetimeValue',
       render: (val: number) => (
@@ -73,13 +75,13 @@ export const CustomerListPage: React.FC = () => {
       ),
     },
     {
-      title: 'Status',
+      title: t('common.status'),
       dataIndex: 'status',
       key: 'status',
-      render: (status: string) => <Tag color="green">{status}</Tag>,
+      render: (status: string) => <Tag color="green">{status === 'ACTIVE' ? 'Đang hoạt động' : status}</Tag>,
     },
     {
-      title: 'Actions',
+      title: t('common.actions'),
       key: 'actions',
       render: (_: any, r: Customer) => (
         <Button size="small" icon={<EyeOutlined />} onClick={() => navigate(`/customers/${r.id}`)} />
@@ -90,14 +92,14 @@ export const CustomerListPage: React.FC = () => {
   return (
     <div className="space-y-4">
       <div>
-        <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Active Customer Accounts</h1>
-        <p className="text-sm text-slate-500">Official customer accounts converted from Won Opportunities</p>
+        <h1 className="text-2xl font-bold text-slate-900 tracking-tight">{t('customers.title')}</h1>
+        <p className="text-sm text-slate-500">Danh sách khách hàng chính thức từ cơ hội kinh doanh thành công</p>
       </div>
 
       <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
         <Input
           prefix={<SearchOutlined className="text-slate-400" />}
-          placeholder="Search customer code, account name..."
+          placeholder={t('common.searchPlaceholder')}
           className="w-72"
           allowClear
           onChange={(e) => setSearch(e.target.value)}

@@ -2,12 +2,14 @@ import React, { useState } from 'react';
 import { Card, Form, Input, Button, Alert, Tag } from 'antd';
 import { UserOutlined, LockOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '../../stores/authStore';
 
 export const LoginPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const { t } = useTranslation();
   const { login } = useAuthStore();
   const navigate = useNavigate();
 
@@ -18,7 +20,7 @@ export const LoginPage: React.FC = () => {
       await login(values.email, values.password);
       navigate('/dashboard');
     } catch (err: any) {
-      setError(err.message || 'Login failed. Please check your email and password.');
+      setError(err.message || t('auth.loginError'));
     } finally {
       setLoading(false);
     }
@@ -35,8 +37,8 @@ export const LoginPage: React.FC = () => {
           <div className="w-12 h-12 rounded-xl bg-indigo-600 text-white font-black text-2xl flex items-center justify-center mx-auto mb-3 shadow-lg">
             M
           </div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Mini CRM Login</h1>
-          <p className="text-sm text-slate-500 mt-1">Production SaaS Enterprise Workspace</p>
+          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">{t('auth.loginTitle')}</h1>
+          <p className="text-sm text-slate-500 mt-1">{t('auth.loginSubtitle')}</p>
         </div>
 
         {error && (
@@ -46,11 +48,11 @@ export const LoginPage: React.FC = () => {
         <Form layout="vertical" onFinish={handleFinish} requiredMark={false}>
           <Form.Item
             name="email"
-            rules={[{ required: true, message: 'Please input your email' }]}
+            rules={[{ required: true, message: t('auth.emailLabel') }]}
           >
             <Input
               prefix={<UserOutlined className="text-slate-400" />}
-              placeholder="Email address"
+              placeholder={t('auth.emailPlaceholder')}
               size="large"
               className="rounded-lg"
             />
@@ -58,11 +60,11 @@ export const LoginPage: React.FC = () => {
 
           <Form.Item
             name="password"
-            rules={[{ required: true, message: 'Please input your password' }]}
+            rules={[{ required: true, message: t('auth.passwordLabel') }]}
           >
             <Input.Password
               prefix={<LockOutlined className="text-slate-400" />}
-              placeholder="Password"
+              placeholder={t('auth.passwordPlaceholder')}
               size="large"
               className="rounded-lg"
             />
@@ -77,14 +79,14 @@ export const LoginPage: React.FC = () => {
               loading={loading}
               className="bg-indigo-600 hover:bg-indigo-500 font-semibold rounded-lg h-11"
             >
-              Sign In
+              {t('auth.loginButton')}
             </Button>
           </Form.Item>
         </Form>
 
         <div className="mt-6 pt-6 border-t border-slate-100 text-center">
           <div className="text-xs font-semibold text-slate-400 mb-3 uppercase tracking-wider">
-            Quick Demo Login Accounts (Password: password123)
+            Tài khoản dùng thử (Mật khẩu: password123)
           </div>
           <div className="flex flex-wrap justify-center gap-2">
             <Tag

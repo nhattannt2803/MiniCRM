@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Table, Button, Switch, Tag, Card, notification } from 'antd';
 import { PlusOutlined, HistoryOutlined, RobotOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { crmService } from '../../services/crmService';
 import { Automation } from '../../types';
 
@@ -10,6 +11,7 @@ export const AutomationListPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
 
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   const fetchAutomations = async () => {
     setLoading(true);
@@ -30,16 +32,16 @@ export const AutomationListPage: React.FC = () => {
   const handleToggle = async (id: string, currentActive: boolean) => {
     try {
       await crmService.toggleAutomation(id, !currentActive);
-      notification.success({ message: 'Automation Rule Updated' });
+      notification.success({ message: t('common.success'), description: 'Đã cập nhật quy trình tự động hóa!' });
       fetchAutomations();
     } catch (err: any) {
-      notification.error({ message: 'Error', description: err.message });
+      notification.error({ message: t('common.error'), description: err.message });
     }
   };
 
   const columns = [
     {
-      title: 'Automation Rule Name',
+      title: 'Tên quy trình',
       key: 'name',
       render: (_: any, r: Automation) => (
         <div>
@@ -52,7 +54,7 @@ export const AutomationListPage: React.FC = () => {
       ),
     },
     {
-      title: 'Trigger Event',
+      title: t('automations.trigger'),
       key: 'trigger',
       render: (_: any, r: Automation) => (
         <div>
@@ -65,7 +67,7 @@ export const AutomationListPage: React.FC = () => {
       ),
     },
     {
-      title: 'Actions Sequence',
+      title: t('automations.action'),
       key: 'actions',
       render: (_: any, r: Automation) => (
         <div className="flex flex-wrap gap-1">
@@ -78,13 +80,13 @@ export const AutomationListPage: React.FC = () => {
       ),
     },
     {
-      title: 'Priority',
+      title: 'Độ ưu tiên',
       dataIndex: 'priority',
       key: 'priority',
-      render: (p: number) => <Tag color="default">Priority {p}</Tag>,
+      render: (p: number) => <Tag color="default">Mức {p}</Tag>,
     },
     {
-      title: 'Active',
+      title: t('common.status'),
       key: 'isActive',
       render: (_: any, r: Automation) => (
         <Switch checked={r.isActive} onChange={() => handleToggle(r.id, r.isActive)} size="small" />
@@ -96,13 +98,13 @@ export const AutomationListPage: React.FC = () => {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Automation Engine Rules</h1>
-          <p className="text-sm text-slate-500">Metadata-driven event rules and background workflow triggers</p>
+          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">{t('automations.title')}</h1>
+          <p className="text-sm text-slate-500">Cấu hình quy trình tự động hóa dựa trên sự kiện hệ thống</p>
         </div>
 
         <div className="flex gap-2">
           <Button icon={<HistoryOutlined />} onClick={() => navigate('/automations/executions')}>
-            Execution History Logs
+            {t('automations.executionHistory')}
           </Button>
           <Button
             type="primary"
@@ -111,7 +113,7 @@ export const AutomationListPage: React.FC = () => {
             className="bg-indigo-600 font-semibold rounded-lg"
             onClick={() => navigate('/automations/create')}
           >
-            Create Rule
+            {t('automations.addAutomation')}
           </Button>
         </div>
       </div>

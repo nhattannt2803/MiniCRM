@@ -1,0 +1,253 @@
+{
+  "common": {
+    "appName": "Mini CRM",
+    "save": "Lưu",
+    "cancel": "Hủy",
+    "edit": "Chỉnh sửa",
+    "delete": "Xóa",
+    "add": "Thêm mới",
+    "create": "Tạo mới",
+    "update": "Cập nhật",
+    "search": "Tìm kiếm",
+    "searchPlaceholder": "Tìm kiếm...",
+    "filter": "Lọc",
+    "actions": "Thao tác",
+    "status": "Trạng thái",
+    "createdAt": "Ngày tạo",
+    "updatedAt": "Ngày cập nhật",
+    "viewDetails": "Xem chi tiết",
+    "back": "Quay lại",
+    "loading": "Đang tải...",
+    "noData": "Không có dữ liệu",
+    "confirmDelete": "Bạn có chắc chắn muốn xóa không?",
+    "confirmDeleteTitle": "Xác nhận xóa",
+    "yes": "Có",
+    "no": "Không",
+    "success": "Thành công",
+    "error": "Lỗi",
+    "all": "Tất cả",
+    "close": "Đóng",
+    "submit": "Gửi",
+    "refresh": "Làm mới",
+    "description": "Mô tả",
+    "name": "Tên",
+    "email": "Email",
+    "phone": "Số điện thoại",
+    "total": "Tổng cộng",
+    "notes": "Ghi chú"
+  },
+  "nav": {
+    "dashboard": "Bảng điều khiển",
+    "leads": "Khách hàng tiềm năng",
+    "companies": "Công ty / Doanh nghiệp",
+    "contacts": "Người liên hệ",
+    "customers": "Khách hàng chính thức",
+    "opportunities": "Cơ hội kinh doanh",
+    "products": "Sản phẩm & Dịch vụ",
+    "quotes": "Báo giá",
+    "tasks": "Nhiệm vụ & Cần làm",
+    "activities": "Lịch sử hoạt động",
+    "automations": "Tự động hóa",
+    "settings": "Cài đặt hệ thống",
+    "notifications": "Thông báo",
+    "markAllRead": "Đánh dấu tất cả là đã đọc",
+    "noNotifications": "Không có thông báo mới",
+    "logout": "Đăng xuất",
+    "profile": "Trang cá nhân",
+    "language": "Ngôn ngữ"
+  },
+  "auth": {
+    "loginTitle": "Đăng nhập Mini CRM",
+    "loginSubtitle": "Nhập thông tin tài khoản của bạn để tiếp tục",
+    "emailLabel": "Địa chỉ Email",
+    "emailPlaceholder": "nhap@email.com",
+    "passwordLabel": "Mật khẩu",
+    "passwordPlaceholder": "Nhập mật khẩu",
+    "rememberMe": "Ghi nhớ đăng nhập",
+    "loginButton": "Đăng nhập",
+    "loginSuccess": "Đăng nhập thành công!",
+    "loginError": "Tài khoản hoặc mật khẩu không chính xác."
+  },
+  "dashboard": {
+    "title": "Bảng điều khiển tổng quan",
+    "subtitle": "Theo dõi hiệu suất bán hàng và hoạt động CRM của bạn",
+    "totalLeads": "Khách tiềm năng",
+    "totalCompanies": "Công ty",
+    "totalContacts": "Người liên hệ",
+    "totalCustomers": "Khách hàng",
+    "openOpportunities": "Cơ hội đang mở",
+    "wonDeals": "Thành công (Won)",
+    "expectedRevenue": "Doanh thu dự kiến",
+    "conversionRate": "Tỷ lệ chuyển đổi",
+    "pipelineTitle": "Phễu bán hàng (Pipeline)",
+    "recentActivities": "Hoạt động gần đây",
+    "topDeals": "Cơ hội giá trị cao",
+    "dealName": "Tên cơ hội",
+    "amount": "Giá trị",
+    "stage": "Giai đoạn",
+    "expectedClose": "Dự kiến chốt"
+  },
+  "leads": {
+    "title": "Quản lý Khách hàng tiềm năng (Leads)",
+    "addLead": "Thêm tiềm năng mới",
+    "leadDetails": "Chi tiết tiềm năng",
+    "convertLead": "Chuyển đổi thành Khách hàng",
+    "convertSuccess": "Chuyển đổi tiềm năng thành công!",
+    "source": "Nguồn tiềm năng",
+    "status": {
+      "NEW": "Mới tạo",
+      "CONTACTED": "Đã liên hệ",
+      "QUALIFIED": "Đủ điều kiện",
+      "UNQUALIFIED": "Không tiềm năng",
+      "CONVERTED": "Đã chuyển đổi"
+    },
+    "form": {
+      "firstName": "Tên",
+      "lastName": "Họ",
+      "company": "Công ty",
+      "title": "Chức danh",
+      "email": "Email",
+      "phone": "Số điện thoại",
+      "value": "Giá trị tiềm năng",
+      "notes": "Ghi chú"
+    },
+    "convertModal": {
+      "title": "Chuyển đổi Khách tiềm năng",
+      "description": "Thao tác này sẽ tạo mới Khách hàng, Người liên hệ và Cơ hội kinh doanh tương ứng.",
+      "opportunityName": "Tên cơ hội kinh doanh",
+      "opportunityAmount": "Giá trị cơ hội",
+      "confirmButton": "Xác nhận chuyển đổi"
+    }
+  },
+  "companies": {
+    "title": "Quản lý Doanh nghiệp",
+    "addCompany": "Thêm công ty",
+    "companyDetails": "Chi tiết công ty",
+    "industry": "Ngành nghề",
+    "website": "Website",
+    "revenue": "Doanh thu hàng năm",
+    "employees": "Số lượng nhân viên",
+    "address": "Địa chỉ",
+    "phone": "Số điện thoại"
+  },
+  "contacts": {
+    "title": "Danh sách Người liên hệ",
+    "addContact": "Thêm người liên hệ",
+    "contactDetails": "Chi tiết người liên hệ",
+    "fullName": "Họ và tên",
+    "company": "Công ty",
+    "department": "Phòng ban",
+    "position": "Chức vụ"
+  },
+  "customers": {
+    "title": "Quản lý Khách hàng",
+    "addCustomer": "Thêm khách hàng",
+    "customerDetails": "Chi tiết khách hàng",
+    "tier": "Phân hạng",
+    "segment": "Phân khúc",
+    "totalValue": "Tổng giá trị giao dịch"
+  },
+  "opportunities": {
+    "title": "Quản lý Cơ hội Kinh doanh",
+    "addOpportunity": "Tạo cơ hội mới",
+    "kanbanView": "Giao diện Kanban",
+    "listView": "Dạng danh sách",
+    "amount": "Giá trị deal",
+    "probability": "Xác suất thành công",
+    "expectedCloseDate": "Ngày dự kiến đóng",
+    "stage": {
+      "PROSPECTING": "Tìm hiểu nhu cầu",
+      "QUALIFICATION": "Đánh giá điều kiện",
+      "PROPOSAL": "Gửi báo giá/Đề xuất",
+      "NEGOTIATION": "Đàm phán hợp đồng",
+      "CLOSED_WON": "Đóng - Thành công (Won)",
+      "CLOSED_LOST": "Đóng - Thất bại (Lost)"
+    }
+  },
+  "products": {
+    "title": "Danh mục Sản phẩm & Dịch vụ",
+    "addProduct": "Thêm sản phẩm",
+    "sku": "Mã SKU",
+    "price": "Đơn giá",
+    "category": "Danh mục",
+    "stock": "Tồn kho",
+    "active": "Đang kinh doanh",
+    "inactive": "Ngừng kinh doanh"
+  },
+  "quotes": {
+    "title": "Quản lý Báo giá",
+    "createQuote": "Tạo báo giá mới",
+    "quoteNumber": "Mã báo giá",
+    "customer": "Khách hàng",
+    "totalAmount": "Tổng tiền",
+    "expirationDate": "Hạn hiệu lực",
+    "discount": "Chiết khấu (%)",
+    "tax": "Thuế (%)",
+    "status": {
+      "DRAFT": "Bản nháp",
+      "SENT": "Đã gửi",
+      "ACCEPTED": "Chấp nhận",
+      "REJECTED": "Từ chối",
+      "EXPIRED": "Hết hạn"
+    },
+    "items": "Danh sách sản phẩm / dịch vụ",
+    "addItem": "Thêm dòng sản phẩm"
+  },
+  "tasks": {
+    "title": "Quản lý Nhiệm vụ & Công việc",
+    "addTask": "Thêm nhiệm vụ",
+    "taskName": "Tên nhiệm vụ",
+    "dueDate": "Hạn hoàn thành",
+    "priority": {
+      "LOW": "Thấp",
+      "MEDIUM": "Trung bình",
+      "HIGH": "Cao",
+      "URGENT": "Khẩn cấp"
+    },
+    "status": {
+      "PENDING": "Chờ xử lý",
+      "IN_PROGRESS": "Đang thực hiện",
+      "COMPLETED": "Đã hoàn thành",
+      "CANCELLED": "Đã hủy"
+    }
+  },
+  "activities": {
+    "title": "Nhật ký Hoạt động",
+    "addActivity": "Ghi nhận hoạt động",
+    "subject": "Tiêu đề",
+    "activityType": "Loại hoạt động",
+    "types": {
+      "CALL": "Cuộc gọi",
+      "MEETING": "Cuộc họp",
+      "EMAIL": "Gửi Email",
+      "NOTE": "Ghi chú",
+      "TASK": "Nhiệm vụ"
+    }
+  },
+  "automations": {
+    "title": "Tự động hóa Quy trình (Automations)",
+    "addAutomation": "Tạo quy trình mới",
+    "trigger": "Sự kiện kích hoạt (Trigger)",
+    "action": "Hành động (Action)",
+    "executionHistory": "Lịch sử thực thi",
+    "status": {
+      "ACTIVE": "Đang hoạt động",
+      "INACTIVE": "Tạm dừng"
+    }
+  },
+  "settings": {
+    "title": "Cài đặt Hệ thống",
+    "general": "Cài đặt chung",
+    "language": "Ngôn ngữ hiển thị",
+    "languageDesc": "Chọn ngôn ngữ mặc định cho giao diện ứng dụng",
+    "vietnamese": "Tiếng Việt (Vietnamese)",
+    "english": "Tiếng Anh (English)",
+    "apiKey": "Webhook API Key",
+    "apiKeyDesc": "Dùng key này để kết nối với các ứng dụng bên ngoài qua Webhook",
+    "generateApiKey": "Tạo API Key mới",
+    "copyApiKey": "Sao chép Key",
+    "apiKeyCopied": "Đã sao chép API Key vào bộ nhớ tạm!",
+    "profile": "Thông tin cá nhân",
+    "theme": "Giao diện (Sáng / Tối)"
+  }
+}

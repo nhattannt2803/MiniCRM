@@ -17,8 +17,10 @@ import {
   LogoutOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
+  GlobalOutlined,
 } from '@ant-design/icons';
 import { useNavigate, useLocation, Outlet } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '../stores/authStore';
 import { crmService } from '../services/crmService';
 import { Notification } from '../types';
@@ -31,6 +33,7 @@ export const MainLayout: React.FC = () => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
 
+  const { t, i18n } = useTranslation();
   const { user, logout } = useAuthStore();
   const navigate = useNavigate();
   const location = useLocation();
@@ -58,28 +61,40 @@ export const MainLayout: React.FC = () => {
     fetchNotifications();
   };
 
+  const changeLanguage = (lng: string) => {
+    i18n.changeLanguage(lng);
+    localStorage.setItem('i18nextLng', lng);
+  };
+
+  const languageMenu = {
+    items: [
+      { key: 'vi', label: '🇻🇳 Tiếng Việt', onClick: () => changeLanguage('vi') },
+      { key: 'en', label: '🇺🇸 English', onClick: () => changeLanguage('en') },
+    ],
+  };
+
   const menuItems = [
-    { key: '/dashboard', icon: <DashboardOutlined />, label: 'Dashboard' },
-    { key: '/leads', icon: <UsergroupAddOutlined />, label: 'Leads' },
-    { key: '/companies', icon: <BankOutlined />, label: 'Companies' },
-    { key: '/contacts', icon: <ContactsOutlined />, label: 'Contacts' },
-    { key: '/customers', icon: <SolutionOutlined />, label: 'Customers' },
-    { key: '/opportunities', icon: <DollarOutlined />, label: 'Opportunities' },
-    { key: '/products', icon: <AppstoreOutlined />, label: 'Products' },
-    { key: '/quotes', icon: <FileTextOutlined />, label: 'Quotes' },
-    { key: '/tasks', icon: <CheckSquareOutlined />, label: 'Tasks' },
-    { key: '/activities', icon: <ClockCircleOutlined />, label: 'Activities' },
-    { key: '/automations', icon: <RobotOutlined />, label: 'Automations' },
-    { key: '/settings', icon: <SettingOutlined />, label: 'Settings' },
+    { key: '/dashboard', icon: <DashboardOutlined />, label: t('nav.dashboard') },
+    { key: '/leads', icon: <UsergroupAddOutlined />, label: t('nav.leads') },
+    { key: '/companies', icon: <BankOutlined />, label: t('nav.companies') },
+    { key: '/contacts', icon: <ContactsOutlined />, label: t('nav.contacts') },
+    { key: '/customers', icon: <SolutionOutlined />, label: t('nav.customers') },
+    { key: '/opportunities', icon: <DollarOutlined />, label: t('nav.opportunities') },
+    { key: '/products', icon: <AppstoreOutlined />, label: t('nav.products') },
+    { key: '/quotes', icon: <FileTextOutlined />, label: t('nav.quotes') },
+    { key: '/tasks', icon: <CheckSquareOutlined />, label: t('nav.tasks') },
+    { key: '/activities', icon: <ClockCircleOutlined />, label: t('nav.activities') },
+    { key: '/automations', icon: <RobotOutlined />, label: t('nav.automations') },
+    { key: '/settings', icon: <SettingOutlined />, label: t('nav.settings') },
   ];
 
   const notificationContent = (
     <div className="w-80">
       <div className="flex items-center justify-between p-3 border-b border-gray-100">
-        <span className="font-semibold text-gray-800 text-sm">Notifications</span>
+        <span className="font-semibold text-gray-800 text-sm">{t('nav.notifications')}</span>
         {unreadCount > 0 && (
           <Button type="link" size="small" onClick={handleMarkAllRead} className="p-0 text-xs">
-            Mark all read
+            {t('nav.markAllRead')}
           </Button>
         )}
       </div>
@@ -92,7 +107,7 @@ export const MainLayout: React.FC = () => {
               <span className="font-semibold text-gray-900">{item.title}</span>
               <span className="text-gray-600">{item.message}</span>
               <span className="text-[10px] text-gray-400">
-                {new Date(item.createdAt).toLocaleTimeString('vi-VN')}
+                {new Date(item.createdAt).toLocaleTimeString(i18n.language === 'vi' ? 'vi-VN' : 'en-US')}
               </span>
             </div>
           </List.Item>
@@ -111,7 +126,7 @@ export const MainLayout: React.FC = () => {
       {
         key: 'logout',
         icon: <LogoutOutlined />,
-        label: 'Logout',
+        label: t('nav.logout'),
         onClick: logout,
       },
     ],
@@ -125,7 +140,7 @@ export const MainLayout: React.FC = () => {
           <div className="w-8 h-8 rounded-lg bg-indigo-600 text-white font-black flex items-center justify-center text-lg shadow-md">
             M
           </div>
-          {!collapsed && <span className="font-bold text-slate-900 text-base tracking-tight">Mini CRM</span>}
+          {!collapsed && <span className="font-bold text-slate-900 text-base tracking-tight">{t('common.appName')}</span>}
         </div>
         <Menu
           mode="inline"
@@ -146,7 +161,14 @@ export const MainLayout: React.FC = () => {
             className="text-base text-slate-600"
           />
 
-          <div className="flex items-center gap-6">
+          <div className="flex items-center gap-4">
+            {/* Language Switcher Dropdown */}
+            <Dropdown menu={languageMenu} placement="bottomRight">
+              <Button type="text" icon={<GlobalOutlined className="text-lg text-slate-600" />} className="flex items-center gap-1">
+                <span className="text-xs font-semibold text-slate-700 uppercase">{i18n.language}</span>
+              </Button>
+            </Dropdown>
+
             {/* Notification Dropdown */}
             <Popover content={notificationContent} trigger="click" placement="bottomRight">
               <Badge count={unreadCount} overflowCount={99} size="small">
@@ -176,3 +198,4 @@ export const MainLayout: React.FC = () => {
     </Layout>
   );
 };
+

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Table, Button, Input, Tag, Drawer, Form, Select, notification } from 'antd';
 import { PlusOutlined, SearchOutlined } from '@ant-design/icons';
+import { useTranslation } from 'react-i18next';
 import { crmService } from '../../services/crmService';
 import { Contact, Company } from '../../types';
 
@@ -14,6 +15,7 @@ export const ContactListPage: React.FC = () => {
   const [drawerVisible, setDrawerVisible] = useState(false);
 
   const [form] = Form.useForm();
+  const { t } = useTranslation();
 
   const fetchContacts = async () => {
     setLoading(true);
@@ -39,45 +41,45 @@ export const ContactListPage: React.FC = () => {
     try {
       const res: any = await crmService.createContact(values);
       if (res.success) {
-        notification.success({ message: 'Contact Created' });
+        notification.success({ message: t('common.success'), description: t('contacts.addContact') });
         setDrawerVisible(false);
         form.resetFields();
         fetchContacts();
       }
     } catch (err: any) {
-      notification.error({ message: 'Error', description: err.message });
+      notification.error({ message: t('common.error'), description: err.message });
     }
   };
 
   const columns = [
     {
-      title: 'Full Name',
+      title: t('contacts.fullName'),
       key: 'name',
       render: (_: any, r: Contact) => (
         <div>
           <span className="font-bold text-slate-900">{r.firstName} {r.lastName}</span>
-          {r.isPrimary && <Tag color="gold" className="ml-2">PRIMARY</Tag>}
+          {r.isPrimary && <Tag color="gold" className="ml-2">CHÍNH</Tag>}
         </div>
       ),
     },
     {
-      title: 'Company',
+      title: t('contacts.company'),
       key: 'company',
       render: (_: any, r: Contact) => (
         <span className="font-medium text-slate-700">{r.company?.name || '—'}</span>
       ),
     },
-    { title: 'Position', dataIndex: 'position', key: 'position' },
-    { title: 'Email', dataIndex: 'email', key: 'email' },
-    { title: 'Phone', dataIndex: 'phone', key: 'phone' },
+    { title: t('contacts.position'), dataIndex: 'position', key: 'position' },
+    { title: t('common.email'), dataIndex: 'email', key: 'email' },
+    { title: t('common.phone'), dataIndex: 'phone', key: 'phone' },
   ];
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Contacts Directory</h1>
-          <p className="text-sm text-slate-500">Individual contact persons associated with company accounts</p>
+          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">{t('contacts.title')}</h1>
+          <p className="text-sm text-slate-500">Danh bạ người liên hệ liên kết với các doanh nghiệp</p>
         </div>
         <Button
           type="primary"
@@ -86,14 +88,14 @@ export const ContactListPage: React.FC = () => {
           className="bg-indigo-600 font-semibold rounded-lg"
           onClick={() => setDrawerVisible(true)}
         >
-          Create Contact
+          {t('contacts.addContact')}
         </Button>
       </div>
 
       <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
         <Input
           prefix={<SearchOutlined className="text-slate-400" />}
-          placeholder="Search name, email, phone..."
+          placeholder={t('common.searchPlaceholder')}
           className="w-72"
           allowClear
           onChange={(e) => setSearch(e.target.value)}
@@ -111,19 +113,19 @@ export const ContactListPage: React.FC = () => {
       </div>
 
       <Drawer
-        title="Create New Contact"
+        title={t('contacts.addContact')}
         open={drawerVisible}
         onClose={() => setDrawerVisible(false)}
         width={450}
         extra={
           <Button type="primary" onClick={() => form.submit()} className="bg-indigo-600">
-            Save Contact
+            {t('common.save')}
           </Button>
         }
       >
         <Form form={form} layout="vertical" onFinish={handleCreateContact}>
-          <Form.Item name="companyId" label="Associated Company">
-            <Select placeholder="Select Company" allowClear>
+          <Form.Item name="companyId" label={t('contacts.company')}>
+            <Select placeholder="Chọn công ty" allowClear>
               {companies.map((c) => (
                 <Select.Option key={c.id} value={c.id}>{c.name}</Select.Option>
               ))}
@@ -131,24 +133,24 @@ export const ContactListPage: React.FC = () => {
           </Form.Item>
 
           <div className="grid grid-cols-2 gap-3">
-            <Form.Item name="firstName" label="First Name" rules={[{ required: true }]}>
+            <Form.Item name="firstName" label={t('leads.form.firstName')} rules={[{ required: true }]}>
               <Input />
             </Form.Item>
-            <Form.Item name="lastName" label="Last Name" rules={[{ required: true }]}>
+            <Form.Item name="lastName" label={t('leads.form.lastName')} rules={[{ required: true }]}>
               <Input />
             </Form.Item>
           </div>
 
-          <Form.Item name="email" label="Email Address">
+          <Form.Item name="email" label={t('common.email')}>
             <Input />
           </Form.Item>
 
-          <Form.Item name="phone" label="Phone">
+          <Form.Item name="phone" label={t('common.phone')}>
             <Input />
           </Form.Item>
 
-          <Form.Item name="position" label="Position / Title">
-            <Input placeholder="CTO" />
+          <Form.Item name="position" label={t('contacts.position')}>
+            <Input placeholder="Giám đốc công nghệ" />
           </Form.Item>
         </Form>
       </Drawer>

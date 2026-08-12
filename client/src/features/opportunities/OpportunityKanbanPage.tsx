@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Button, Select, notification, Spin } from 'antd';
-import { TableOutlined, PlusOutlined } from '@ant-design/icons';
+import { TableOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { crmService } from '../../services/crmService';
 import { KanbanBoard, KanbanColumn } from '../../components/Kanban/KanbanBoard';
 import { Opportunity, Pipeline } from '../../types';
@@ -13,6 +14,7 @@ export const OpportunityKanbanPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
 
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   const fetchPipelines = async () => {
     try {
@@ -56,13 +58,13 @@ export const OpportunityKanbanPage: React.FC = () => {
       const res: any = await crmService.updateOpportunityStage(oppId, newStageId);
       if (res.success) {
         notification.success({
-          message: 'Stage Updated',
-          description: 'Opportunity moved to new stage. Stage History recorded & Automation triggered.',
+          message: t('common.success'),
+          description: 'Đã cập nhật giai đoạn cơ hội!',
         });
         fetchBoard(selectedPipelineId);
       }
     } catch (err: any) {
-      notification.error({ message: 'Stage Change Failed', description: err.message });
+      notification.error({ message: t('common.error'), description: err.message });
     }
   };
 
@@ -70,8 +72,8 @@ export const OpportunityKanbanPage: React.FC = () => {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Opportunity Kanban Board</h1>
-          <p className="text-sm text-slate-500">Drag & drop deals between sales stages to trigger stage history and automation</p>
+          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">{t('opportunities.title')} (Kanban)</h1>
+          <p className="text-sm text-slate-500">Kéo và thả cơ hội giữa các giai đoạn bán hàng</p>
         </div>
 
         <div className="flex items-center gap-3">
@@ -86,7 +88,7 @@ export const OpportunityKanbanPage: React.FC = () => {
           </Select>
 
           <Button icon={<TableOutlined />} onClick={() => navigate('/opportunities/list')}>
-            Table View
+            {t('opportunities.listView')}
           </Button>
         </div>
       </div>
