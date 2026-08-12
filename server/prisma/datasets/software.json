@@ -1,0 +1,237 @@
+{
+  "industryName": "Phần Mềm B2B & Giải Pháp CNTT",
+  "industryCode": "software",
+  "pipelineName": "Quy trình Bán Giải Pháp CNTT B2B",
+  "pipelineStages": [
+    { "name": "Lead Tiềm Năng (New)", "code": "NEW", "orderNo": 1, "probability": 10.0 },
+    { "name": "Đã Khảo Sát Nhu Cầu (Qualified)", "code": "QUALIFIED", "orderNo": 2, "probability": 25.0 },
+    { "name": "Demo Sản Phẩm (Demo)", "code": "DEMO", "orderNo": 3, "probability": 40.0 },
+    { "name": "Gửi Báo Giá & Đề Xuất (Proposal)", "code": "PROPOSAL", "orderNo": 4, "probability": 60.0 },
+    { "name": "Đàm Thoại Hợp Đồng (Negotiation)", "code": "NEGOTIATION", "orderNo": 5, "probability": 80.0 },
+    { "name": "Ký Hợp Đồng Thành Công (Won)", "code": "WON", "orderNo": 6, "probability": 100.0, "isWon": true },
+    { "name": "Hủy / Thất Bại (Lost)", "code": "LOST", "orderNo": 7, "probability": 0.0, "isLost": true }
+  ],
+  "products": [
+    {
+      "name": "Hệ Thống MiniCRM Basic Package",
+      "code": "PROD-CRM-BASIC",
+      "type": "PRODUCT",
+      "unitPrice": 15000000.0,
+      "currency": "VND",
+      "description": "Gói CRM cơ bản dành cho doanh nghiệp SME từ 5 đến 15 nhân viên."
+    },
+    {
+      "name": "Hệ Thống MiniCRM Enterprise Pro",
+      "code": "PROD-CRM-ENTERPRISE",
+      "type": "PRODUCT",
+      "unitPrice": 55000000.0,
+      "currency": "VND",
+      "description": "Gói CRM Doanh Nghiệp kèm Quy Trình Tự Động Hóa Workflow không giới hạn."
+    },
+    {
+      "name": "Module Tích Hợp Quản Lý Bệnh Viện (HIS)",
+      "code": "PROD-HIS-MODULE",
+      "type": "PRODUCT",
+      "unitPrice": 120000000.0,
+      "currency": "VND",
+      "description": "Tích hợp API dữ liệu bệnh nhân, lịch khám và hồ sơ bệnh án điện tử."
+    },
+    {
+      "name": "Trợ Lý Ảo AI Chatbot Zalo/Messenger",
+      "code": "PROD-AI-BOT",
+      "type": "PRODUCT",
+      "unitPrice": 25000000.0,
+      "currency": "VND",
+      "description": "AI Chatbot tư vấn tự động 24/7 tích hợp LLM OpenAI / Gemini."
+    },
+    {
+      "name": "Dịch Vụ Triển Khai & Đào Tạo Tận Nơi",
+      "code": "SRV-IMPL-TRAINING",
+      "type": "SERVICE",
+      "unitPrice": 10000000.0,
+      "currency": "VND",
+      "description": "Dịch vụ cài đặt, chuyển đổi dữ liệu và đào tạo nhân sự sử dụng hệ thống."
+    }
+  ],
+  "campaigns": [
+    {
+      "name": "Chiến dịch Digital Transformation B2B Q3",
+      "code": "CAMP-2026-DIGITAL-TRANS",
+      "type": "LINKEDIN",
+      "status": "ACTIVE",
+      "budget": 50000000.0,
+      "actualCost": 32000000.0,
+      "expectedRevenue": 450000000.0
+    },
+    {
+      "name": "Hội Thảo Công Nghệ Tech Expo Vietnam 2026",
+      "code": "CAMP-2026-EXPO",
+      "type": "EVENT",
+      "status": "COMPLETED",
+      "budget": 80000000.0,
+      "actualCost": 78000000.0,
+      "expectedRevenue": 600000000.0
+    }
+  ],
+  "companies": [
+    {
+      "name": "Tập đoàn Công nghệ FPT IS",
+      "taxCode": "0100109106",
+      "email": "contact@fpt.com.vn",
+      "phone": "02473007300",
+      "website": "https://fpt-is.com",
+      "address": "Duy Tân, Cầu Giấy, Hà Nội",
+      "status": "ACTIVE",
+      "isCustomer": true,
+      "contact": {
+        "firstName": "Minh",
+        "lastName": "Nguyễn Văn",
+        "email": "minh.nguyen@fpt.com.vn",
+        "phone": "0912345678",
+        "position": "Giám đốc Công nghệ (CTO)",
+        "department": "Khối Công nghệ Thông tin"
+      },
+      "customer": {
+        "customerCode": "CUST-B2B-001",
+        "lifetimeValue": 130000000.0
+      }
+    },
+    {
+      "name": "Công ty Cổ phần VNG Corporation",
+      "taxCode": "0303517001",
+      "email": "info@vng.com.vn",
+      "phone": "02839623888",
+      "website": "https://vng.com.vn",
+      "address": "KCX Tân Thuận, Quận 7, TP.HCM",
+      "status": "PROSPECT",
+      "isCustomer": false,
+      "contact": {
+        "firstName": "Lan",
+        "lastName": "Hoàng Thị",
+        "email": "lan.hoang@vng.com.vn",
+        "phone": "0987654321",
+        "position": "Trưởng phòng Mua hàng",
+        "department": "Phòng Vận hành & Cung ứng"
+      }
+    }
+  ],
+  "leads": [
+    {
+      "key": "lead1",
+      "firstName": "Thành",
+      "lastName": "Vũ Văn",
+      "email": "thanh.vu@vustore.vn",
+      "phone": "0911111111",
+      "source": "WEBSITE",
+      "status": "NEW",
+      "rating": "HOT",
+      "notes": "Đăng ký form dùng thử CRM trên Website. Cần giải pháp quản lý 50 nhân viên bán hàng chuỗi bán lẻ.",
+      "campaignCode": "CAMP-2026-DIGITAL-TRANS",
+      "salesUserEmail": "sales1@example.com"
+    },
+    {
+      "key": "lead2",
+      "firstName": "Hòa",
+      "lastName": "Phạm Thị",
+      "email": "hoa.pham@techasia.io",
+      "phone": "0922222222",
+      "source": "LINKEDIN",
+      "status": "CONTACTED",
+      "rating": "WARM",
+      "notes": "Nhắn tin qua LinkedIn Ads. Muốn tìm hiểu gói CRM Enterprise có hỗ trợ kết nối tổng đài VOIP không.",
+      "campaignCode": "CAMP-2026-DIGITAL-TRANS",
+      "salesUserEmail": "sales2@example.com"
+    },
+    {
+      "key": "lead3",
+      "firstName": "Kiên",
+      "lastName": "Đặng Quốc",
+      "email": "kien.dang@retailsolutions.vn",
+      "phone": "0933333333",
+      "source": "EVENT",
+      "status": "QUALIFIED",
+      "rating": "HOT",
+      "notes": "Gặp tại Booth Tech Expo 2026. Quan tâm giải pháp AI Chatbot CSKH tự động.",
+      "campaignCode": "CAMP-2026-EXPO",
+      "salesUserEmail": "sales1@example.com"
+    }
+  ],
+  "opportunities": [
+    {
+      "key": "opp1",
+      "name": "Triển khai Hệ thống HIS & CRM cho Bệnh viện FPT",
+      "leadKey": "lead1",
+      "salesUserEmail": "sales1@example.com",
+      "stageCode": "WON",
+      "amount": 130000000.0,
+      "probability": 100.0,
+      "status": "WON",
+      "source": "REFERRAL",
+      "description": "Đã ký hợp đồng gói Module Bệnh viện HIS (120M) + 1 ngày Triển khai đào tạo (10M).",
+      "products": [
+        { "productCode": "PROD-HIS-MODULE", "quantity": 1, "unitPrice": 120000000.0, "notes": "Module HIS kết nối API" },
+        { "productCode": "SRV-IMPL-TRAINING", "quantity": 1, "unitPrice": 10000000.0, "notes": "Đào tạo nhân sự Bệnh viện" }
+      ],
+      "quote": {
+        "quoteNumber": "BG-SW-2026-001",
+        "subtotal": 130000000.0,
+        "discountAmount": 0.0,
+        "totalAmount": 130000000.0,
+        "status": "ACCEPTED"
+      }
+    },
+    {
+      "key": "opp2",
+      "name": "Dự án CRM Enterprise Rollout - VNG Corp",
+      "leadKey": "lead2",
+      "salesUserEmail": "sales2@example.com",
+      "stageCode": "PROPOSAL",
+      "amount": 65000000.0,
+      "probability": 60.0,
+      "status": "OPEN",
+      "source": "LINKEDIN",
+      "description": "Đã gửi hồ sơ giải pháp CRM Enterprise Pro + Dịch vụ triển khai 10 triệu.",
+      "products": [
+        { "productCode": "PROD-CRM-ENTERPRISE", "quantity": 1, "unitPrice": 55000000.0 },
+        { "productCode": "SRV-IMPL-TRAINING", "quantity": 1, "unitPrice": 10000000.0 }
+      ],
+      "quote": {
+        "quoteNumber": "BG-SW-2026-002",
+        "subtotal": 65000000.0,
+        "discountAmount": 5000000.0,
+        "totalAmount": 60000000.0,
+        "status": "SENT"
+      }
+    }
+  ],
+  "activities": [
+    {
+      "type": "MEETING",
+      "subject": "Họp Demo Hệ Thống CRM Enterprise cho Ban Dự Án VNG",
+      "description": "Thuyết trình demo tính năng tự động hóa quy trình chăm sóc khách hàng và báo cáo doanh số cho Giám đốc VNG.",
+      "status": "COMPLETED",
+      "salesUserEmail": "sales2@example.com",
+      "relatedOppKey": "opp2"
+    }
+  ],
+  "tasks": [
+    {
+      "title": "Soạn thảo Hợp đồng kinh tế triển khai CRM VNG",
+      "description": "Gửi bản nháp hợp đồng cho phòng Pháp chế VNG duyệt trước khi ký kết",
+      "priority": "HIGH",
+      "status": "IN_PROGRESS",
+      "salesUserEmail": "sales2@example.com",
+      "relatedOppKey": "opp2"
+    }
+  ],
+  "automations": [
+    {
+      "name": "Tự động phân công Sales khi có Khách hàng đăng ký B2B",
+      "description": "Tự động gán cho Sales Executive khi có Lead B2B mới từ Website",
+      "triggerEvent": "RECORD_CREATED",
+      "entityType": "LEAD",
+      "actionRole": "SALES",
+      "taskTitle": "Liên hệ khảo sát nhu cầu doanh nghiệp B2B"
+    }
+  ]
+}

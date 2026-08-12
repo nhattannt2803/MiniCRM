@@ -10,6 +10,10 @@
     "prisma:generate": "prisma generate",
     "prisma:push": "prisma db push",
     "prisma:seed": "ts-node prisma/seed.ts",
+    "seed": "ts-node prisma/seed.ts",
+    "seed:xedien": "ts-node prisma/seed.ts xedien",
+    "seed:software": "ts-node prisma/seed.ts software",
+    "seed:batdongsan": "ts-node prisma/seed.ts batdongsan",
     "test": "jest --detectOpenHandles --forceExit"
   },
   "dependencies": {

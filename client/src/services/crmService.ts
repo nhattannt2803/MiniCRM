@@ -69,4 +69,7 @@ export const crmService = {
   getNotifications: () => api.get('/notifications'),
   markNotificationRead: (id: string) => api.patch(`/notifications/${id}/read`),
   markAllNotificationsRead: () => api.post('/notifications/mark-all-read'),
+
+  // Demo Industry Switcher
+  switchDemoIndustry: (industry: string) => api.post('/demo/switch-industry', { industry }),
 };

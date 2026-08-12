@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Layout, Menu, Badge, Dropdown, Avatar, Button, Popover, List, Typography } from 'antd';
+import { Layout, Menu, Badge, Dropdown, Avatar, Button, Popover, List, Typography, Select, message } from 'antd';
 import {
   DashboardOutlined,
   UsergroupAddOutlined,
@@ -18,6 +18,7 @@ import {
   MenuFoldOutlined,
   MenuUnfoldOutlined,
   GlobalOutlined,
+  ThunderboltOutlined,
 } from '@ant-design/icons';
 import { useNavigate, useLocation, Outlet } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -32,11 +33,37 @@ export const MainLayout: React.FC = () => {
   const [collapsed, setCollapsed] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [switchingDemo, setSwitchingDemo] = useState(false);
+  const [currentIndustry, setCurrentIndustry] = useState<string>(
+    localStorage.getItem('crm_demo_industry') || 'xedien'
+  );
 
   const { t, i18n } = useTranslation();
   const { user, logout } = useAuthStore();
   const navigate = useNavigate();
   const location = useLocation();
+
+  const handleSwitchDemo = async (value: string) => {
+    setSwitchingDemo(true);
+    const hideMessage = message.loading('Đang chuyển đổi dữ liệu ngành...', 0);
+    try {
+      const res: any = await crmService.switchDemoIndustry(value);
+      hideMessage();
+      if (res.data?.success) {
+        setCurrentIndustry(value);
+        localStorage.setItem('crm_demo_industry', value);
+        message.success(`Đã đổi dữ liệu demo sang: ${res.data.data.industryName}`);
+        setTimeout(() => {
+          window.location.reload();
+        }, 600);
+      }
+    } catch (err) {
+      hideMessage();
+      message.error('Không thể chuyển đổi dữ liệu demo');
+    } finally {
+      setSwitchingDemo(false);
+    }
+  };
 
   const fetchNotifications = async () => {
     try {
@@ -162,6 +189,27 @@ export const MainLayout: React.FC = () => {
           />
 
           <div className="flex items-center gap-4">
+            {/* Demo Industry Switcher Widget */}
+            <div className="flex items-center gap-2 bg-indigo-50/80 border border-indigo-100 rounded-full px-3 py-1 shadow-2xs">
+              <ThunderboltOutlined className="text-indigo-600 font-bold" />
+              <span className="text-xs font-semibold text-indigo-950 hidden sm:inline">Demo:</span>
+              <Select
+                value={currentIndustry}
+                onChange={handleSwitchDemo}
+                loading={switchingDemo}
+                disabled={switchingDemo}
+                size="small"
+                variant="borderless"
+                popupMatchSelectWidth={false}
+                className="font-bold text-indigo-900 text-xs"
+                options={[
+                  { value: 'xedien', label: '🚲 Xe Điện MOVE' },
+                  { value: 'software', label: '💻 Phần Mềm B2B' },
+                  { value: 'batdongsan', label: '🏢 Bất Động Sản' },
+                ]}
+              />
+            </div>
+
             {/* Language Switcher Dropdown */}
             <Dropdown menu={languageMenu} placement="bottomRight">
               <Button type="text" icon={<GlobalOutlined className="text-lg text-slate-600" />} className="flex items-center gap-1">

@@ -1,0 +1,459 @@
+{
+  "industryName": "Xe Đạp Điện & Xe Máy Điện MOVE",
+  "industryCode": "xedien",
+  "pipelineName": "Quy trình bán Xe điện",
+  "pipelineStages": [
+    { "name": "Khách mới (New)", "code": "NEW", "orderNo": 1, "probability": 10.0 },
+    { "name": "Đã tư vấn (Qualified)", "code": "QUALIFIED", "orderNo": 2, "probability": 25.0 },
+    { "name": "Lái thử / Trải nghiệm (Demo)", "code": "DEMO", "orderNo": 3, "probability": 45.0 },
+    { "name": "Báo giá & Trả góp (Proposal)", "code": "PROPOSAL", "orderNo": 4, "probability": 65.0 },
+    { "name": "Thương lượng (Negotiation)", "code": "NEGOTIATION", "orderNo": 5, "probability": 85.0 },
+    { "name": "Chốt đơn thành công (Won)", "code": "WON", "orderNo": 6, "probability": 100.0, "isWon": true },
+    { "name": "Khách hủy / Thất bại (Lost)", "code": "LOST", "orderNo": 7, "probability": 0.0, "isLost": true }
+  ],
+  "products": [
+    {
+      "name": "Xe đạp điện trợ lực E6 Pro",
+      "code": "MOVE-E6-PRO",
+      "type": "PRODUCT",
+      "unitPrice": 10800000.0,
+      "currency": "VND",
+      "description": "Động cơ 220W, Tốc độ tối đa 25km/h, Quãng đường 70km. Phù hợp cho học sinh dưới 16 tuổi."
+    },
+    {
+      "name": "Xe máy điện STRONGER PRO",
+      "code": "MOVE-STRONGER-PRO",
+      "type": "PRODUCT",
+      "unitPrice": 10500000.0,
+      "currency": "VND",
+      "description": "Động cơ 350W, Tốc độ 45km/h, Quãng đường 70km, chạy Ắc quy thế hệ mới."
+    },
+    {
+      "name": "Xe máy điện SPORT",
+      "code": "MOVE-SPORT",
+      "type": "PRODUCT",
+      "unitPrice": 10900000.0,
+      "currency": "VND",
+      "description": "Động cơ 500W thể thao, Tốc độ 45km/h, Quãng đường 70km."
+    },
+    {
+      "name": "Xe đạp điện trợ lực MOVE133",
+      "code": "MOVE-133",
+      "type": "PRODUCT",
+      "unitPrice": 11500000.0,
+      "currency": "VND",
+      "description": "Dáng thể thao học sinh, Động cơ 220W, Quãng đường 70km."
+    },
+    {
+      "name": "Xe đạp điện trợ lực MOVE007",
+      "code": "MOVE-007",
+      "type": "PRODUCT",
+      "unitPrice": 13900000.0,
+      "currency": "VND",
+      "description": "Khung hợp kim nhôm siêu nhẹ, hỗ trợ bản Pin Lithium / Ắc quy."
+    },
+    {
+      "name": "Xe máy điện MOVE ATHENA",
+      "code": "MOVE-ATHENA",
+      "type": "PRODUCT",
+      "unitPrice": 14500000.0,
+      "currency": "VND",
+      "description": "Động cơ 500W, Tốc độ 45km/h, Thiết kế trẻ trung, nhiều màu sắc thời trang."
+    },
+    {
+      "name": "Xe máy điện MOVE MENTOR",
+      "code": "MOVE-MENTOR",
+      "type": "PRODUCT",
+      "unitPrice": 14700000.0,
+      "currency": "VND",
+      "description": "Động cơ 500W, Thiết kế đô thị thanh lịch, di chuyển êm ái."
+    },
+    {
+      "name": "Xe máy điện MOVE ATHENA PRO",
+      "code": "MOVE-ATHENA-PRO",
+      "type": "PRODUCT",
+      "unitPrice": 14990000.0,
+      "currency": "VND",
+      "description": "Động cơ 1000W mạnh mẽ, Tốc độ 45km/h, Quãng đường 90km."
+    },
+    {
+      "name": "Xe đạp điện trợ lực MOVE946",
+      "code": "MOVE-946",
+      "type": "PRODUCT",
+      "unitPrice": 16100000.0,
+      "currency": "VND",
+      "description": "Phong cách nữ tính quý phái, Động cơ 240W, Pin Lithium sạc nhanh."
+    },
+    {
+      "name": "Xe đạp điện trợ lực MOVE 911",
+      "code": "MOVE-911",
+      "type": "PRODUCT",
+      "unitPrice": 16500000.0,
+      "currency": "VND",
+      "description": "Thiết kế Vintage độc đáo, Động cơ 240W, Pin Lithium dung lượng cao."
+    },
+    {
+      "name": "Xe máy điện MOVE ISABELLA",
+      "code": "MOVE-ISABELLA",
+      "type": "PRODUCT",
+      "unitPrice": 19900000.0,
+      "currency": "VND",
+      "description": "Dòng xe tay ga điện phong cách Ý, Động cơ 800W, Tốc độ 50km/h, Quãng đường 90km."
+    },
+    {
+      "name": "Xe máy điện MOVE TARGET",
+      "code": "MOVE-TARGET",
+      "type": "PRODUCT",
+      "unitPrice": 32000000.0,
+      "currency": "VND",
+      "description": "Động cơ 1500W, Tốc độ 50km/h, Quãng đường 120km, Pin Lithium 4.3Kw."
+    },
+    {
+      "name": "Xe máy điện MOVE TARGET S",
+      "code": "MOVE-TARGET-S",
+      "type": "PRODUCT",
+      "unitPrice": 39000000.0,
+      "currency": "VND",
+      "description": "Động cơ 3000W cao cấp, Tốc độ 80km/h, Quãng đường 200km."
+    },
+    {
+      "name": "Xe máy điện MOVE THINKING",
+      "code": "MOVE-THINKING",
+      "type": "PRODUCT",
+      "unitPrice": 39000000.0,
+      "currency": "VND",
+      "description": "Xe điện thông minh AI, Động cơ 3000W, Quãng đường 200km."
+    },
+    {
+      "name": "Xe máy điện MOVE BOSS",
+      "code": "MOVE-BOSS",
+      "type": "PRODUCT",
+      "unitPrice": 54000000.0,
+      "currency": "VND",
+      "description": "Flagship Động cơ 3000W, Tốc độ 85km/h, Quãng đường 180km, Khung xe siêu chịu lực."
+    },
+    {
+      "name": "Xe máy điện MOVE MISSION",
+      "code": "MOVE-MISSION",
+      "type": "PRODUCT",
+      "unitPrice": 54000000.0,
+      "currency": "VND",
+      "description": "Xe phượt điện cao cấp, Động cơ 3000W, Tốc độ 85km/h, Quãng đường 200km."
+    },
+    {
+      "name": "Mũ bảo hiểm cao cấp MOVE",
+      "code": "ACC-HELMET-MOVE",
+      "type": "PRODUCT",
+      "unitPrice": 450000.0,
+      "currency": "VND",
+      "description": "Mũ bảo hiểm nửa đầu chính hãng MOVE, đạt chuẩn CR."
+    },
+    {
+      "name": "Gói bảo dưỡng & Bảo hành Pin 3 năm",
+      "code": "SRV-BATTERY-WAR3Y",
+      "type": "SERVICE",
+      "unitPrice": 1500000.0,
+      "currency": "VND",
+      "description": "Gói bảo dưỡng định kỳ 6 tháng/lần + Đổi mới pin nếu chai > 20% trong 3 năm."
+    }
+  ],
+  "campaigns": [
+    {
+      "name": "Chiến dịch Facebook Ads - Back to School Xe Điện Học Sinh",
+      "code": "CAMP-FB-XEDIEN-SCHOOL",
+      "type": "FB_ADS",
+      "status": "ACTIVE",
+      "budget": 30000000.0,
+      "actualCost": 18500000.0,
+      "expectedRevenue": 250000000.0
+    },
+    {
+      "name": "Chiến dịch Zalo Official - Đăng ký Lái thử Xe Điện MOVE TARGET",
+      "code": "CAMP-ZALO-DEMO",
+      "type": "ZALO",
+      "status": "ACTIVE",
+      "budget": 20000000.0,
+      "actualCost": 12000000.0,
+      "expectedRevenue": 180000000.0
+    },
+    {
+      "name": "Chiến dịch TikTok Viral - Xe máy điện MOVE Isabella & Athena Pro",
+      "code": "CAMP-TIKTOK-ISABELLA",
+      "type": "TIKTOK",
+      "status": "ACTIVE",
+      "budget": 40000000.0,
+      "actualCost": 28000000.0,
+      "expectedRevenue": 400000000.0
+    }
+  ],
+  "companies": [
+    {
+      "name": "Công ty Cổ phần Giao Hàng Xanh Express",
+      "taxCode": "0109887766",
+      "email": "logistics@giaohangxanh.vn",
+      "phone": "02438889999",
+      "website": "https://giaohangxanh.vn",
+      "address": "Số 45 Nguyễn Trãi, Thanh Xuân, Hà Nội",
+      "status": "ACTIVE",
+      "isCustomer": true,
+      "contact": {
+        "firstName": "Hải",
+        "lastName": "Trần Văn",
+        "email": "hai.tran@giaohangxanh.vn",
+        "phone": "0912345678",
+        "position": "Trưởng phòng Vận tải",
+        "department": "Đội xe giao hàng"
+      },
+      "customer": {
+        "customerCode": "CUST-MOVE-001",
+        "lifetimeValue": 108000000.0
+      }
+    }
+  ],
+  "leads": [
+    {
+      "key": "lead1",
+      "firstName": "Đăng",
+      "lastName": "Nguyễn Hải",
+      "email": "haidang.nguyen@gmail.com",
+      "phone": "0988112233",
+      "source": "ZALO",
+      "status": "NEW",
+      "rating": "HOT",
+      "notes": "Khách nhắn qua Zalo OA: Cần tư vấn xe đạp điện MOVE 133 cho con trai đi học lớp 8. Hỏi chi tiết bảo hành và quãng đường sạc.",
+      "campaignCode": "CAMP-ZALO-DEMO",
+      "salesUserEmail": "sales1@example.com"
+    },
+    {
+      "key": "lead2",
+      "firstName": "Anh",
+      "lastName": "Phạm Hoàng",
+      "email": "hoanganh.pham@outlook.com",
+      "phone": "0977445566",
+      "source": "FB_ADS",
+      "status": "CONTACTED",
+      "rating": "HOT",
+      "notes": "Khách nhắn tin Messenger từ Quảng cáo FB: Hỏi xe máy điện MOVE ISABELLA màu Trắng. Muốn trả góp 0% qua thẻ VPBank.",
+      "campaignCode": "CAMP-FB-XEDIEN-SCHOOL",
+      "salesUserEmail": "sales2@example.com"
+    },
+    {
+      "key": "lead3",
+      "firstName": "Thư",
+      "lastName": "Trần Thị Minh",
+      "email": "minhthu.tran@yahoo.com",
+      "phone": "0933667788",
+      "source": "WEBSITE",
+      "status": "QUALIFIED",
+      "rating": "HOT",
+      "notes": "Chat trực tiếp qua Livechat Website: Muốn xem xe MOVE ATHENA PRO màu Trắng Hồng. Đã hẹn chiều T7 ghé Showroom Cầu Giấy xem xe.",
+      "salesUserEmail": "sales1@example.com"
+    },
+    {
+      "key": "lead4",
+      "firstName": "Nam",
+      "lastName": "Lê Văn",
+      "email": "vannam.le@gmail.com",
+      "phone": "0905123456",
+      "source": "TIKTOK",
+      "status": "CONTACTED",
+      "rating": "WARM",
+      "notes": "Comment & Nhắn tin TikTok: Hỏi xe MOVE TARGET S bản động cơ 3000W chạy 200km. Hỏi có giao xe về Hải Phòng không.",
+      "campaignCode": "CAMP-TIKTOK-ISABELLA",
+      "salesUserEmail": "sales2@example.com"
+    },
+    {
+      "key": "lead5",
+      "firstName": "Ngọc",
+      "lastName": "Vũ Bích",
+      "email": "bichngoc.vu@gmail.com",
+      "phone": "0918998877",
+      "source": "HOTLINE",
+      "status": "QUALIFIED",
+      "rating": "HOT",
+      "notes": "Gọi Hotline tư vấn: Muốn mua 2 chiếc xe đạp điện trợ lực E6 Pro cho bố mẹ tập thể dục và đi chợ gần nhà.",
+      "salesUserEmail": "sales1@example.com"
+    },
+    {
+      "key": "lead6",
+      "firstName": "Trí",
+      "lastName": "Đỗ Minh",
+      "email": "minhtri.do@techcorp.vn",
+      "phone": "0944556677",
+      "source": "WALK_IN",
+      "status": "QUALIFIED",
+      "rating": "HOT",
+      "notes": "Ghế trực tiếp Showroom: Khách thích xe máy điện MOVE BOSS màu Đen bóng. Muốn chốt trong ngày nhận xe ngay.",
+      "salesUserEmail": "sales2@example.com"
+    }
+  ],
+  "opportunities": [
+    {
+      "key": "opp1",
+      "name": "Tư vấn & Bán xe máy điện MOVE ISABELLA - Chị Hoàng Anh",
+      "leadKey": "lead2",
+      "salesUserEmail": "sales2@example.com",
+      "stageCode": "PROPOSAL",
+      "amount": 20350000.0,
+      "probability": 65.0,
+      "status": "OPEN",
+      "source": "FB_ADS",
+      "description": "Khách chọn màu Trắng, mua thêm Mũ bảo hiểm MOVE. Đã gửi bảng tính trả góp 12 tháng.",
+      "products": [
+        { "productCode": "MOVE-ISABELLA", "quantity": 1, "unitPrice": 19900000.0, "notes": "Màu Trắng ngọc trai" },
+        { "productCode": "ACC-HELMET-MOVE", "quantity": 1, "unitPrice": 450000.0, "notes": "Mũ bảo hiểm MOVE tem CR" }
+      ],
+      "quote": {
+        "quoteNumber": "BG-MOVE-2026-001",
+        "subtotal": 20350000.0,
+        "discountAmount": 350000.0,
+        "totalAmount": 20000000.0,
+        "status": "SENT"
+      }
+    },
+    {
+      "key": "opp2",
+      "name": "Trải nghiệm & Chốt xe MOVE TARGET S (3000W) - Anh Nam",
+      "leadKey": "lead4",
+      "salesUserEmail": "sales2@example.com",
+      "stageCode": "DEMO",
+      "amount": 40500000.0,
+      "probability": 45.0,
+      "status": "OPEN",
+      "source": "TIKTOK",
+      "description": "Hẹn giao xe trải nghiệm lái thử tận nơi tại Hải Phòng.",
+      "products": [
+        { "productCode": "MOVE-TARGET-S", "quantity": 1, "unitPrice": 39000000.0, "notes": "Phiên bản Đen nhám" },
+        { "productCode": "SRV-BATTERY-WAR3Y", "quantity": 1, "unitPrice": 1500000.0, "notes": "Gói bảo hành Pin 3 năm" }
+      ]
+    },
+    {
+      "key": "opp3",
+      "name": "Đơn hàng 2 xe đạp điện trợ lực MOVE E6 Pro - Cô Bích Ngọc",
+      "leadKey": "lead5",
+      "salesUserEmail": "sales1@example.com",
+      "stageCode": "WON",
+      "amount": 21600000.0,
+      "probability": 100.0,
+      "status": "WON",
+      "source": "HOTLINE",
+      "description": "Đã giao 2 xe màu Xám & Xanh su hào tận nhà, thanh toán tiền mặt 100%."
+    },
+    {
+      "key": "opp4",
+      "name": "Đơn hàng xe điện cao cấp MOVE BOSS (3000W) - Anh Trí",
+      "leadKey": "lead6",
+      "salesUserEmail": "sales2@example.com",
+      "stageCode": "WON",
+      "amount": 55950000.0,
+      "probability": 100.0,
+      "status": "WON",
+      "source": "WALK_IN",
+      "description": "Khách chốt xe tại Showroom, nhận xe trong ngày."
+    },
+    {
+      "key": "opp5",
+      "name": "Tư vấn xe máy điện MOVE ATHENA PRO - Chị Minh Thư",
+      "leadKey": "lead3",
+      "salesUserEmail": "sales1@example.com",
+      "stageCode": "NEGOTIATION",
+      "amount": 15440000.0,
+      "probability": 85.0,
+      "status": "OPEN",
+      "source": "WEBSITE",
+      "description": "Khách xem xe trực tiếp ưng ý, đang xin giảm 500k hoặc tặng thảm lót sàn.",
+      "quote": {
+        "quoteNumber": "BG-MOVE-2026-002",
+        "subtotal": 15440000.0,
+        "discountAmount": 440000.0,
+        "totalAmount": 15000000.0,
+        "status": "ACCEPTED"
+      }
+    }
+  ],
+  "activities": [
+    {
+      "type": "CHAT",
+      "subject": "Tư vấn Zalo OA: Chọn xe đạp điện cho học sinh",
+      "description": "Khách: \"Chào em, bé nhà chị cao 1m50 đi xe MOVE 133 có vừa không? Xe sạc mất bao lâu?\"\nSales (Minh Tuấn): \"Dạ chào chị! Dòng MOVE 133 yên xe cao 73cm rất vừa vặn cho chiều cao của bé ạ. Xe dùng sạc thông minh tự ngắt khi đầy, thời gian sạc khoảng 6-8 tiếng ạ. Bên em đang có quà tặng Mũ bảo hiểm cho học sinh ạ!\"",
+      "status": "COMPLETED",
+      "salesUserEmail": "sales1@example.com",
+      "relatedLeadKey": "lead1"
+    },
+    {
+      "type": "CHAT",
+      "subject": "Nhắn tin Messenger: Tư vấn Trả góp 0% xe MOVE ISABELLA",
+      "description": "Khách: \"Em ơi xe Isabella có màu hồng không? Trả góp qua thẻ Visa VPBank mỗi tháng trả bao nhiêu?\"\nSales (Thùy Dương): \"Dạ xe Isabella có phiên bản Trắng ngọc trai và Xám xi măng cao cấp ạ! Trả góp qua thẻ VPBank 12 tháng mỗi tháng chỉ khoảng 1.690.000 VNĐ, không mất lãi suất ạ. Chị cho em xin SĐT em hỗ trợ làm hồ sơ online nhé!\"",
+      "status": "COMPLETED",
+      "salesUserEmail": "sales2@example.com",
+      "relatedLeadKey": "lead2"
+    },
+    {
+      "type": "CALL",
+      "subject": "Cuộc gọi tư vấn: Chốt đơn 2 xe MOVE E6 Pro",
+      "description": "Gọi lại cho cô Bích Ngọc xác nhận địa chỉ giao 2 xe E6 Pro (1 màu Xám, 1 màu Xanh su hào). Khách hẹn giao trong buổi chiều, thanh toán tiền mặt khi nhận xe.",
+      "status": "COMPLETED",
+      "salesUserEmail": "sales1@example.com",
+      "relatedOppKey": "opp3"
+    },
+    {
+      "type": "MEETING",
+      "subject": "Trải nghiệm & Lái thử xe MOVE BOSS tại Showroom",
+      "description": "Anh Minh Trí ghé Showroom chạy thử dòng xe điện cao cấp MOVE BOSS (3000W). Khách đánh giá xe vút ga cực bốc, phanh đĩa đúp an toàn. Khách đã thanh toán full và lấy xe ngay.",
+      "status": "COMPLETED",
+      "salesUserEmail": "sales2@example.com",
+      "relatedOppKey": "opp4"
+    }
+  ],
+  "tasks": [
+    {
+      "title": "Gửi bảng tính chi tiết trả góp xe Isabella qua Zalo",
+      "description": "Gửi file PDF báo giá & hướng dẫn quẹt thẻ trả góp 0% cho chị Hoàng Anh",
+      "priority": "HIGH",
+      "status": "TODO",
+      "salesUserEmail": "sales2@example.com",
+      "relatedOppKey": "opp1"
+    },
+    {
+      "title": "Xác nhận lịch hẹn lái thử xe MOVE TARGET S tại Hải Phòng",
+      "description": "Liên hệ xe tải giao hàng mang xe MOVE TARGET S chạy thử cho anh Nam",
+      "priority": "URGENT",
+      "status": "IN_PROGRESS",
+      "salesUserEmail": "sales2@example.com",
+      "relatedOppKey": "opp2"
+    },
+    {
+      "title": "Gọi điện đăng ký biển số & làm giấy tờ xe cho anh Trí",
+      "description": "Hỗ trợ khách làm thủ tục đăng ký biển xe máy điện MOVE BOSS",
+      "priority": "MEDIUM",
+      "status": "TODO",
+      "salesUserEmail": "sales1@example.com",
+      "relatedOppKey": "opp4"
+    }
+  ],
+  "automations": [
+    {
+      "name": "Tự động phân công Sales & Tạo nhiệm vụ khi có Khách mới nhắn tin",
+      "description": "Tự động gán nhân viên Sales và tạo Task gọi điện tư vấn trong 2 giờ khi nhận Lead từ Zalo/FB/TikTok",
+      "triggerEvent": "RECORD_CREATED",
+      "entityType": "LEAD",
+      "actionRole": "SALES",
+      "taskTitle": "Gọi / Nhắn tin tư vấn dòng xe điện cho khách"
+    },
+    {
+      "name": "Tự động mở Cơ hội bán hàng khi Khách đã được tư vấn (QUALIFIED)",
+      "description": "Khi trạng thái Lead chuyển sang QUALIFIED, tự động tạo Cơ hội trên Pipeline",
+      "triggerEvent": "STATUS_CHANGED",
+      "entityType": "LEAD",
+      "toStatus": "QUALIFIED"
+    },
+    {
+      "name": "Tự động tạo Task gửi Báo giá & Khuyến mãi khi sang bước PROPOSAL",
+      "description": "Khi cơ hội bán xe chuyển sang bước Báo giá, nhắc nhở Sales soạn Báo giá kèm Quà tặng",
+      "triggerEvent": "STAGE_CHANGED",
+      "entityType": "OPPORTUNITY",
+      "toStageCode": "PROPOSAL",
+      "taskTitle": "Tạo Báo giá & Chi tiết quà tặng gửi khách"
+    }
+  ]
+}

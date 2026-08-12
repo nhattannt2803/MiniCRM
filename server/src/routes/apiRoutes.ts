@@ -82,4 +82,7 @@ router.get('/notifications', crm.getUserNotifications);
 router.patch('/notifications/:id/read', crm.markNotificationRead);
 router.post('/notifications/mark-all-read', crm.markAllNotificationsRead);
 
+// Demo Industry Switcher
+router.post('/demo/switch-industry', crm.switchDemoIndustry);
+
 export default router;

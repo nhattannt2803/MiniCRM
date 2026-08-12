@@ -13,6 +13,7 @@ import { ActivityService, TaskService, CampaignService } from '../services/Activ
 import { DashboardService } from '../services/DashboardService';
 import { AutomationService } from '../services/AutomationService';
 import { NotificationService } from '../services/NotificationService';
+import { runSeedEngine } from '../services/seedEngine';
 
 // -----------------------------------------------------------------------------
 // Auth Controller
@@ -479,3 +480,17 @@ export const markAllNotificationsRead = async (req: AuthenticatedRequest, res: R
     next(err);
   }
 };
+
+// -----------------------------------------------------------------------------
+// Demo Switcher Controller
+// -----------------------------------------------------------------------------
+export const switchDemoIndustry = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  try {
+    const { industry } = req.body;
+    const result = await runSeedEngine(industry || 'xedien');
+    res.json({ success: true, data: result });
+  } catch (err) {
+    next(err);
+  }
+};
+

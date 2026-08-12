@@ -1,0 +1,189 @@
+{
+  "industryName": "Bất Động Sản & Dự Án Nhà Đất",
+  "industryCode": "batdongsan",
+  "pipelineName": "Quy trình Bán Bất Động Sản & Căn Hộ",
+  "pipelineStages": [
+    { "name": "Khách Mới Quan Tâm (New)", "code": "NEW", "orderNo": 1, "probability": 10.0 },
+    { "name": "Tư Vấn Dự Án & Vị Trí (Qualified)", "code": "QUALIFIED", "orderNo": 2, "probability": 25.0 },
+    { "name": "Đưa Khách Xem Nhà Mẫu (Demo)", "code": "DEMO", "orderNo": 3, "probability": 50.0 },
+    { "name": "Báo Giá & Bảng Tính Vay (Proposal)", "code": "PROPOSAL", "orderNo": 4, "probability": 70.0 },
+    { "name": "Thương Lượng Căn & Chiết Khấu (Negotiation)", "code": "NEGOTIATION", "orderNo": 5, "probability": 85.0 },
+    { "name": "Đặt Cọc & Ký Hợp Đồng (Won)", "code": "WON", "orderNo": 6, "probability": 100.0, "isWon": true },
+    { "name": "Khách Hủy Cọc / Thất Bại (Lost)", "code": "LOST", "orderNo": 7, "probability": 0.0, "isLost": true }
+  ],
+  "products": [
+    {
+      "name": "Căn Hộ 2PN Vinhomes Smart City (Tây Mỗ)",
+      "code": "REAL-BDS-VH-2PN",
+      "type": "PRODUCT",
+      "unitPrice": 3200000000.0,
+      "currency": "VND",
+      "description": "Diện tích 65m2, 2 Phòng ngủ + 2WC, Ban công Đông Nam thoáng mát, bàn giao full nội thất gắn tường."
+    },
+    {
+      "name": "Biệt Thự Biển Sun Premier Village Phú Quốc",
+      "code": "REAL-BDS-SUN-BT",
+      "type": "PRODUCT",
+      "unitPrice": 22000000000.0,
+      "currency": "VND",
+      "description": "Biệt thự đơn lập hướng biển, diện tích đất 350m2, hồ bơi riêng, nằm trong quần thể nghỉ dưỡng 5 sao."
+    },
+    {
+      "name": "Shophouse Thương Mại Metropole Thủ Thiêm",
+      "code": "REAL-BDS-METRO-SHOP",
+      "type": "PRODUCT",
+      "unitPrice": 45000000000.0,
+      "currency": "VND",
+      "description": "Shophouse mặt tiền đường 30m, 1 trệt 3 lầu, vị trí vàng kinh doanh sầm uất tại trung tâm Thủ Thiêm."
+    },
+    {
+      "name": "Đất Nền Dự Án Đô Thị Bình Dương",
+      "code": "REAL-BDS-BD-DATNEN",
+      "type": "PRODUCT",
+      "unitPrice": 1800000000.0,
+      "currency": "VND",
+      "description": "Lô góc 2 mặt tiền, diện tích 100m2, thổ cư 100%, sổ đỏ cầm tay, hạ tầng điện âm nước máy."
+    }
+  ],
+  "campaigns": [
+    {
+      "name": "Chiến dịch Google Search - Mở Bán Căn Hộ Vinhomes Smart City",
+      "code": "CAMP-2026-VINHOMES",
+      "type": "GOOGLE_ADS",
+      "status": "ACTIVE",
+      "budget": 60000000.0,
+      "actualCost": 42000000.0,
+      "expectedRevenue": 15000000000.0
+    },
+    {
+      "name": "Event Mở Bán Biệt Thự Sun Group Phú Quốc tại Khách sạn Melia",
+      "code": "CAMP-2026-SUN-EVENT",
+      "type": "EVENT",
+      "status": "ACTIVE",
+      "budget": 120000000.0,
+      "actualCost": 110000000.0,
+      "expectedRevenue": 66000000000.0
+    }
+  ],
+  "companies": [
+    {
+      "name": "Công ty Đầu tư Bất Động Sản Khang Điền",
+      "taxCode": "0303889911",
+      "email": "dautu@khangdien.com.vn",
+      "phone": "02838228888",
+      "website": "https://khangdien.com.vn",
+      "address": "Tầng 11, SaiGon Centre, Q1, TP.HCM",
+      "status": "ACTIVE",
+      "isCustomer": true,
+      "contact": {
+        "firstName": "Hương",
+        "lastName": "Nguyễn Thị",
+        "email": "huong.nguyen@khangdien.com.vn",
+        "phone": "0909112233",
+        "position": "Giám đốc Đầu tư",
+        "department": "Khối Phát triển Dự án"
+      },
+      "customer": {
+        "customerCode": "CUST-BDS-001",
+        "lifetimeValue": 45000000000.0
+      }
+    }
+  ],
+  "leads": [
+    {
+      "key": "lead1",
+      "firstName": "Nam",
+      "lastName": "Phạm Hoàng",
+      "email": "hoangnam.bds@gmail.com",
+      "phone": "0989123456",
+      "source": "GOOGLE_ADS",
+      "status": "QUALIFIED",
+      "rating": "HOT",
+      "notes": "Khách để lại SĐT qua Google Search: Quan tâm căn 2PN Vinhomes Smart City. Cần vay 70% ngân hàng Techcombank.",
+      "campaignCode": "CAMP-2026-VINHOMES",
+      "salesUserEmail": "sales1@example.com"
+    },
+    {
+      "key": "lead2",
+      "firstName": "Bảo",
+      "lastName": "Trần Quốc",
+      "email": "quocbao.invest@yahoo.com",
+      "phone": "0903889900",
+      "source": "EVENT",
+      "status": "CONTACTED",
+      "rating": "HOT",
+      "notes": "Tham dự Event mở bán Sun Group Phú Quốc. Nhà đầu tư quan tâm căn Biệt thự biển xem chính sách thanh toán 2 năm.",
+      "campaignCode": "CAMP-2026-SUN-EVENT",
+      "salesUserEmail": "sales2@example.com"
+    }
+  ],
+  "opportunities": [
+    {
+      "key": "opp1",
+      "name": "Tư vấn & Chốt mua Căn hộ 2PN Vinhomes Smart City - Anh Nam",
+      "leadKey": "lead1",
+      "salesUserEmail": "sales1@example.com",
+      "stageCode": "PROPOSAL",
+      "amount": 3200000000.0,
+      "probability": 70.0,
+      "status": "OPEN",
+      "source": "GOOGLE_ADS",
+      "description": "Khách đã đi xem nhà mẫu 2 lần. Đã gửi phương án vay ngân hàng trả góp 20 năm.",
+      "products": [
+        { "productCode": "REAL-BDS-VH-2PN", "quantity": 1, "unitPrice": 3200000000.0, "notes": "Căn tầng 15 đẹp nhất tòa S2" }
+      ],
+      "quote": {
+        "quoteNumber": "BG-BDS-2026-001",
+        "subtotal": 3200000000.0,
+        "discountAmount": 100000000.0,
+        "totalAmount": 3100000000.0,
+        "status": "SENT"
+      }
+    },
+    {
+      "key": "opp2",
+      "name": "Đặt cọc Biệt thự Biển Sun Group Phú Quốc - Anh Bảo",
+      "leadKey": "lead2",
+      "salesUserEmail": "sales2@example.com",
+      "stageCode": "NEGOTIATION",
+      "amount": 22000000000.0,
+      "probability": 85.0,
+      "status": "OPEN",
+      "source": "EVENT",
+      "description": "Đã thương lượng chiết khấu 5% cho khách thanh toán sớm 95%.",
+      "products": [
+        { "productCode": "REAL-BDS-SUN-BT", "quantity": 1, "unitPrice": 22000000000.0, "notes": "Căn Biệt thự Lote B8 sát biển" }
+      ]
+    }
+  ],
+  "activities": [
+    {
+      "type": "MEETING",
+      "subject": "Đưa Anh Nam đi xem thực tế Nhà Mẫu Vinhomes Smart City",
+      "description": "Đón khách tại sa bàn dự án, dẫn lên xem căn hộ thực tế tầng 15. Khách rất ưng ý hướng ban công Đông Nam.",
+      "status": "COMPLETED",
+      "salesUserEmail": "sales1@example.com",
+      "relatedOppKey": "opp1"
+    }
+  ],
+  "tasks": [
+    {
+      "title": "Gửi bảng tính dòng tiền vay Techcombank 70% cho Anh Nam",
+      "description": "Tính chi tiết số tiền gốc + lãi trả hàng tháng trong 20 năm cho căn 3.2 tỷ",
+      "priority": "HIGH",
+      "status": "TODO",
+      "salesUserEmail": "sales1@example.com",
+      "relatedOppKey": "opp1"
+    }
+  ],
+  "automations": [
+    {
+      "name": "Tự động tạo Task đưa khách xem nhà mẫu khi tư vấn Bất động sản",
+      "description": "Khi lead BĐS đủ điều kiện QUALIFIED, tạo task nhắc Sales hẹn xem sa bàn & nhà mẫu",
+      "triggerEvent": "STATUS_CHANGED",
+      "entityType": "LEAD",
+      "toStatus": "QUALIFIED",
+      "taskTitle": "Liên hệ hẹn khách tham quan Sa bàn & Nhà mẫu"
+    }
+  ]
+}
