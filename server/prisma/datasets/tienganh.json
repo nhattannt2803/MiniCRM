@@ -1,0 +1,271 @@
+{
+  "industryName": "Giáo Dục & Trung Tâm Tiếng Anh ILA",
+  "industryCode": "tienganh",
+  "pipelineName": "Quy trình Tư vấn Học viên ILA Vietnam",
+  "pipelineStages": [
+    { "name": "Khách mới đăng ký (New)", "code": "NEW", "orderNo": 1, "probability": 10.0 },
+    { "name": "Đã liên hệ tư vấn (Qualified)", "code": "QUALIFIED", "orderNo": 2, "probability": 25.0 },
+    { "name": "Hẹn Test trình độ & Học thử (Demo)", "code": "DEMO", "orderNo": 3, "probability": 50.0 },
+    { "name": "Báo giá học phí & Lộ trình (Proposal)", "code": "PROPOSAL", "orderNo": 4, "probability": 70.0 },
+    { "name": "Thương lượng học bổng (Negotiation)", "code": "NEGOTIATION", "orderNo": 5, "probability": 85.0 },
+    { "name": "Đăng ký & Đóng học phí (Won)", "code": "WON", "orderNo": 6, "probability": 100.0, "isWon": true },
+    { "name": "Khách chưa đăng ký (Lost)", "code": "LOST", "orderNo": 7, "probability": 0.0, "isLost": true }
+  ],
+  "products": [
+    {
+      "name": "Khóa học Tiếng Anh Mầm Non ILA Jumpstart (3-6 tuổi)",
+      "code": "ILA-JUMPSTART",
+      "type": "PRODUCT",
+      "unitPrice": 15600000.0,
+      "currency": "VND",
+      "description": "Kích hoạt tiềm năng ngôn ngữ tự nhiên, học qua chơi (Play-based learning) với 100% giáo viên bản ngữ."
+    },
+    {
+      "name": "Khóa học Tiếng Anh Tiểu Học ILA Super Juniors (6-11 tuổi)",
+      "code": "ILA-SUPER-JUNIORS",
+      "type": "PRODUCT",
+      "unitPrice": 21500000.0,
+      "currency": "VND",
+      "description": "Học qua dự án (Project-based learning), phát triển toàn diện 4 kỹ năng nghe nói đọc viết theo chuẩn Cambridge."
+    },
+    {
+      "name": "Khóa học Tiếng Anh Trung Học ILA Smart Teens (11-16 tuổi)",
+      "code": "ILA-SMART-TEENS",
+      "type": "PRODUCT",
+      "unitPrice": 22000000.0,
+      "currency": "VND",
+      "description": "Bứt phá tư duy phản biện thế kỷ 21, thuyết trình chuyên sâu, tiền đề săn học bổng du học và IELTS."
+    },
+    {
+      "name": "Khóa Luyện Thi Chứng Chỉ ILA IELTS Master (Target 6.5 - 8.0)",
+      "code": "ILA-IELTS-MASTER",
+      "type": "PRODUCT",
+      "unitPrice": 18500000.0,
+      "currency": "VND",
+      "description": "Chiến thuật làm bài IELTS академик, chấm sửa bài Writing & Speaking 1-1 với chuyên gia luyện thi."
+    },
+    {
+      "name": "Khóa Tiếng Anh Doanh Nghiệp ILA Corporate English",
+      "code": "ILA-B2B-CORPORATE",
+      "type": "PRODUCT",
+      "unitPrice": 35000000.0,
+      "currency": "VND",
+      "description": "Đào tạo tiếng Anh thương mại B2B, giao tiếp hợp tác quốc tế thiết kế theo yêu cầu doanh nghiệp."
+    },
+    {
+      "name": "Bộ Giáo Trình & Balo Học Sinh ILA Premium Kit",
+      "code": "ILA-KIT-STATIONERY",
+      "type": "PRODUCT",
+      "unitPrice": 1200000.0,
+      "currency": "VND",
+      "description": "Bộ sách giáo trình độc quyền Macmillan / Cambridge + Balo ILA + Áo đồng phục học sinh."
+    }
+  ],
+  "campaigns": [
+    {
+      "name": "Chiến dịch Facebook Ads - Summer English Adventure ILA 2026",
+      "code": "CAMP-2026-SUMMER-ILA",
+      "type": "FB_ADS",
+      "status": "ACTIVE",
+      "budget": 45000000.0,
+      "actualCost": 28000000.0,
+      "expectedRevenue": 350000000.0
+    },
+    {
+      "name": "Chiến dịch Google Search - Luyện Thi IELTS Cam Kết Đầu Ra",
+      "code": "CAMP-2026-IELTS-GOOG",
+      "type": "GOOGLE_ADS",
+      "status": "ACTIVE",
+      "budget": 35000000.0,
+      "actualCost": 22000000.0,
+      "expectedRevenue": 280000000.0
+    },
+    {
+      "name": "Chiến dịch Zalo OA - Đăng Ký Test Trình Độ Miễn Phí Tại Cơ Sở ILA",
+      "code": "CAMP-2026-TEST-ZALO",
+      "type": "ZALO",
+      "status": "ACTIVE",
+      "budget": 25000000.0,
+      "actualCost": 15000000.0,
+      "expectedRevenue": 200000000.0
+    }
+  ],
+  "companies": [
+    {
+      "name": "Trường Tiểu Học & THCS Quốc Tế Việt Úc (VAS)",
+      "taxCode": "0304998877",
+      "email": "partnerships@vas.edu.vn",
+      "phone": "02838119999",
+      "website": "https://vas.edu.vn",
+      "address": "Số 10 Mai Chí Thọ, TP. Thủ Đức, TP.HCM",
+      "status": "ACTIVE",
+      "isCustomer": true,
+      "contact": {
+        "firstName": "Hương",
+        "lastName": "Trần Thu",
+        "email": "huong.tran@vas.edu.vn",
+        "phone": "0912887766",
+        "position": "Trưởng phòng Chuyên môn Tiếng Anh",
+        "department": "Khối Hợp tác Đào tạo"
+      },
+      "customer": {
+        "customerCode": "CUST-EDU-001",
+        "lifetimeValue": 140000000.0
+      }
+    }
+  ],
+  "leads": [
+    {
+      "key": "lead1",
+      "firstName": "Trang",
+      "lastName": "Nguyễn Thùy",
+      "email": "thuytrang.nguyen@gmail.com",
+      "phone": "0988776655",
+      "source": "ZALO",
+      "status": "QUALIFIED",
+      "rating": "HOT",
+      "notes": "Phụ huynh nhắn Zalo OA: Cần tư vấn khóa ILA Super Juniors cho bé trai 8 tuổi học lớp 3. Muốn kiểm tra trình độ phản xạ giao tiếp.",
+      "campaignCode": "CAMP-2026-TEST-ZALO",
+      "salesUserEmail": "sales1@example.com"
+    },
+    {
+      "key": "lead2",
+      "firstName": "Nam",
+      "lastName": "Trần Hoàng",
+      "email": "hoangnam.tran@outlook.com",
+      "phone": "0977112233",
+      "source": "FB_ADS",
+      "status": "CONTACTED",
+      "rating": "HOT",
+      "notes": "Nhắn tin Facebook Messenger: Tư vấn lớp ILA Jumpstart cho con gái 4 tuổi. Hỏi bảng tính học phí trả góp 0% qua thẻ tín dụng.",
+      "campaignCode": "CAMP-2026-SUMMER-ILA",
+      "salesUserEmail": "sales2@example.com"
+    },
+    {
+      "key": "lead3",
+      "firstName": "Hà",
+      "lastName": "Phạm Minh",
+      "email": "minhha.pham@yahoo.com",
+      "phone": "0933445566",
+      "source": "WEBSITE",
+      "status": "QUALIFIED",
+      "rating": "HOT",
+      "notes": "Chat Livechat Website: Muốn hẹn xếp lịch Test trình độ 4 kỹ năng khóa Smart Teens cho con tại trung tâm ILA Nguyễn Đình Chiểu.",
+      "salesUserEmail": "sales1@example.com"
+    },
+    {
+      "key": "lead4",
+      "firstName": "Tuấn",
+      "lastName": "Lê Quốc",
+      "email": "quoctuan.le@gmail.com",
+      "phone": "0909887711",
+      "source": "GOOGLE_ADS",
+      "status": "QUALIFIED",
+      "rating": "HOT",
+      "notes": "Học viên đăng ký qua Google Search: Cần luyện thi IELTS gấp target 7.0 để nộp hồ sơ xin học bổng du học Canada tháng 9.",
+      "campaignCode": "CAMP-2026-IELTS-GOOG",
+      "salesUserEmail": "sales2@example.com"
+    }
+  ],
+  "opportunities": [
+    {
+      "key": "opp1",
+      "name": "Đăng ký khóa ILA Super Juniors (1 năm) - Bé Bảo Nam (Mẹ Thùy Trang)",
+      "leadKey": "lead1",
+      "salesUserEmail": "sales1@example.com",
+      "stageCode": "PROPOSAL",
+      "amount": 22700000.0,
+      "probability": 70.0,
+      "status": "OPEN",
+      "source": "ZALO",
+      "description": "Bé đã Test đầu vào xếp lớp Super Juniors Level 2. Đã gửi ưu đãi tặng Balo & Giáo trình.",
+      "products": [
+        { "productCode": "ILA-SUPER-JUNIORS", "quantity": 1, "unitPrice": 21500000.0, "notes": "Khóa Super Juniors Level 2" },
+        { "productCode": "ILA-KIT-STATIONERY", "quantity": 1, "unitPrice": 1200000.0, "notes": "Bộ giáo trình + Balo ILA" }
+      ],
+      "quote": {
+        "quoteNumber": "BG-ILA-2026-001",
+        "subtotal": 22700000.0,
+        "discountAmount": 2000000.0,
+        "totalAmount": 20700000.0,
+        "status": "SENT"
+      }
+    },
+    {
+      "key": "opp2",
+      "name": "Đăng ký khóa Luyện Thi IELTS Master Target 7.0 - Anh Quốc Tuấn",
+      "leadKey": "lead4",
+      "salesUserEmail": "sales2@example.com",
+      "stageCode": "WON",
+      "amount": 18500000.0,
+      "probability": 100.0,
+      "status": "WON",
+      "source": "GOOGLE_ADS",
+      "description": "Học viên test đầu vào đạt 5.5, đã hoàn tất đóng học phí lớp IELTS Master 12 tuần.",
+      "products": [
+        { "productCode": "ILA-IELTS-MASTER", "quantity": 1, "unitPrice": 18500000.0, "notes": "Lớp IELTS Master K95" }
+      ]
+    },
+    {
+      "key": "opp3",
+      "name": "Tư vấn & Hẹn Test khóa ILA Smart Teens - Chị Minh Hà",
+      "leadKey": "lead3",
+      "salesUserEmail": "sales1@example.com",
+      "stageCode": "DEMO",
+      "amount": 22000000.0,
+      "probability": 50.0,
+      "status": "OPEN",
+      "source": "WEBSITE",
+      "description": "Đã xếp lịch hẹn Test trực tiếp 1-1 với giáo viên nước ngoài lúc 18h30 Thứ 6.",
+      "products": [
+        { "productCode": "ILA-SMART-TEENS", "quantity": 1, "unitPrice": 22000000.0 }
+      ]
+    }
+  ],
+  "activities": [
+    {
+      "type": "CHAT",
+      "subject": "Tư vấn Zalo OA: Lộ trình tiếng Anh cho bé 8 tuổi",
+      "description": "Khách (Chị Thùy Trang): \"Chào trung tâm, bé 8 tuổi chưa học trung tâm bao giờ thì xếp lớp thế nào?\"\nEC ILA (Minh Tuấn): \"Dạ chào chị! Các bé 8 tuổi sẽ thuộc chương trình ILA Super Juniors. Trung tâm sẽ xếp cho bé 1 buổi Test trình độ phản xạ nghe nói miễn phí với Giáo viên bản ngữ để xếp đúng lớp phù hợp nhất ạ!\"",
+      "status": "COMPLETED",
+      "salesUserEmail": "sales1@example.com",
+      "relatedLeadKey": "lead1"
+    },
+    {
+      "type": "MEETING",
+      "subject": "Kiểm tra trình độ Test đầu vào IELTS 4 kỹ năng - Anh Quốc Tuấn",
+      "description": "Học viên hoàn thành bài Test 90 phút (Listening, Reading, Writing) và 15 phút Speaking 1-1 với Thầy Mark (Senior Examiner). Kết quả tổng quan 5.5, đủ điều kiện vào khóa IELTS Master cam kết 7.0.",
+      "status": "COMPLETED",
+      "salesUserEmail": "sales2@example.com",
+      "relatedOppKey": "opp2"
+    }
+  ],
+  "tasks": [
+    {
+      "title": "Gửi phiếu xác nhận lịch hẹn Test trình độ cho phụ huynh chị Minh Hà",
+      "description": "Gửi SMS / Zalo nhắc lịch Test đầu vào lúc 18h30 Thứ 6 tại cơ sở ILA Nguyễn Đình Chiểu",
+      "priority": "HIGH",
+      "status": "TODO",
+      "salesUserEmail": "sales1@example.com",
+      "relatedOppKey": "opp3"
+    },
+    {
+      "title": "Gửi bảng tính trả góp học phí 0% qua thẻ Visa cho anh Hoàng Nam",
+      "description": "Tính dòng tiền chi trả hàng tháng gói học phí 1 năm khóa Jumpstart",
+      "priority": "MEDIUM",
+      "status": "TODO",
+      "salesUserEmail": "sales2@example.com",
+      "relatedLeadKey": "lead2"
+    }
+  ],
+  "automations": [
+    {
+      "name": "Tự động gán Chuyên viên Tư vấn (EC) & Tạo Task đặt lịch Test trình độ",
+      "description": "Khi có Học viên / Phụ huynh mới đăng ký, tự động gán EC và nhắc gọi hẹn lịch Test trong 2h",
+      "triggerEvent": "RECORD_CREATED",
+      "entityType": "LEAD",
+      "actionRole": "SALES",
+      "taskTitle": "Liên hệ hẹn lịch Test trình độ tiếng Anh miễn phí"
+    }
+  ]
+}

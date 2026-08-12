@@ -206,6 +206,7 @@ export const MainLayout: React.FC = () => {
                   { value: 'xedien', label: '🚲 Xe Điện MOVE' },
                   { value: 'software', label: '💻 Phần Mềm B2B' },
                   { value: 'batdongsan', label: '🏢 Bất Động Sản' },
+                  { value: 'tienganh', label: '🎓 Tiếng Anh ILA' },
                 ]}
               />
             </div>

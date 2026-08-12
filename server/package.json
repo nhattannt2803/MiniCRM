@@ -14,6 +14,7 @@
     "seed:xedien": "ts-node prisma/seed.ts xedien",
     "seed:software": "ts-node prisma/seed.ts software",
     "seed:batdongsan": "ts-node prisma/seed.ts batdongsan",
+    "seed:tienganh": "ts-node prisma/seed.ts tienganh",
     "test": "jest --detectOpenHandles --forceExit"
   },
   "dependencies": {
