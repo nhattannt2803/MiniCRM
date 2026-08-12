@@ -1,18 +1,21 @@
 import React, { useState, useEffect } from 'react';
-import { Button, Select, notification, Spin } from 'antd';
-import { TableOutlined } from '@ant-design/icons';
+import { Button, Select, notification, Spin, Drawer, Form, Input, InputNumber } from 'antd';
+import { TableOutlined, PlusOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { crmService } from '../../services/crmService';
 import { KanbanBoard, KanbanColumn } from '../../components/Kanban/KanbanBoard';
-import { Opportunity, Pipeline } from '../../types';
+import { Opportunity, Pipeline, PipelineStage } from '../../types';
 
 export const OpportunityKanbanPage: React.FC = () => {
   const [pipelines, setPipelines] = useState<Pipeline[]>([]);
   const [selectedPipelineId, setSelectedPipelineId] = useState<string | undefined>();
   const [columns, setColumns] = useState<KanbanColumn[]>([]);
   const [loading, setLoading] = useState(true);
+  const [drawerVisible, setDrawerVisible] = useState(false);
+  const [formPipelineId, setFormPipelineId] = useState<string | undefined>();
 
+  const [form] = Form.useForm();
   const navigate = useNavigate();
   const { t } = useTranslation();
 
@@ -68,6 +71,43 @@ export const OpportunityKanbanPage: React.FC = () => {
     }
   };
 
+  const handleOpenAddDrawer = (targetStageId?: string) => {
+    const pipeId = selectedPipelineId || (pipelines.length > 0 ? pipelines[0].id : undefined);
+    setFormPipelineId(pipeId);
+
+    const activePipeline = pipelines.find((p) => p.id === pipeId);
+    const defaultStageId =
+      targetStageId ||
+      (activePipeline?.stages && activePipeline.stages.length > 0
+        ? activePipeline.stages[0].id
+        : undefined);
+
+    form.setFieldsValue({
+      pipelineId: pipeId,
+      stageId: defaultStageId,
+      name: '',
+      amount: undefined,
+      description: '',
+    });
+    setDrawerVisible(true);
+  };
+
+  const handleCreateOpportunity = async (values: any) => {
+    try {
+      const res: any = await crmService.createOpportunity(values);
+      if (res.success) {
+        notification.success({ message: t('common.success'), description: t('opportunities.addOpportunity') });
+        setDrawerVisible(false);
+        form.resetFields();
+        fetchBoard(selectedPipelineId);
+      }
+    } catch (err: any) {
+      notification.error({ message: t('common.error'), description: err.message });
+    }
+  };
+
+  const currentFormPipeline = pipelines.find((p) => p.id === formPipelineId);
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -90,6 +130,15 @@ export const OpportunityKanbanPage: React.FC = () => {
           <Button icon={<TableOutlined />} onClick={() => navigate('/opportunities/list')}>
             {t('opportunities.listView')}
           </Button>
+
+          <Button
+            type="primary"
+            icon={<PlusOutlined />}
+            className="bg-indigo-600 font-semibold"
+            onClick={() => handleOpenAddDrawer()}
+          >
+            {t('opportunities.addOpportunity')}
+          </Button>
         </div>
       </div>
 
@@ -100,8 +149,54 @@ export const OpportunityKanbanPage: React.FC = () => {
           columns={columns}
           onDealClick={(opp) => navigate(`/opportunities/${opp.id}`)}
           onStageChange={handleStageChange}
+          onAddDeal={(stageId) => handleOpenAddDrawer(stageId)}
         />
       )}
+
+      <Drawer
+        title={t('opportunities.addOpportunity')}
+        open={drawerVisible}
+        onClose={() => setDrawerVisible(false)}
+        width={450}
+        extra={<Button type="primary" onClick={() => form.submit()} className="bg-indigo-600">{t('common.save')}</Button>}
+      >
+        <Form form={form} layout="vertical" onFinish={handleCreateOpportunity}>
+          <Form.Item name="name" label={t('dashboard.dealName')} rules={[{ required: true, message: 'Vui lòng nhập tên deal' }]}>
+            <Input placeholder="Tên hợp đồng / deal" />
+          </Form.Item>
+
+          <Form.Item name="amount" label={t('opportunities.amount') + ' (VNĐ)'} rules={[{ required: true, message: 'Vui lòng nhập giá trị' }]}>
+            <InputNumber style={{ width: '100%' }} placeholder="Nhập số tiền" />
+          </Form.Item>
+
+          <Form.Item name="pipelineId" label="Quy trình bán hàng" rules={[{ required: true }]}>
+            <Select onChange={(val) => {
+              setFormPipelineId(val);
+              const p = pipelines.find((item) => item.id === val);
+              if (p && p.stages.length > 0) {
+                form.setFieldValue('stageId', p.stages[0].id);
+              }
+            }}>
+              {pipelines.map((p) => (
+                <Select.Option key={p.id} value={p.id}>{p.name}</Select.Option>
+              ))}
+            </Select>
+          </Form.Item>
+
+          <Form.Item name="stageId" label="Giai đoạn" rules={[{ required: true, message: 'Vui lòng chọn giai đoạn' }]}>
+            <Select placeholder="Chọn giai đoạn">
+              {currentFormPipeline?.stages?.map((s: PipelineStage) => (
+                <Select.Option key={s.id} value={s.id}>{s.name}</Select.Option>
+              ))}
+            </Select>
+          </Form.Item>
+
+          <Form.Item name="description" label={t('common.description')}>
+            <Input.TextArea rows={3} placeholder="Nhập ghi chú hoặc thông tin bổ sung" />
+          </Form.Item>
+        </Form>
+      </Drawer>
     </div>
   );
 };
+

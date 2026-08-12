@@ -1,6 +1,6 @@
 import React from 'react';
-import { Card, Tag, Avatar, Tooltip } from 'antd';
-import { UserOutlined, DollarOutlined } from '@ant-design/icons';
+import { Card, Tag, Avatar, Tooltip, Button } from 'antd';
+import { UserOutlined, DollarOutlined, PlusOutlined } from '@ant-design/icons';
 import { Opportunity } from '../../types';
 
 export interface KanbanColumn {
@@ -19,9 +19,10 @@ interface KanbanBoardProps {
   columns: KanbanColumn[];
   onDealClick: (opp: Opportunity) => void;
   onStageChange: (oppId: string, newStageId: string) => void;
+  onAddDeal?: (stageId: string) => void;
 }
 
-export const KanbanBoard: React.FC<KanbanBoardProps> = ({ columns, onDealClick, onStageChange }) => {
+export const KanbanBoard: React.FC<KanbanBoardProps> = ({ columns, onDealClick, onStageChange, onAddDeal }) => {
   const handleDragStart = (e: React.DragEvent, oppId: string) => {
     e.dataTransfer.setData('text/plain', oppId);
   };
@@ -49,11 +50,22 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ columns, onDealClick, 
         >
           {/* Column Header */}
           <div className="flex items-center justify-between pb-3 mb-3 border-b border-slate-200">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5">
               <span className="font-bold text-slate-800 text-sm">{col.name}</span>
               <Tag color={col.isWon ? 'green' : col.isLost ? 'red' : 'blue'} className="rounded-full px-2">
                 {col.deals.length}
               </Tag>
+              {onAddDeal && (
+                <Tooltip title="Thêm cơ hội vào giai đoạn này">
+                  <Button
+                    type="text"
+                    size="small"
+                    icon={<PlusOutlined />}
+                    onClick={() => onAddDeal(col.stageId)}
+                    className="text-slate-400 hover:text-indigo-600 hover:bg-slate-200/70 p-0 h-6 w-6 flex items-center justify-center rounded-full"
+                  />
+                </Tooltip>
+              )}
             </div>
             <span className="text-xs font-semibold text-slate-500">
               {col.totalAmount.toLocaleString('vi-VN')} ₫

@@ -49,17 +49,18 @@ export const MainLayout: React.FC = () => {
     try {
       const res: any = await crmService.switchDemoIndustry(value);
       hideMessage();
-      if (res.data?.success) {
+      if (res.success && res.data) {
+        const industryName = res.data.industryName || res.data.name || value;
         setCurrentIndustry(value);
         localStorage.setItem('crm_demo_industry', value);
-        message.success(`Đã đổi dữ liệu demo sang: ${res.data.data.industryName}`);
+        message.success(`Đã đổi dữ liệu demo sang: ${industryName}`);
         setTimeout(() => {
           window.location.reload();
         }, 600);
       }
-    } catch (err) {
+    } catch (err: any) {
       hideMessage();
-      message.error('Không thể chuyển đổi dữ liệu demo');
+      message.error(err?.message || 'Không thể chuyển đổi dữ liệu demo');
     } finally {
       setSwitchingDemo(false);
     }
