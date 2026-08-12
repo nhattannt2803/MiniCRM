@@ -1,0 +1,55 @@
+version: '3.8'
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: minicrm-mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: password
+      MYSQL_DATABASE: minicrm
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./sql/01_schema.sql:/docker-entrypoint-initdb.d/01_schema.sql
+      - ./sql/02_seed.sql:/docker-entrypoint-initdb.d/02_seed.sql
+
+  redis:
+    image: redis:7-alpine
+    container_name: minicrm-redis
+    restart: always
+    ports:
+      - "6379:6379"
+
+  server:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: minicrm-server
+    restart: always
+    ports:
+      - "5000:5000"
+    environment:
+      PORT: 5000
+      DATABASE_URL: "mysql://root:password@mysql:3306/minicrm"
+      REDIS_URL: "redis://redis:6379"
+      JWT_SECRET: "minicrm_super_secret_jwt_key_2026"
+      CLIENT_URL: "http://localhost:5173"
+    depends_on:
+      - mysql
+      - redis
+
+  client:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+    container_name: minicrm-client
+    restart: always
+    ports:
+      - "5173:5173"
+    depends_on:
+      - server
+
+volumes:
+  mysql_data:
