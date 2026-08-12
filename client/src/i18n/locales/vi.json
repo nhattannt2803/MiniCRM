@@ -167,12 +167,16 @@
   "products": {
     "title": "Danh mục Sản phẩm & Dịch vụ",
     "addProduct": "Thêm sản phẩm",
+    "editProduct": "Chỉnh sửa sản phẩm",
     "sku": "Mã SKU",
     "price": "Đơn giá",
     "category": "Danh mục",
     "stock": "Tồn kho",
     "active": "Đang kinh doanh",
-    "inactive": "Ngừng kinh doanh"
+    "inactive": "Ngừng kinh doanh",
+    "updateSuccess": "Cập nhật sản phẩm thành công",
+    "deleteSuccess": "Xóa sản phẩm thành công",
+    "deleteConfirm": "Bạn có chắc chắn muốn xóa sản phẩm/dịch vụ này không?"
   },
   "quotes": {
     "title": "Quản lý Báo giá",

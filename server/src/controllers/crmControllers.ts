@@ -295,6 +295,34 @@ export const createProduct = async (req: AuthenticatedRequest, res: Response, ne
   }
 };
 
+export const getProductById = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  try {
+    const product = await ProductService.getProductById(req.params.id);
+    res.json({ success: true, data: product });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const updateProduct = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  try {
+    const product = await ProductService.updateProduct(req.params.id, req.body);
+    res.json({ success: true, data: product });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const deleteProduct = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  try {
+    const result = await ProductService.deleteProduct(req.params.id);
+    res.json({ success: true, data: result });
+  } catch (err) {
+    next(err);
+  }
+};
+
+
 // -----------------------------------------------------------------------------
 // Quote Controller
 // -----------------------------------------------------------------------------

@@ -54,6 +54,10 @@ router.post('/opportunities/:id/products', crm.addOpportunityProduct);
 router.get('/pipelines', crm.getPipelines);
 router.get('/products', crm.getProducts);
 router.post('/products', crm.createProduct);
+router.get('/products/:id', crm.getProductById);
+router.patch('/products/:id', crm.updateProduct);
+router.delete('/products/:id', crm.deleteProduct);
+
 
 // Quotes
 router.get('/quotes', crm.getQuotes);

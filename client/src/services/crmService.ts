@@ -40,7 +40,11 @@ export const crmService = {
   // Pipelines & Products
   getPipelines: () => api.get('/pipelines'),
   getProducts: (params?: any) => api.get('/products', { params }),
+  getProductById: (id: string) => api.get(`/products/${id}`),
   createProduct: (data: any) => api.post('/products', data),
+  updateProduct: (id: string, data: any) => api.patch(`/products/${id}`, data),
+  deleteProduct: (id: string) => api.delete(`/products/${id}`),
+
 
   // Quotes
   getQuotes: (params?: any) => api.get('/quotes', { params }),
