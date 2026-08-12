@@ -103,4 +103,245 @@ export class DashboardService {
       })),
     };
   }
+
+  public static async getLeaderDashboardStats() {
+    const now = new Date();
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
+    const endOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+    // 1. New Leads calculation
+    const allNewLeads = await prisma.lead.findMany({
+      where: { status: 'NEW', deletedAt: null },
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        companyName: true,
+        phone: true,
+        email: true,
+        ownerId: true,
+        createdAt: true,
+      },
+    });
+
+    const leadIds = allNewLeads.map((l) => l.id);
+    const activitiesForNewLeads = await prisma.activity.groupBy({
+      by: ['relatedId'],
+      where: {
+        relatedType: 'LEAD',
+        relatedId: { in: leadIds },
+      },
+      _count: { id: true },
+    });
+
+    const leadIdsWithActivity = new Set(activitiesForNewLeads.map((a) => a.relatedId.toString()));
+    const unprocessedLeads = allNewLeads.filter((l) => !leadIdsWithActivity.has(l.id.toString()));
+    const totalNewLeadsCount = allNewLeads.length;
+    const unprocessedCount = unprocessedLeads.length;
+    const processedCount = totalNewLeadsCount - unprocessedCount;
+
+    // 2. Today's Follow-ups
+    const todayTasks = await prisma.task.findMany({
+      where: {
+        dueAt: { gte: startOfToday, lte: endOfToday },
+      },
+      select: {
+        id: true,
+        title: true,
+        status: true,
+        priority: true,
+        assignedTo: true,
+        dueAt: true,
+      },
+    });
+
+    const totalTodayFollowups = todayTasks.length;
+    const completedTodayFollowups = todayTasks.filter((t) => t.status === 'COMPLETED').length;
+    const remainingTodayFollowups = totalTodayFollowups - completedTodayFollowups;
+
+    // 3. Overdue Follow-ups
+    const overdueTasks = await prisma.task.findMany({
+      where: {
+        dueAt: { lt: startOfToday },
+        status: { in: ['TODO', 'IN_PROGRESS'] },
+      },
+      select: {
+        id: true,
+        title: true,
+        priority: true,
+        status: true,
+        dueAt: true,
+        assignedTo: true,
+        relatedType: true,
+        relatedId: true,
+      },
+      orderBy: { dueAt: 'asc' },
+    });
+    const overdueFollowupsCount = overdueTasks.length;
+
+    // 4. Inactive Leads > 7 Days
+    const activeLeads = await prisma.lead.findMany({
+      where: {
+        status: { notIn: ['CONVERTED', 'LOST'] },
+        deletedAt: null,
+      },
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        companyName: true,
+        phone: true,
+        email: true,
+        ownerId: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+
+    const leadActivityMaxDate = await prisma.activity.groupBy({
+      by: ['relatedId'],
+      where: { relatedType: 'LEAD' },
+      _max: { createdAt: true },
+    });
+
+    const maxActMap = new Map<string, Date>();
+    leadActivityMaxDate.forEach((a) => {
+      if (a._max.createdAt) {
+        maxActMap.set(a.relatedId.toString(), a._max.createdAt);
+      }
+    });
+
+    const inactiveLeads = activeLeads.filter((l) => {
+      const lastActDate = maxActMap.get(l.id.toString());
+      const refDate = lastActDate || l.updatedAt || l.createdAt;
+      return refDate < sevenDaysAgo;
+    });
+    const inactiveLeadsCount = inactiveLeads.length;
+
+    // 5. Sales Rep Breakdown
+    const salesUsers = await prisma.user.findMany({
+      where: {
+        isActive: true,
+        userRoles: {
+          some: {
+            role: { code: { in: ['SALES', 'MANAGER', 'ADMIN'] } },
+          },
+        },
+      },
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        email: true,
+        phone: true,
+      },
+      orderBy: { id: 'asc' },
+    });
+
+    const salesReps = salesUsers.map((user) => {
+      const userIdStr = user.id.toString();
+
+      const userOverdueTasks = overdueTasks.filter(
+        (t) => t.assignedTo && t.assignedTo.toString() === userIdStr
+      );
+      const userUnprocessedLeads = unprocessedLeads.filter(
+        (l) => l.ownerId && l.ownerId.toString() === userIdStr
+      );
+      const userInactiveLeads = inactiveLeads.filter(
+        (l) => l.ownerId && l.ownerId.toString() === userIdStr
+      );
+      const userTodayTasks = todayTasks.filter(
+        (t) => t.assignedTo && t.assignedTo.toString() === userIdStr
+      );
+      const userTodayCompleted = userTodayTasks.filter((t) => t.status === 'COMPLETED').length;
+
+      let alertStatus: 'CRITICAL' | 'WARNING' | 'GOOD' = 'GOOD';
+      if (userOverdueTasks.length >= 5 || userInactiveLeads.length >= 5) {
+        alertStatus = 'CRITICAL';
+      } else if (
+        userOverdueTasks.length > 0 ||
+        userUnprocessedLeads.length > 0 ||
+        userInactiveLeads.length > 0
+      ) {
+        alertStatus = 'WARNING';
+      }
+
+      return {
+        id: userIdStr,
+        name: `${user.firstName} ${user.lastName}`.trim(),
+        email: user.email,
+        phone: user.phone,
+        overdueCount: userOverdueTasks.length,
+        unprocessedCount: userUnprocessedLeads.length,
+        inactiveCount: userInactiveLeads.length,
+        todayTotal: userTodayTasks.length,
+        todayCompleted: userTodayCompleted,
+        alertStatus,
+        overdueTasks: userOverdueTasks.map((t) => ({
+          id: t.id.toString(),
+          title: t.title,
+          priority: t.priority,
+          dueAt: t.dueAt,
+          relatedType: t.relatedType,
+          relatedId: t.relatedId.toString(),
+        })),
+        inactiveLeads: userInactiveLeads.map((l) => ({
+          id: l.id.toString(),
+          name: `${l.firstName} ${l.lastName}`.trim(),
+          companyName: l.companyName,
+          phone: l.phone,
+          createdAt: l.createdAt,
+        })),
+      };
+    });
+
+    return {
+      teamOverview: {
+        newLeads: {
+          total: totalNewLeadsCount,
+          processed: processedCount,
+          unprocessed: unprocessedCount,
+        },
+        todayFollowups: {
+          total: totalTodayFollowups,
+          completed: completedTodayFollowups,
+          remaining: remainingTodayFollowups,
+        },
+        overdueFollowups: overdueFollowupsCount,
+        inactiveLeads7Days: inactiveLeadsCount,
+      },
+      salesReps,
+    };
+  }
+
+  public static async nudgeSalesRep(userId: string, customMessage?: string) {
+    const userBigIntId = BigInt(userId);
+
+    const user = await prisma.user.findUnique({
+      where: { id: userBigIntId },
+    });
+
+    if (!user) {
+      throw new Error('User not found');
+    }
+
+    const notification = await prisma.notification.create({
+      data: {
+        userId: userBigIntId,
+        type: 'LEADER_NUDGE',
+        title: '🔴 Nhắc nhở công việc từ Trưởng nhóm Sale',
+        message:
+          customMessage ||
+          `Bạn có công việc follow-up quá hạn hoặc lead chưa xử lý. Vui lòng kiểm tra và ưu tiên hoàn thành ngay trong sáng nay!`,
+      },
+    });
+
+    return {
+      success: true,
+      notificationId: notification.id.toString(),
+      recipientName: `${user.firstName} ${user.lastName}`.trim(),
+    };
+  }
 }
+

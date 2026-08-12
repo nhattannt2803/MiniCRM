@@ -3,6 +3,9 @@ import api from './api';
 export const crmService = {
   // Dashboard
   getDashboardStats: () => api.get('/dashboard'),
+  getLeaderDashboardStats: () => api.get('/dashboard/leader'),
+  nudgeSales: (userId: string, message?: string) => api.post('/dashboard/nudge-sales', { userId, message }),
+
 
   // Leads
   getLeads: (params?: any) => api.get('/leads', { params }),

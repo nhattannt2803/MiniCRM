@@ -77,6 +77,9 @@ router.get('/campaigns', crm.getCampaigns);
 
 // Dashboard
 router.get('/dashboard', crm.getDashboardStats);
+router.get('/dashboard/leader', crm.getLeaderDashboardStats);
+router.post('/dashboard/nudge-sales', crm.nudgeSalesRep);
+
 
 // Automations
 router.get('/automations', crm.getAutomations);
