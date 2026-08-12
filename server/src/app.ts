@@ -1,5 +1,6 @@
 import express from 'express';
 import cors from 'cors';
+import helmet from 'helmet';
 import dotenv from 'dotenv';
 import apiRouter from './routes/apiRoutes';
 import { errorHandler } from './middleware/errorMiddleware';
@@ -8,8 +9,21 @@ dotenv.config();
 
 const app = express();
 
+// Security HTTP headers
+app.use(helmet());
+
+// CORS configuration
+const allowedOrigins = [process.env.CLIENT_URL || 'http://localhost:5173'];
+
 app.use(cors({
-  origin: '*',
+  origin: (origin, callback) => {
+    // allow requests with no origin (like mobile apps or curl requests)
+    if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true,
 }));
 

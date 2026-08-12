@@ -1,11 +1,15 @@
 import { Router } from 'express';
 import { authenticate } from '../middleware/authMiddleware';
+import { apiLimiter, authLimiter } from '../middleware/rateLimitMiddleware';
 import * as crm from '../controllers/crmControllers';
 
 const router = Router();
 
-// Auth routes (Public)
-router.post('/auth/login', crm.login);
+// Apply general rate limiter to all API endpoints
+router.use(apiLimiter);
+
+// Auth routes (Public - Rate limited strictly)
+router.post('/auth/login', authLimiter, crm.login);
 
 // Protected routes middleware
 router.use(authenticate);
