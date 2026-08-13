@@ -40,6 +40,8 @@ router.patch('/contacts/:id', crm.updateContact);
 // Customers
 router.get('/customers', crm.getCustomers);
 router.get('/customers/:id', crm.getCustomerById);
+router.patch('/customers/:id', crm.updateCustomer);
+
 
 // Opportunities & Kanban
 router.get('/opportunities', crm.getOpportunities);

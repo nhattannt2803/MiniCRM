@@ -98,4 +98,22 @@ export class CustomerService {
       tasks: tasks.map((t) => ({ ...t, id: t.id.toString() })),
     };
   }
+
+  public static async updateCustomer(id: string | number, data: any) {
+    const customerId = BigInt(id);
+    const existing = await prisma.customer.findFirst({ where: { id: customerId, deletedAt: null } });
+    if (!existing) throw new AppError('Customer not found', 404, 'CUSTOMER_NOT_FOUND');
+
+    const updated = await prisma.customer.update({
+      where: { id: customerId },
+      data: {
+        customerCode: data.customerCode !== undefined ? data.customerCode : existing.customerCode,
+        status: data.status !== undefined ? data.status : existing.status,
+        ownerId: data.ownerId !== undefined ? (data.ownerId ? BigInt(data.ownerId) : null) : existing.ownerId,
+      },
+    });
+
+    return { ...updated, id: updated.id.toString() };
+  }
 }
+

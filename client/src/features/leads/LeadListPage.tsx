@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Table, Button, Input, Select, Tag, Drawer, Form, Popconfirm, notification } from 'antd';
-import { PlusOutlined, SearchOutlined, EyeOutlined, SwapOutlined, DeleteOutlined } from '@ant-design/icons';
+import { PlusOutlined, SearchOutlined, EyeOutlined, EditOutlined, SwapOutlined, DeleteOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { crmService } from '../../services/crmService';
@@ -17,6 +17,7 @@ export const LeadListPage: React.FC = () => {
   const [ratingFilter, setRatingFilter] = useState<string | undefined>();
 
   const [createDrawerVisible, setCreateDrawerVisible] = useState(false);
+  const [editingLead, setEditingLead] = useState<Lead | null>(null);
   const [convertModalVisible, setConvertModalVisible] = useState(false);
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
 
@@ -49,18 +50,51 @@ export const LeadListPage: React.FC = () => {
     fetchLeads();
   }, [page, search, statusFilter, ratingFilter]);
 
-  const handleCreateLead = async (values: any) => {
+  const handleSaveLead = async (values: any) => {
     try {
-      const res: any = await crmService.createLead(values);
-      if (res.success) {
-        notification.success({ message: t('common.success'), description: t('leads.addLead') });
-        setCreateDrawerVisible(false);
-        form.resetFields();
-        fetchLeads();
+      if (editingLead) {
+        const res: any = await crmService.updateLead(editingLead.id, values);
+        if (res.success) {
+          notification.success({ message: t('common.success'), description: t('common.update') });
+          setCreateDrawerVisible(false);
+          setEditingLead(null);
+          form.resetFields();
+          fetchLeads();
+        }
+      } else {
+        const res: any = await crmService.createLead(values);
+        if (res.success) {
+          notification.success({ message: t('common.success'), description: t('leads.addLead') });
+          setCreateDrawerVisible(false);
+          form.resetFields();
+          fetchLeads();
+        }
       }
     } catch (err: any) {
       notification.error({ message: t('common.error'), description: err.message });
     }
+  };
+
+  const handleOpenCreateDrawer = () => {
+    setEditingLead(null);
+    form.resetFields();
+    setCreateDrawerVisible(true);
+  };
+
+  const handleOpenEditDrawer = (lead: Lead) => {
+    setEditingLead(lead);
+    form.setFieldsValue({
+      firstName: lead.firstName,
+      lastName: lead.lastName,
+      email: lead.email,
+      phone: lead.phone,
+      companyName: lead.companyName,
+      jobTitle: lead.jobTitle,
+      source: lead.source,
+      rating: lead.rating,
+      notes: lead.notes,
+    });
+    setCreateDrawerVisible(true);
   };
 
   const handleDeleteLead = async (id: string) => {
@@ -154,6 +188,11 @@ export const LeadListPage: React.FC = () => {
             icon={<EyeOutlined />}
             onClick={() => navigate(`/leads/${record.id}`)}
           />
+          <Button
+            size="small"
+            icon={<EditOutlined />}
+            onClick={() => handleOpenEditDrawer(record)}
+          />
           {record.status !== 'CONVERTED' && (
             <Button
               size="small"
@@ -176,6 +215,7 @@ export const LeadListPage: React.FC = () => {
     },
   ];
 
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -188,7 +228,7 @@ export const LeadListPage: React.FC = () => {
           icon={<PlusOutlined />}
           size="large"
           className="bg-indigo-600 font-semibold rounded-lg"
-          onClick={() => setCreateDrawerVisible(true)}
+          onClick={handleOpenCreateDrawer}
         >
           {t('leads.addLead')}
         </Button>
@@ -234,9 +274,9 @@ export const LeadListPage: React.FC = () => {
         />
       </div>
 
-      {/* Create Drawer */}
+      {/* Create/Edit Drawer */}
       <Drawer
-        title={t('leads.addLead')}
+        title={editingLead ? t('common.edit') : t('leads.addLead')}
         open={createDrawerVisible}
         onClose={() => setCreateDrawerVisible(false)}
         width={480}
@@ -246,7 +286,8 @@ export const LeadListPage: React.FC = () => {
           </Button>
         }
       >
-        <Form form={form} layout="vertical" onFinish={handleCreateLead}>
+        <Form form={form} layout="vertical" onFinish={handleSaveLead}>
+
           <div className="grid grid-cols-2 gap-3">
             <Form.Item name="firstName" label={t('leads.form.firstName')} rules={[{ required: true }]}>
               <Input placeholder="Văn A" />

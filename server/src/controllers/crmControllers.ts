@@ -193,6 +193,16 @@ export const getCustomerById = async (req: AuthenticatedRequest, res: Response, 
   }
 };
 
+export const updateCustomer = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  try {
+    const customer = await CustomerService.updateCustomer(req.params.id, req.body);
+    res.json({ success: true, data: customer });
+  } catch (err) {
+    next(err);
+  }
+};
+
+
 // -----------------------------------------------------------------------------
 // Opportunity Controller
 // -----------------------------------------------------------------------------

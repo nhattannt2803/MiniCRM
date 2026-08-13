@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Card, Tag, Button, Select, Tabs, Modal, Form, Input, DatePicker, notification, Spin } from 'antd';
-import { ArrowLeftOutlined, SwapOutlined, PlusOutlined, PhoneOutlined } from '@ant-design/icons';
+import { ArrowLeftOutlined, SwapOutlined, PlusOutlined, PhoneOutlined, EditOutlined } from '@ant-design/icons';
 import { crmService } from '../../services/crmService';
 import { Lead } from '../../types';
 import { ActivityTimeline } from '../../components/Timeline/ActivityTimeline';
@@ -17,9 +17,11 @@ export const LeadDetailPage: React.FC = () => {
   const [convertModalVisible, setConvertModalVisible] = useState(false);
   const [activityModalVisible, setActivityModalVisible] = useState(false);
   const [taskModalVisible, setTaskModalVisible] = useState(false);
+  const [editModalVisible, setEditModalVisible] = useState(false);
 
   const [activityForm] = Form.useForm();
   const [taskForm] = Form.useForm();
+  const [editForm] = Form.useForm();
 
   const fetchLeadDetails = async () => {
     if (!id) return;
@@ -39,6 +41,34 @@ export const LeadDetailPage: React.FC = () => {
   useEffect(() => {
     fetchLeadDetails();
   }, [id]);
+
+  const handleOpenEditModal = () => {
+    if (!lead) return;
+    editForm.setFieldsValue({
+      firstName: lead.firstName,
+      lastName: lead.lastName,
+      email: lead.email,
+      phone: lead.phone,
+      companyName: lead.companyName,
+      jobTitle: lead.jobTitle,
+      source: lead.source,
+      rating: lead.rating,
+      notes: lead.notes,
+    });
+    setEditModalVisible(true);
+  };
+
+  const handleUpdateLead = async (values: any) => {
+    if (!id) return;
+    try {
+      await crmService.updateLead(id, values);
+      notification.success({ message: 'Chỉnh sửa tiềm năng thành công' });
+      setEditModalVisible(false);
+      fetchLeadDetails();
+    } catch (err: any) {
+      notification.error({ message: 'Cập nhật thất bại', description: err.message });
+    }
+  };
 
   const handleStatusChange = async (newStatus: string) => {
     if (!id) return;
@@ -104,6 +134,10 @@ export const LeadDetailPage: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-3">
+          <Button icon={<EditOutlined />} onClick={handleOpenEditModal}>
+            Chỉnh sửa thông tin
+          </Button>
+
           <Select
             value={lead.status}
             onChange={handleStatusChange}
@@ -128,6 +162,7 @@ export const LeadDetailPage: React.FC = () => {
           )}
         </div>
       </div>
+
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left Column: Details Card */}
@@ -296,6 +331,68 @@ export const LeadDetailPage: React.FC = () => {
           </Form.Item>
         </Form>
       </Modal>
+
+      {/* Edit Lead Modal */}
+      <Modal
+        title="Chỉnh sửa thông tin khách hàng tiềm năng"
+        open={editModalVisible}
+        onCancel={() => setEditModalVisible(false)}
+        onOk={() => editForm.submit()}
+        width={500}
+      >
+        <Form form={editForm} layout="vertical" onFinish={handleUpdateLead}>
+          <div className="grid grid-cols-2 gap-3">
+            <Form.Item name="firstName" label="Tên" rules={[{ required: true }]}>
+              <Input />
+            </Form.Item>
+            <Form.Item name="lastName" label="Họ" rules={[{ required: true }]}>
+              <Input />
+            </Form.Item>
+          </div>
+
+          <Form.Item name="email" label="Email">
+            <Input />
+          </Form.Item>
+
+          <Form.Item name="phone" label="Số điện thoại">
+            <Input />
+          </Form.Item>
+
+          <Form.Item name="companyName" label="Công ty">
+            <Input />
+          </Form.Item>
+
+          <Form.Item name="jobTitle" label="Chức danh">
+            <Input />
+          </Form.Item>
+
+          <div className="grid grid-cols-2 gap-3">
+            <Form.Item name="source" label="Nguồn">
+              <Select>
+                <Select.Option value="WEBSITE">Website</Select.Option>
+                <Select.Option value="REFERRAL">Giới thiệu</Select.Option>
+                <Select.Option value="FB_ADS">Facebook Ads</Select.Option>
+                <Select.Option value="GOOGLE_ADS">Google Ads</Select.Option>
+                <Select.Option value="EVENT">Hội thảo / Sự kiện</Select.Option>
+                <Select.Option value="OUTBOUND">Trực tiếp</Select.Option>
+              </Select>
+            </Form.Item>
+
+            <Form.Item name="rating" label="Đánh giá">
+              <Select>
+                <Select.Option value="HOT">Nóng (Hot)</Select.Option>
+                <Select.Option value="WARM">Ấm (Warm)</Select.Option>
+                <Select.Option value="COLD">Lạnh (Cold)</Select.Option>
+              </Select>
+            </Form.Item>
+          </div>
+
+          <Form.Item name="notes" label="Ghi chú">
+            <Input.TextArea rows={3} />
+          </Form.Item>
+        </Form>
+      </Modal>
     </div>
   );
 };
+

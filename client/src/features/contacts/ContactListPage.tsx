@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Table, Button, Input, Tag, Drawer, Form, Select, notification } from 'antd';
-import { PlusOutlined, SearchOutlined } from '@ant-design/icons';
+import { Table, Button, Input, Tag, Drawer, Form, Select, notification, Checkbox } from 'antd';
+import { PlusOutlined, SearchOutlined, EditOutlined } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
 import { crmService } from '../../services/crmService';
 import { Contact, Company } from '../../types';
@@ -13,6 +13,7 @@ export const ContactListPage: React.FC = () => {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [drawerVisible, setDrawerVisible] = useState(false);
+  const [editingContact, setEditingContact] = useState<Contact | null>(null);
 
   const [form] = Form.useForm();
   const { t } = useTranslation();
@@ -37,14 +38,46 @@ export const ContactListPage: React.FC = () => {
     crmService.getCompanies({ limit: 100 }).then((res: any) => setCompanies(res.data));
   }, [page, search]);
 
-  const handleCreateContact = async (values: any) => {
+  const handleOpenCreateDrawer = () => {
+    setEditingContact(null);
+    form.resetFields();
+    setDrawerVisible(true);
+  };
+
+  const handleOpenEditDrawer = (contact: Contact) => {
+    setEditingContact(contact);
+    form.setFieldsValue({
+      companyId: contact.companyId,
+      firstName: contact.firstName,
+      lastName: contact.lastName,
+      email: contact.email,
+      phone: contact.phone,
+      position: contact.position,
+      department: contact.department,
+      isPrimary: contact.isPrimary,
+    });
+    setDrawerVisible(true);
+  };
+
+  const handleSaveContact = async (values: any) => {
     try {
-      const res: any = await crmService.createContact(values);
-      if (res.success) {
-        notification.success({ message: t('common.success'), description: t('contacts.addContact') });
-        setDrawerVisible(false);
-        form.resetFields();
-        fetchContacts();
+      if (editingContact) {
+        const res: any = await crmService.updateContact(editingContact.id, values);
+        if (res.success) {
+          notification.success({ message: t('common.success'), description: t('common.update') });
+          setDrawerVisible(false);
+          setEditingContact(null);
+          form.resetFields();
+          fetchContacts();
+        }
+      } else {
+        const res: any = await crmService.createContact(values);
+        if (res.success) {
+          notification.success({ message: t('common.success'), description: t('contacts.addContact') });
+          setDrawerVisible(false);
+          form.resetFields();
+          fetchContacts();
+        }
       }
     } catch (err: any) {
       notification.error({ message: t('common.error'), description: err.message });
@@ -72,6 +105,13 @@ export const ContactListPage: React.FC = () => {
     { title: t('contacts.position'), dataIndex: 'position', key: 'position' },
     { title: t('common.email'), dataIndex: 'email', key: 'email' },
     { title: t('common.phone'), dataIndex: 'phone', key: 'phone' },
+    {
+      title: t('common.actions'),
+      key: 'actions',
+      render: (_: any, record: Contact) => (
+        <Button size="small" icon={<EditOutlined />} onClick={() => handleOpenEditDrawer(record)} />
+      ),
+    },
   ];
 
   return (
@@ -86,7 +126,7 @@ export const ContactListPage: React.FC = () => {
           icon={<PlusOutlined />}
           size="large"
           className="bg-indigo-600 font-semibold rounded-lg"
-          onClick={() => setDrawerVisible(true)}
+          onClick={handleOpenCreateDrawer}
         >
           {t('contacts.addContact')}
         </Button>
@@ -113,7 +153,7 @@ export const ContactListPage: React.FC = () => {
       </div>
 
       <Drawer
-        title={t('contacts.addContact')}
+        title={editingContact ? t('common.edit') : t('contacts.addContact')}
         open={drawerVisible}
         onClose={() => setDrawerVisible(false)}
         width={450}
@@ -123,7 +163,7 @@ export const ContactListPage: React.FC = () => {
           </Button>
         }
       >
-        <Form form={form} layout="vertical" onFinish={handleCreateContact}>
+        <Form form={form} layout="vertical" onFinish={handleSaveContact}>
           <Form.Item name="companyId" label={t('contacts.company')}>
             <Select placeholder="Chọn công ty" allowClear>
               {companies.map((c) => (
@@ -152,8 +192,17 @@ export const ContactListPage: React.FC = () => {
           <Form.Item name="position" label={t('contacts.position')}>
             <Input placeholder="Giám đốc công nghệ" />
           </Form.Item>
+
+          <Form.Item name="department" label={t('contacts.department')}>
+            <Input placeholder="Phòng CNTT" />
+          </Form.Item>
+
+          <Form.Item name="isPrimary" valuePropName="checked">
+            <Checkbox>Là người liên hệ chính</Checkbox>
+          </Form.Item>
         </Form>
       </Drawer>
     </div>
   );
 };
+

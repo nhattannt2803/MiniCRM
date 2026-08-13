@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Table, Button, Input, Tag, Drawer, Form, notification } from 'antd';
-import { PlusOutlined, SearchOutlined, EyeOutlined } from '@ant-design/icons';
+import { Table, Button, Input, Tag, Drawer, Form, notification, Select } from 'antd';
+import { PlusOutlined, SearchOutlined, EyeOutlined, EditOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { crmService } from '../../services/crmService';
@@ -13,6 +13,7 @@ export const CompanyListPage: React.FC = () => {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [drawerVisible, setDrawerVisible] = useState(false);
+  const [editingCompany, setEditingCompany] = useState<Company | null>(null);
 
   const [form] = Form.useForm();
   const navigate = useNavigate();
@@ -37,14 +38,45 @@ export const CompanyListPage: React.FC = () => {
     fetchCompanies();
   }, [page, search]);
 
-  const handleCreateCompany = async (values: any) => {
+  const handleOpenCreateDrawer = () => {
+    setEditingCompany(null);
+    form.resetFields();
+    setDrawerVisible(true);
+  };
+
+  const handleOpenEditDrawer = (company: Company) => {
+    setEditingCompany(company);
+    form.setFieldsValue({
+      name: company.name,
+      taxCode: company.taxCode,
+      email: company.email,
+      phone: company.phone,
+      website: company.website,
+      address: company.address,
+      status: company.status || 'PROSPECT',
+    });
+    setDrawerVisible(true);
+  };
+
+  const handleSaveCompany = async (values: any) => {
     try {
-      const res: any = await crmService.createCompany(values);
-      if (res.success) {
-        notification.success({ message: t('common.success'), description: t('companies.addCompany') });
-        setDrawerVisible(false);
-        form.resetFields();
-        fetchCompanies();
+      if (editingCompany) {
+        const res: any = await crmService.updateCompany(editingCompany.id, values);
+        if (res.success) {
+          notification.success({ message: t('common.success'), description: t('common.update') });
+          setDrawerVisible(false);
+          setEditingCompany(null);
+          form.resetFields();
+          fetchCompanies();
+        }
+      } else {
+        const res: any = await crmService.createCompany(values);
+        if (res.success) {
+          notification.success({ message: t('common.success'), description: t('companies.addCompany') });
+          setDrawerVisible(false);
+          form.resetFields();
+          fetchCompanies();
+        }
       }
     } catch (err: any) {
       notification.error({ message: t('common.error'), description: err.message });
@@ -97,7 +129,10 @@ export const CompanyListPage: React.FC = () => {
       title: t('common.actions'),
       key: 'actions',
       render: (_: any, record: Company) => (
-        <Button size="small" icon={<EyeOutlined />} onClick={() => navigate(`/companies/${record.id}`)} />
+        <div className="flex items-center gap-2">
+          <Button size="small" icon={<EyeOutlined />} onClick={() => navigate(`/companies/${record.id}`)} />
+          <Button size="small" icon={<EditOutlined />} onClick={() => handleOpenEditDrawer(record)} />
+        </div>
       ),
     },
   ];
@@ -114,7 +149,7 @@ export const CompanyListPage: React.FC = () => {
           icon={<PlusOutlined />}
           size="large"
           className="bg-indigo-600 font-semibold rounded-lg"
-          onClick={() => setDrawerVisible(true)}
+          onClick={handleOpenCreateDrawer}
         >
           {t('companies.addCompany')}
         </Button>
@@ -141,7 +176,7 @@ export const CompanyListPage: React.FC = () => {
       </div>
 
       <Drawer
-        title={t('companies.addCompany')}
+        title={editingCompany ? t('common.edit') : t('companies.addCompany')}
         open={drawerVisible}
         onClose={() => setDrawerVisible(false)}
         width={450}
@@ -151,7 +186,7 @@ export const CompanyListPage: React.FC = () => {
           </Button>
         }
       >
-        <Form form={form} layout="vertical" onFinish={handleCreateCompany}>
+        <Form form={form} layout="vertical" onFinish={handleSaveCompany}>
           <Form.Item name="name" label={t('companies.title')} rules={[{ required: true }]}>
             <Input placeholder="Tên công ty" />
           </Form.Item>
@@ -175,8 +210,17 @@ export const CompanyListPage: React.FC = () => {
           <Form.Item name="address" label={t('companies.address')}>
             <Input.TextArea rows={2} />
           </Form.Item>
+
+          <Form.Item name="status" label={t('common.status')} initialValue="PROSPECT">
+            <Select>
+              <Select.Option value="PROSPECT">Tiềm năng (Prospect)</Select.Option>
+              <Select.Option value="ACTIVE">Hoạt động (Active)</Select.Option>
+              <Select.Option value="INACTIVE">Ngừng hoạt động (Inactive)</Select.Option>
+            </Select>
+          </Form.Item>
         </Form>
       </Drawer>
     </div>
   );
 };
+
