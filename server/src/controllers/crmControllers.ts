@@ -441,6 +441,29 @@ export const getDashboardStats = async (req: AuthenticatedRequest, res: Response
   }
 };
 
+export const getLeaderDashboardStats = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  try {
+    const stats = await DashboardService.getLeaderDashboardStats();
+    res.json({ success: true, data: stats });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const nudgeSalesRep = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  try {
+    const { userId, message } = req.body;
+    if (!userId) {
+      return res.status(400).json({ success: false, error: 'userId is required' });
+    }
+    const result = await DashboardService.nudgeSalesRep(userId, message);
+    res.json({ success: true, data: result });
+  } catch (err) {
+    next(err);
+  }
+};
+
+
 // -----------------------------------------------------------------------------
 // Automation Controller
 // -----------------------------------------------------------------------------

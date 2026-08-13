@@ -79,12 +79,12 @@ export async function runSeedEngine(industryKey: string = 'xedien') {
 
   const sales1User = await prisma.user.upsert({
     where: { email: 'sales1@example.com' },
-    update: {},
+    update: { firstName: 'Sale', lastName: 'Minh' },
     create: {
       email: 'sales1@example.com',
       passwordHash,
-      firstName: 'Minh',
-      lastName: 'Tuấn (Sales 1)',
+      firstName: 'Sale',
+      lastName: 'Minh',
       phone: '0901000002',
       userRoles: { create: { roleId: salesRole.id } },
     },
@@ -92,12 +92,12 @@ export async function runSeedEngine(industryKey: string = 'xedien') {
 
   const sales2User = await prisma.user.upsert({
     where: { email: 'sales2@example.com' },
-    update: {},
+    update: { firstName: 'Sale', lastName: 'Lan' },
     create: {
       email: 'sales2@example.com',
       passwordHash,
-      firstName: 'Thùy',
-      lastName: 'Dương (Sales 2)',
+      firstName: 'Sale',
+      lastName: 'Lan',
       phone: '0901000003',
       userRoles: { create: { roleId: salesRole.id } },
     },
@@ -105,12 +105,12 @@ export async function runSeedEngine(industryKey: string = 'xedien') {
 
   const managerUser = await prisma.user.upsert({
     where: { email: 'manager@example.com' },
-    update: {},
+    update: { firstName: 'Sale', lastName: 'Nam' },
     create: {
       email: 'manager@example.com',
       passwordHash,
-      firstName: 'Hoàng',
-      lastName: 'Nam (Manager)',
+      firstName: 'Sale',
+      lastName: 'Nam',
       phone: '0901000004',
       userRoles: { create: { roleId: managerRole.id } },
     },
@@ -223,7 +223,7 @@ export async function runSeedEngine(industryKey: string = 'xedien') {
   }
 
   // 9. Leads
-  console.log(`💬 Seeding ${dataset.leads.length} Leads...`);
+  console.log(`💬 Seeding Leads for Leader Dashboard...`);
   const leadMapByKey: Record<string, any> = {};
   for (const lData of dataset.leads) {
     const { key, campaignCode, salesUserEmail, ...leadFields } = lData;
@@ -241,6 +241,69 @@ export async function runSeedEngine(industryKey: string = 'xedien') {
       leadMapByKey[key] = lead;
     }
   }
+
+  // Ensure Lead Mới = 32 (28 có activity/xử lý, 4 chưa xử lý)
+  // Create 4 unprocessed leads (status = NEW, 0 activities)
+  const salesUsersList = [sales1User, sales2User, managerUser];
+  for (let i = 1; i <= 4; i++) {
+    await prisma.lead.create({
+      data: {
+        firstName: `Khách mới chưa gọi`,
+        lastName: `#${i}`,
+        phone: `090811100${i}`,
+        email: `lead.unprocessed.${i}@example.com`,
+        status: 'NEW',
+        source: 'FACEBOOK',
+        ownerId: salesUsersList[i % 3].id,
+      },
+    });
+  }
+
+  // Create 28 NEW leads that have activity
+  for (let i = 1; i <= 28; i++) {
+    const processedLead = await prisma.lead.create({
+      data: {
+        firstName: `Khách tiềm năng mới`,
+        lastName: `Đã xử lý #${i}`,
+        phone: `09082220${i < 10 ? '0' + i : i}`,
+        email: `lead.processed.${i}@example.com`,
+        status: 'NEW',
+        source: i % 2 === 0 ? 'WEBSITE' : 'HOTLINE',
+        ownerId: salesUsersList[i % 3].id,
+      },
+    });
+    // Add an activity for this processed lead
+    await prisma.activity.create({
+      data: {
+        type: 'CALL',
+        subject: `Cuộc gọi tiếp cận đầu tiên #${i}`,
+        status: 'COMPLETED',
+        ownerId: salesUsersList[i % 3].id,
+        relatedType: 'LEAD',
+        relatedId: processedLead.id,
+      },
+    });
+  }
+
+  // Ensure 13 Inactive Leads > 7 days (status != CONVERTED/LOST, updated 10 days ago)
+  const tenDaysAgo = new Date(Date.now() - 10 * 24 * 3600 * 1000);
+  for (let i = 1; i <= 13; i++) {
+    const owner = i <= 3 ? sales1User : i <= 6 ? sales2User : managerUser; // 3 for Minh, 3 for Lan, 7 for Nam
+    await prisma.lead.create({
+      data: {
+        firstName: `Khách bỏ quên`,
+        lastName: `>7d #${i}`,
+        phone: `09093330${i < 10 ? '0' + i : i}`,
+        email: `inactive.lead.${i}@example.com`,
+        status: 'QUALIFIED',
+        source: 'ZALO',
+        ownerId: owner.id,
+        createdAt: tenDaysAgo,
+        updatedAt: tenDaysAgo,
+      },
+    });
+  }
+
 
   // 10. Opportunities
   console.log(`💼 Seeding ${dataset.opportunities.length} Opportunities...`);
@@ -341,26 +404,85 @@ export async function runSeedEngine(industryKey: string = 'xedien') {
     }
   }
 
-  // 12. Tasks
-  if (dataset.tasks) {
-    console.log(`📌 Seeding ${dataset.tasks.length} Tasks...`);
-    for (const tData of dataset.tasks) {
-      const { salesUserEmail, relatedLeadKey, relatedOppKey, ...taskFields } = tData;
-      const assignedUser = userMap[salesUserEmail] || sales1User;
-      const relatedLead = relatedLeadKey ? leadMapByKey[relatedLeadKey] : null;
-      const relatedOpp = relatedOppKey ? oppMapByKey[relatedOppKey] : null;
+  // 12. Tasks & Follow-ups Seeding for Leader Review
+  console.log(`📌 Seeding Tasks & Leader Dashboard Demo Data...`);
+  const now = Date.now();
+  const oneDay = 24 * 3600 * 1000;
 
-      await prisma.task.create({
-        data: {
-          ...taskFields,
-          assignedTo: assignedUser.id,
-          dueAt: new Date(Date.now() + 24 * 3600 * 1000),
-          relatedType: relatedLead ? 'LEAD' : relatedOpp ? 'OPPORTUNITY' : 'GENERAL',
-          relatedId: relatedLead ? relatedLead.id : relatedOpp ? relatedOpp.id : null,
-        },
-      });
-    }
+  // Sale Minh: 0 overdue, 15 follow-ups today (10 completed, 5 remaining)
+  for (let i = 1; i <= 15; i++) {
+    await prisma.task.create({
+      data: {
+        title: `Gọi điện chăm sóc khách hàng Minh #${i}`,
+        priority: i % 2 === 0 ? 'HIGH' : 'MEDIUM',
+        status: i <= 10 ? 'COMPLETED' : 'TODO',
+        dueAt: new Date(now),
+        completedAt: i <= 10 ? new Date(now - 3600 * 1000) : null,
+        assignedTo: sales1User.id,
+        relatedType: 'LEAD',
+        relatedId: 1n,
+      },
+    });
   }
+
+  // Sale Lan: 2 overdue tasks, 20 follow-ups today (12 completed, 8 remaining)
+  for (let i = 1; i <= 2; i++) {
+    await prisma.task.create({
+      data: {
+        title: `[Quá hạn] Báo giá hợp đồng xe đạp điện - Sale Lan #${i}`,
+        priority: 'URGENT',
+        status: 'TODO',
+        dueAt: new Date(now - (i + 1) * oneDay),
+        assignedTo: sales2User.id,
+        relatedType: 'LEAD',
+        relatedId: 2n,
+      },
+    });
+  }
+  for (let i = 1; i <= 20; i++) {
+    await prisma.task.create({
+      data: {
+        title: `Tư vấn tính năng & thủ tục trả góp - Sale Lan #${i}`,
+        priority: 'MEDIUM',
+        status: i <= 12 ? 'COMPLETED' : 'TODO',
+        dueAt: new Date(now),
+        completedAt: i <= 12 ? new Date(now - 1800 * 1000) : null,
+        assignedTo: sales2User.id,
+        relatedType: 'LEAD',
+        relatedId: 2n,
+      },
+    });
+  }
+
+  // Sale Nam: 7 overdue tasks (🔴 CRITICAL), 32 follow-ups today (19 completed, 13 remaining)
+  for (let i = 1; i <= 7; i++) {
+    await prisma.task.create({
+      data: {
+        title: `🔴 [QUÁ HẠN KHẨN] Đặt lịch lái thử xe & chốt hợp đồng - Sale Nam #${i}`,
+        priority: 'URGENT',
+        status: 'IN_PROGRESS',
+        dueAt: new Date(now - (i + 2) * oneDay),
+        assignedTo: managerUser.id,
+        relatedType: 'LEAD',
+        relatedId: 3n,
+      },
+    });
+  }
+  for (let i = 1; i <= 32; i++) {
+    await prisma.task.create({
+      data: {
+        title: `Theo dõi phản hồi đề xuất báo giá - Sale Nam #${i}`,
+        priority: 'HIGH',
+        status: i <= 19 ? 'COMPLETED' : 'TODO',
+        dueAt: new Date(now),
+        completedAt: i <= 19 ? new Date(now - 7200 * 1000) : null,
+        assignedTo: managerUser.id,
+        relatedType: 'LEAD',
+        relatedId: 3n,
+      },
+    });
+  }
+
 
   // 13. Automations
   if (dataset.automations) {
