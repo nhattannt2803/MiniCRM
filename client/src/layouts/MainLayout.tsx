@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Layout, Menu, Badge, Dropdown, Avatar, Button, Popover, List, Typography, Select, message } from 'antd';
 import {
+  PieChartOutlined,
   DashboardOutlined,
   UsergroupAddOutlined,
   UserOutlined,
@@ -110,6 +111,7 @@ export const MainLayout: React.FC = () => {
   };
 
   const menuItems = [
+    { key: '/overview', icon: <PieChartOutlined />, label: t('nav.overview') },
     { key: '/dashboard', icon: <DashboardOutlined />, label: t('nav.dashboard') },
     {
       key: 'leads-group',
