@@ -79,6 +79,17 @@ export const crmService = {
   markNotificationRead: (id: string) => api.patch(`/notifications/${id}/read`),
   markAllNotificationsRead: () => api.post('/notifications/mark-all-read'),
 
+  // Lead Allocation
+  allocateLeads: (leadIds: string[], ownerId: string) => api.post('/leads/allocate', { leadIds, ownerId }),
+
+  // User & Org Management
+  getUsers: () => api.get('/users'),
+  createUser: (data: any) => api.post('/users', data),
+  toggleUserStatus: (id: string, isActive: boolean) => api.patch(`/users/${id}/toggle-status`, { isActive }),
+  getStaff: () => api.get('/staff'),
+  getTeams: () => api.get('/teams'),
+  getRoles: () => api.get('/roles'),
+
   // Demo Industry Switcher
   switchDemoIndustry: (industry: string) => api.post('/demo/switch-industry', { industry }),
 };

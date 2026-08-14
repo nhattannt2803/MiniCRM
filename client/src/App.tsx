@@ -10,6 +10,12 @@ import { LoginPage } from './features/auth/LoginPage';
 import { DashboardPage } from './features/dashboard/DashboardPage';
 import { LeadListPage } from './features/leads/LeadListPage';
 import { LeadDetailPage } from './features/leads/LeadDetailPage';
+import { MyLeadsPage } from './features/leads/MyLeadsPage';
+import { LeadAllocationPage } from './features/leads/LeadAllocationPage';
+import { StaffListPage } from './features/staff/StaffListPage';
+import { UsersListPage } from './features/users/UsersListPage';
+import { TeamsListPage } from './features/teams/TeamsListPage';
+import { RolesPermissionsPage } from './features/roles/RolesPermissionsPage';
 import { CompanyListPage } from './features/companies/CompanyListPage';
 import { CompanyDetailPage } from './features/companies/CompanyDetailPage';
 import { ContactListPage } from './features/contacts/ContactListPage';
@@ -77,7 +83,13 @@ export const App: React.FC = () => {
             <Route index element={<Navigate to="/dashboard" replace />} />
             <Route path="dashboard" element={<DashboardPage />} />
             <Route path="leads" element={<LeadListPage />} />
+            <Route path="leads/my" element={<MyLeadsPage />} />
+            <Route path="leads/allocation" element={<LeadAllocationPage />} />
             <Route path="leads/:id" element={<LeadDetailPage />} />
+            <Route path="staff" element={<StaffListPage />} />
+            <Route path="users" element={<UsersListPage />} />
+            <Route path="teams" element={<TeamsListPage />} />
+            <Route path="roles" element={<RolesPermissionsPage />} />
             <Route path="companies" element={<CompanyListPage />} />
             <Route path="companies/:id" element={<CompanyDetailPage />} />
             <Route path="contacts" element={<ContactListPage />} />

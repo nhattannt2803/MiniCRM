@@ -13,6 +13,7 @@ import { ActivityService, TaskService, CampaignService } from '../services/Activ
 import { DashboardService } from '../services/DashboardService';
 import { AutomationService } from '../services/AutomationService';
 import { NotificationService } from '../services/NotificationService';
+import { UserService } from '../services/UserService';
 import { runSeedEngine } from '../services/seedEngine';
 
 // -----------------------------------------------------------------------------
@@ -554,4 +555,72 @@ export const switchDemoIndustry = async (req: AuthenticatedRequest, res: Respons
     next(err);
   }
 };
+
+// -----------------------------------------------------------------------------
+// User, Staff, Team, Role & Lead Allocation Controllers
+// -----------------------------------------------------------------------------
+export const getUsers = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  try {
+    const users = await UserService.getUsers();
+    res.json({ success: true, data: users });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const createUser = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  try {
+    const user = await UserService.createUser(req.body);
+    res.status(201).json({ success: true, data: user });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const toggleUserStatus = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  try {
+    const result = await UserService.toggleUserStatus(req.params.id, req.body.isActive);
+    res.json({ success: true, data: result });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const getStaff = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  try {
+    const staff = await UserService.getStaff();
+    res.json({ success: true, data: staff });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const getTeams = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  try {
+    const teams = await UserService.getTeams();
+    res.json({ success: true, data: teams });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const getRoles = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  try {
+    const roles = await UserService.getRoles();
+    res.json({ success: true, data: roles });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const allocateLeads = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  try {
+    const { leadIds, ownerId } = req.body;
+    const result = await UserService.allocateLeads(leadIds, ownerId);
+    res.json({ success: true, data: result });
+  } catch (err) {
+    next(err);
+  }
+};
+
 

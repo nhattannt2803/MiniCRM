@@ -95,6 +95,15 @@ router.get('/notifications', crm.getUserNotifications);
 router.patch('/notifications/:id/read', crm.markNotificationRead);
 router.post('/notifications/mark-all-read', crm.markAllNotificationsRead);
 
+// User & Org Management
+router.get('/users', crm.getUsers);
+router.post('/users', crm.createUser);
+router.patch('/users/:id/toggle-status', crm.toggleUserStatus);
+router.get('/staff', crm.getStaff);
+router.get('/teams', crm.getTeams);
+router.get('/roles', crm.getRoles);
+router.post('/leads/allocate', crm.allocateLeads);
+
 // Demo Industry Switcher
 router.post('/demo/switch-industry', crm.switchDemoIndustry);
 

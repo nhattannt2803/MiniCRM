@@ -3,6 +3,9 @@ import { Layout, Menu, Badge, Dropdown, Avatar, Button, Popover, List, Typograph
 import {
   DashboardOutlined,
   UsergroupAddOutlined,
+  UserOutlined,
+  ShareAltOutlined,
+  TeamOutlined,
   BankOutlined,
   ContactsOutlined,
   SolutionOutlined,
@@ -12,6 +15,11 @@ import {
   CheckSquareOutlined,
   ClockCircleOutlined,
   RobotOutlined,
+  IdcardOutlined,
+  UserSwitchOutlined,
+  ClusterOutlined,
+  LockOutlined,
+  SafetyCertificateOutlined,
   BellOutlined,
   SettingOutlined,
   LogoutOutlined,
@@ -103,7 +111,16 @@ export const MainLayout: React.FC = () => {
 
   const menuItems = [
     { key: '/dashboard', icon: <DashboardOutlined />, label: t('nav.dashboard') },
-    { key: '/leads', icon: <UsergroupAddOutlined />, label: t('nav.leads') },
+    {
+      key: 'leads-group',
+      icon: <UsergroupAddOutlined />,
+      label: t('nav.leadManagement'),
+      children: [
+        { key: '/leads/my', icon: <UserOutlined />, label: t('nav.myLeads') },
+        { key: '/leads/allocation', icon: <ShareAltOutlined />, label: t('nav.leadAllocation') },
+        { key: '/leads', icon: <TeamOutlined />, label: t('nav.allLeads') },
+      ],
+    },
     { key: '/companies', icon: <BankOutlined />, label: t('nav.companies') },
     { key: '/contacts', icon: <ContactsOutlined />, label: t('nav.contacts') },
     { key: '/customers', icon: <SolutionOutlined />, label: t('nav.customers') },
@@ -113,6 +130,17 @@ export const MainLayout: React.FC = () => {
     { key: '/tasks', icon: <CheckSquareOutlined />, label: t('nav.tasks') },
     { key: '/activities', icon: <ClockCircleOutlined />, label: t('nav.activities') },
     { key: '/automations', icon: <RobotOutlined />, label: t('nav.automations') },
+    {
+      key: 'system-group',
+      icon: <SafetyCertificateOutlined />,
+      label: t('nav.systemManagement'),
+      children: [
+        { key: '/staff', icon: <IdcardOutlined />, label: t('nav.staff') },
+        { key: '/users', icon: <UserSwitchOutlined />, label: t('nav.users') },
+        { key: '/teams', icon: <ClusterOutlined />, label: t('nav.teams') },
+        { key: '/roles', icon: <LockOutlined />, label: t('nav.roles') },
+      ],
+    },
     { key: '/settings', icon: <SettingOutlined />, label: t('nav.settings') },
   ];
 
@@ -173,6 +201,7 @@ export const MainLayout: React.FC = () => {
         <Menu
           mode="inline"
           selectedKeys={[location.pathname]}
+          defaultOpenKeys={['leads-group', 'system-group']}
           items={menuItems}
           onClick={({ key }) => navigate(key)}
           className="border-none py-2 text-sm font-medium"
