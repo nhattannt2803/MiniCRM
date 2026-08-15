@@ -39,6 +39,7 @@
   "nav": {
     "overview": "Personal Overview",
     "teamOverview": "Team Overview",
+    "managerOverview": "Manager Overview",
     "dashboard": "Dashboard",
     "leadManagement": "Lead Management",
     "myLeads": "My Leads",

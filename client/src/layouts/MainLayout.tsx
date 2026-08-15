@@ -118,6 +118,7 @@ export const MainLayout: React.FC = () => {
       children: [
         { key: '/overview', icon: <UserOutlined />, label: t('nav.overview') },
         { key: '/overview/team', icon: <TeamOutlined />, label: t('nav.teamOverview') },
+        { key: '/overview/manager', icon: <ClusterOutlined />, label: t('nav.managerOverview') },
       ],
     },
     { key: '/dashboard', icon: <DashboardOutlined />, label: t('nav.dashboard') },

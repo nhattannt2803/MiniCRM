@@ -39,6 +39,7 @@
   "nav": {
     "overview": "Tổng quan Cá nhân",
     "teamOverview": "Tổng quan Team",
+    "managerOverview": "Tổng quan Manager",
     "dashboard": "Bảng điều khiển",
     "leadManagement": "Quản lý Lead",
     "myLeads": "Lead của tôi",
