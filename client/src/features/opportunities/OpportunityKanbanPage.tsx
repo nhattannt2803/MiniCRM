@@ -5,12 +5,13 @@ import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { crmService } from '../../services/crmService';
 import { KanbanBoard, KanbanColumn } from '../../components/Kanban/KanbanBoard';
-import { Opportunity, Pipeline, PipelineStage } from '../../types';
+import { Opportunity, Pipeline, PipelineStage, User } from '../../types';
 
 export const OpportunityKanbanPage: React.FC = () => {
   const [pipelines, setPipelines] = useState<Pipeline[]>([]);
   const [selectedPipelineId, setSelectedPipelineId] = useState<string | undefined>();
   const [columns, setColumns] = useState<KanbanColumn[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [drawerVisible, setDrawerVisible] = useState(false);
   const [formPipelineId, setFormPipelineId] = useState<string | undefined>();
@@ -48,6 +49,9 @@ export const OpportunityKanbanPage: React.FC = () => {
 
   useEffect(() => {
     fetchPipelines();
+    crmService.getUsers().then((res: any) => {
+      if (res.success) setUsers(res.data);
+    }).catch(err => console.error(err));
   }, []);
 
   useEffect(() => {
@@ -88,6 +92,7 @@ export const OpportunityKanbanPage: React.FC = () => {
       name: '',
       amount: undefined,
       description: '',
+      ownerId: undefined,
     });
     setDrawerVisible(true);
   };
@@ -169,6 +174,16 @@ export const OpportunityKanbanPage: React.FC = () => {
             <InputNumber style={{ width: '100%' }} placeholder="Nhập số tiền" />
           </Form.Item>
 
+          <Form.Item name="ownerId" label="Sale phụ trách (Bổ nhiệm)">
+            <Select placeholder="Chọn nhân viên Sale phụ trách" allowClear>
+              {users.map((u) => (
+                <Select.Option key={u.id} value={u.id}>
+                  👤 {u.firstName} {u.lastName} ({u.email})
+                </Select.Option>
+              ))}
+            </Select>
+          </Form.Item>
+
           <Form.Item name="pipelineId" label="Quy trình bán hàng" rules={[{ required: true }]}>
             <Select onChange={(val) => {
               setFormPipelineId(val);
@@ -199,4 +214,5 @@ export const OpportunityKanbanPage: React.FC = () => {
     </div>
   );
 };
+
 

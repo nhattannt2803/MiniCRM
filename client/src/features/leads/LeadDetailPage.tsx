@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Card, Tag, Button, Select, Tabs, Modal, Form, Input, DatePicker, notification, Spin } from 'antd';
 import { ArrowLeftOutlined, SwapOutlined, PlusOutlined, PhoneOutlined, EditOutlined } from '@ant-design/icons';
 import { crmService } from '../../services/crmService';
-import { Lead } from '../../types';
+import { Lead, User } from '../../types';
 import { ActivityTimeline } from '../../components/Timeline/ActivityTimeline';
 import { LeadConvertModal } from './LeadConvertModal';
 
@@ -12,6 +12,7 @@ export const LeadDetailPage: React.FC = () => {
   const navigate = useNavigate();
 
   const [lead, setLead] = useState<Lead | null>(null);
+  const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
 
   const [convertModalVisible, setConvertModalVisible] = useState(false);
@@ -40,6 +41,9 @@ export const LeadDetailPage: React.FC = () => {
 
   useEffect(() => {
     fetchLeadDetails();
+    crmService.getUsers().then((res: any) => {
+      if (res.success) setUsers(res.data);
+    }).catch(err => console.error(err));
   }, [id]);
 
   const handleOpenEditModal = () => {
@@ -53,6 +57,7 @@ export const LeadDetailPage: React.FC = () => {
       jobTitle: lead.jobTitle,
       source: lead.source,
       rating: lead.rating,
+      ownerId: lead.ownerId,
       notes: lead.notes,
     });
     setEditModalVisible(true);
@@ -356,6 +361,16 @@ export const LeadDetailPage: React.FC = () => {
 
           <Form.Item name="phone" label="Số điện thoại">
             <Input />
+          </Form.Item>
+
+          <Form.Item name="ownerId" label="Sale phụ trách (Bổ nhiệm)">
+            <Select placeholder="Chọn nhân viên Sale phụ trách" allowClear>
+              {users.map((u) => (
+                <Select.Option key={u.id} value={u.id}>
+                  👤 {u.firstName} {u.lastName} ({u.email})
+                </Select.Option>
+              ))}
+            </Select>
           </Form.Item>
 
           <Form.Item name="companyName" label="Công ty">

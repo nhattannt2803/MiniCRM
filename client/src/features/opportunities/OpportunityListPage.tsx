@@ -4,11 +4,12 @@ import { PlusOutlined, SearchOutlined, AppstoreOutlined } from '@ant-design/icon
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { crmService } from '../../services/crmService';
-import { Opportunity, Pipeline, PipelineStage } from '../../types';
+import { Opportunity, Pipeline, PipelineStage, User } from '../../types';
 
 export const OpportunityListPage: React.FC = () => {
   const [opportunities, setOpportunities] = useState<Opportunity[]>([]);
   const [pipelines, setPipelines] = useState<Pipeline[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -38,6 +39,9 @@ export const OpportunityListPage: React.FC = () => {
     fetchOpps();
     crmService.getPipelines().then((res: any) => {
       if (res.success) setPipelines(res.data);
+    });
+    crmService.getUsers().then((res: any) => {
+      if (res.success) setUsers(res.data);
     });
   }, [page, search]);
 
@@ -87,6 +91,15 @@ export const OpportunityListPage: React.FC = () => {
       dataIndex: 'probability',
       key: 'probability',
       render: (p: number) => `${p}%`,
+    },
+    {
+      title: 'Sale phụ trách',
+      key: 'owner',
+      render: (_: any, r: Opportunity) => (
+        <span className="text-xs font-semibold text-slate-700">
+          {r.owner ? `👤 ${r.owner.firstName} ${r.owner.lastName}` : <Tag color="default">Chưa bổ nhiệm</Tag>}
+        </span>
+      ),
     },
     {
       title: t('common.status'),
@@ -158,6 +171,16 @@ export const OpportunityListPage: React.FC = () => {
             <InputNumber style={{ width: '100%' }} />
           </Form.Item>
 
+          <Form.Item name="ownerId" label="Sale phụ trách (Bổ nhiệm)">
+            <Select placeholder="Chọn nhân viên Sale phụ trách" allowClear>
+              {users.map((u) => (
+                <Select.Option key={u.id} value={u.id}>
+                  👤 {u.firstName} {u.lastName} ({u.email})
+                </Select.Option>
+              ))}
+            </Select>
+          </Form.Item>
+
           {defaultPipeline && (
             <>
               <Form.Item name="pipelineId" label="Quy trình bán hàng" initialValue={defaultPipeline.id}>
@@ -184,3 +207,4 @@ export const OpportunityListPage: React.FC = () => {
     </div>
   );
 };
+

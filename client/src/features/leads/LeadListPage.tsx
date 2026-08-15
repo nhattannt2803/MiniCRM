@@ -4,11 +4,12 @@ import { PlusOutlined, SearchOutlined, EyeOutlined, EditOutlined, SwapOutlined, 
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { crmService } from '../../services/crmService';
-import { Lead } from '../../types';
+import { Lead, User } from '../../types';
 import { LeadConvertModal } from './LeadConvertModal';
 
 export const LeadListPage: React.FC = () => {
   const [leads, setLeads] = useState<Lead[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -49,6 +50,12 @@ export const LeadListPage: React.FC = () => {
   useEffect(() => {
     fetchLeads();
   }, [page, search, statusFilter, ratingFilter]);
+
+  useEffect(() => {
+    crmService.getUsers().then((res: any) => {
+      if (res.success) setUsers(res.data);
+    }).catch((err) => console.error(err));
+  }, []);
 
   const handleSaveLead = async (values: any) => {
     try {
@@ -92,6 +99,7 @@ export const LeadListPage: React.FC = () => {
       jobTitle: lead.jobTitle,
       source: lead.source,
       rating: lead.rating,
+      ownerId: lead.ownerId,
       notes: lead.notes,
     });
     setCreateDrawerVisible(true);
@@ -177,6 +185,15 @@ export const LeadListPage: React.FC = () => {
       dataIndex: 'rating',
       key: 'rating',
       render: (rating: string) => getRatingTag(rating),
+    },
+    {
+      title: 'Sale phụ trách',
+      key: 'owner',
+      render: (_: any, record: Lead) => (
+        <span className="text-xs font-semibold text-slate-700">
+          {record.owner ? `👤 ${record.owner.firstName} ${record.owner.lastName}` : <Tag color="default">Chưa bổ nhiệm</Tag>}
+        </span>
+      ),
     },
     {
       title: t('common.actions'),
@@ -303,6 +320,16 @@ export const LeadListPage: React.FC = () => {
 
           <Form.Item name="phone" label={t('common.phone')}>
             <Input placeholder="0901234567" />
+          </Form.Item>
+
+          <Form.Item name="ownerId" label="Sale phụ trách (Bổ nhiệm)">
+            <Select placeholder="Chọn nhân viên Sale phụ trách" allowClear>
+              {users.map((u) => (
+                <Select.Option key={u.id} value={u.id}>
+                  👤 {u.firstName} {u.lastName} ({u.email})
+                </Select.Option>
+              ))}
+            </Select>
           </Form.Item>
 
           <Form.Item name="companyName" label={t('leads.form.company')}>
