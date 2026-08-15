@@ -200,10 +200,10 @@ export const MainLayout: React.FC = () => {
   };
 
   return (
-    <Layout className="min-h-screen">
+    <Layout className="h-screen overflow-hidden">
       {/* Sidebar */}
-      <Sider trigger={null} collapsible collapsed={collapsed} theme="light" className="border-r border-slate-200 shadow-xs">
-        <div className="h-16 flex items-center px-4 gap-3 border-b border-slate-100">
+      <Sider trigger={null} collapsible collapsed={collapsed} theme="light" className="h-screen overflow-y-auto border-r border-slate-200 shadow-xs shrink-0">
+        <div className="h-16 flex items-center px-4 gap-3 border-b border-slate-100 sticky top-0 bg-white z-10">
           <div className="w-8 h-8 rounded-lg bg-indigo-600 text-white font-black flex items-center justify-center text-lg shadow-md">
             M
           </div>
@@ -219,9 +219,9 @@ export const MainLayout: React.FC = () => {
         />
       </Sider>
 
-      <Layout>
-        {/* Top Header */}
-        <Header className="bg-white border-b border-slate-200 px-6 flex items-center justify-between h-16 shadow-xs">
+      <Layout className="h-screen overflow-hidden flex flex-col flex-1">
+        {/* Top Header - Sticky */}
+        <Header className="sticky top-0 z-20 bg-white border-b border-slate-200 px-6 flex items-center justify-between h-16 shadow-xs shrink-0">
           <Button
             type="text"
             icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
@@ -280,8 +280,8 @@ export const MainLayout: React.FC = () => {
           </div>
         </Header>
 
-        {/* Main Content Area */}
-        <Content className="p-6 overflow-y-auto bg-slate-50">
+        {/* Main Content Area - Scrollable */}
+        <Content className="p-6 overflow-y-auto bg-slate-50 flex-1">
           <Outlet />
         </Content>
       </Layout>
