@@ -9,6 +9,7 @@ import { MainLayout } from './layouts/MainLayout';
 import { LoginPage } from './features/auth/LoginPage';
 import { DashboardPage } from './features/dashboard/DashboardPage';
 import { OverviewPage } from './features/overview/OverviewPage';
+import { TeamLeaderOverviewPage } from './features/overview/TeamLeaderOverviewPage';
 import { LeadListPage } from './features/leads/LeadListPage';
 import { LeadDetailPage } from './features/leads/LeadDetailPage';
 import { MyLeadsPage } from './features/leads/MyLeadsPage';
@@ -83,6 +84,7 @@ export const App: React.FC = () => {
           >
             <Route index element={<Navigate to="/dashboard" replace />} />
             <Route path="overview" element={<OverviewPage />} />
+            <Route path="overview/team" element={<TeamLeaderOverviewPage />} />
             <Route path="dashboard" element={<DashboardPage />} />
             <Route path="leads" element={<LeadListPage />} />
             <Route path="leads/my" element={<MyLeadsPage />} />

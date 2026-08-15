@@ -111,7 +111,15 @@ export const MainLayout: React.FC = () => {
   };
 
   const menuItems = [
-    { key: '/overview', icon: <PieChartOutlined />, label: t('nav.overview') },
+    {
+      key: 'overview-group',
+      icon: <PieChartOutlined />,
+      label: t('nav.overview'),
+      children: [
+        { key: '/overview', icon: <UserOutlined />, label: t('nav.overview') },
+        { key: '/overview/team', icon: <TeamOutlined />, label: t('nav.teamOverview') },
+      ],
+    },
     { key: '/dashboard', icon: <DashboardOutlined />, label: t('nav.dashboard') },
     {
       key: 'leads-group',
@@ -203,7 +211,7 @@ export const MainLayout: React.FC = () => {
         <Menu
           mode="inline"
           selectedKeys={[location.pathname]}
-          defaultOpenKeys={['leads-group', 'system-group']}
+          defaultOpenKeys={['overview-group', 'leads-group', 'system-group']}
           items={menuItems}
           onClick={({ key }) => navigate(key)}
           className="border-none py-2 text-sm font-medium"

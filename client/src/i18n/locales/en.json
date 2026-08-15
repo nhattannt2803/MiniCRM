@@ -37,7 +37,8 @@
     "notes": "Notes"
   },
   "nav": {
-    "overview": "Overview",
+    "overview": "Personal Overview",
+    "teamOverview": "Team Overview",
     "dashboard": "Dashboard",
     "leadManagement": "Lead Management",
     "myLeads": "My Leads",

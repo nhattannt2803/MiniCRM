@@ -37,7 +37,8 @@
     "notes": "Ghi chú"
   },
   "nav": {
-    "overview": "Tổng quan",
+    "overview": "Tổng quan Cá nhân",
+    "teamOverview": "Tổng quan Team",
     "dashboard": "Bảng điều khiển",
     "leadManagement": "Quản lý Lead",
     "myLeads": "Lead của tôi",
