@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Table, Button, Input, Select, Tag, Drawer, Form, Popconfirm, notification } from 'antd';
-import { PlusOutlined, SearchOutlined, EyeOutlined, EditOutlined, SwapOutlined, DeleteOutlined } from '@ant-design/icons';
+import { Table, Button, Input, Select, Tag, Drawer, Form, Popconfirm, notification, Alert, Space } from 'antd';
+import { PlusOutlined, SearchOutlined, EyeOutlined, EditOutlined, SwapOutlined, DeleteOutlined, WarningOutlined, CheckCircleOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { crmService } from '../../services/crmService';
@@ -21,6 +21,10 @@ export const LeadListPage: React.FC = () => {
   const [editingLead, setEditingLead] = useState<Lead | null>(null);
   const [convertModalVisible, setConvertModalVisible] = useState(false);
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
+
+  // Identity check state
+  const [identityResult, setIdentityResult] = useState<any>(null);
+  const [checkingIdentity, setCheckingIdentity] = useState(false);
 
   const [form] = Form.useForm();
   const navigate = useNavigate();
@@ -57,6 +61,31 @@ export const LeadListPage: React.FC = () => {
     }).catch((err) => console.error(err));
   }, []);
 
+  const handlePhoneBlur = async () => {
+    const phone = form.getFieldValue('phone');
+    const email = form.getFieldValue('email');
+    const firstName = form.getFieldValue('firstName') || '';
+    const lastName = form.getFieldValue('lastName') || '';
+
+    if ((phone && phone.length >= 6) || (email && email.includes('@'))) {
+      setCheckingIdentity(true);
+      try {
+        const res: any = await crmService.checkIdentity({
+          phone,
+          email,
+          name: `${firstName} ${lastName}`.trim(),
+        });
+        if (res.success) {
+          setIdentityResult(res.data);
+        }
+      } catch (err) {
+        console.error('Identity check error:', err);
+      } finally {
+        setCheckingIdentity(false);
+      }
+    }
+  };
+
   const handleSaveLead = async (values: any) => {
     try {
       if (editingLead) {
@@ -66,14 +95,27 @@ export const LeadListPage: React.FC = () => {
           setCreateDrawerVisible(false);
           setEditingLead(null);
           form.resetFields();
+          setIdentityResult(null);
           fetchLeads();
         }
       } else {
-        const res: any = await crmService.createLead(values);
+        const payload = {
+          ...values,
+          customerId: identityResult?.status === 'MATCHED' ? identityResult.matchedCustomerId : undefined,
+        };
+        const res: any = await crmService.createLead(payload);
         if (res.success) {
-          notification.success({ message: t('common.success'), description: t('leads.addLead') });
+          if (res.data.identityResolutionResult?.status === 'POTENTIAL_DUPLICATE') {
+            notification.warning({
+              message: 'Cảnh báo Trùng số Điện thoại',
+              description: 'Lead đã được tạo nhưng gắn cờ Nghi trùng số để quản lý xác minh!',
+            });
+          } else {
+            notification.success({ message: t('common.success'), description: t('leads.addLead') });
+          }
           setCreateDrawerVisible(false);
           form.resetFields();
+          setIdentityResult(null);
           fetchLeads();
         }
       }
@@ -84,12 +126,14 @@ export const LeadListPage: React.FC = () => {
 
   const handleOpenCreateDrawer = () => {
     setEditingLead(null);
+    setIdentityResult(null);
     form.resetFields();
     setCreateDrawerVisible(true);
   };
 
   const handleOpenEditDrawer = (lead: Lead) => {
     setEditingLead(lead);
+    setIdentityResult(null);
     form.setFieldsValue({
       firstName: lead.firstName,
       lastName: lead.lastName,
@@ -127,6 +171,18 @@ export const LeadListPage: React.FC = () => {
     }
   };
 
+  const getIdentityTag = (status?: string) => {
+    switch (status) {
+      case 'MATCHED':
+        return <Tag color="green" icon={<CheckCircleOutlined />}>Khớp Customer</Tag>;
+      case 'POTENTIAL_DUPLICATE':
+        return <Tag color="orange" icon={<WarningOutlined />}>⚠️ Nghi trùng số</Tag>;
+      case 'NEW_CUSTOMER':
+      default:
+        return <Tag color="cyan">Khách mới</Tag>;
+    }
+  };
+
   const getRatingTag = (rating: string) => {
     switch (rating) {
       case 'HOT': return <Tag color="red">🔥 {t('tasks.priority.HIGH')}</Tag>;
@@ -138,7 +194,7 @@ export const LeadListPage: React.FC = () => {
 
   const columns = [
     {
-      title: t('leads.form.firstName') + ' / ' + t('leads.form.lastName'),
+      title: 'Họ & Tên khách hàng',
       key: 'name',
       render: (_: any, record: Lead) => (
         <div>
@@ -146,9 +202,12 @@ export const LeadListPage: React.FC = () => {
             className="font-bold text-slate-900 cursor-pointer hover:text-indigo-600 transition-colors"
             onClick={() => navigate(`/leads/${record.id}`)}
           >
-            {record.firstName} {record.lastName}
+            {record.lastName} {record.firstName}
           </div>
-          <div className="text-xs text-slate-400">{record.jobTitle || '—'}</div>
+          <div className="text-xs text-slate-400 mt-0.5 space-x-1">
+            <span>{record.jobTitle || '—'}</span>
+            <span>{getIdentityTag(record.identityResolutionStatus)}</span>
+          </div>
         </div>
       ),
     },
@@ -191,7 +250,7 @@ export const LeadListPage: React.FC = () => {
       key: 'owner',
       render: (_: any, record: Lead) => (
         <span className="text-xs font-semibold text-slate-700">
-          {record.owner ? `👤 ${record.owner.firstName} ${record.owner.lastName}` : <Tag color="default">Chưa bổ nhiệm</Tag>}
+          {record.owner ? `👤 ${record.owner.lastName} ${record.owner.firstName}` : <Tag color="default">Chưa bổ nhiệm</Tag>}
         </span>
       ),
     },
@@ -199,16 +258,11 @@ export const LeadListPage: React.FC = () => {
       title: t('common.actions'),
       key: 'actions',
       render: (_: any, record: Lead) => (
-        <div className="flex items-center gap-2">
+        <div className="space-x-2">
           <Button
             size="small"
             icon={<EyeOutlined />}
             onClick={() => navigate(`/leads/${record.id}`)}
-          />
-          <Button
-            size="small"
-            icon={<EditOutlined />}
-            onClick={() => handleOpenEditDrawer(record)}
           />
           {record.status !== 'CONVERTED' && (
             <Button
@@ -221,10 +275,20 @@ export const LeadListPage: React.FC = () => {
                 setConvertModalVisible(true);
               }}
             >
-              {t('leads.convertLead')}
+              {t('leads.convert')}
             </Button>
           )}
-          <Popconfirm title={t('common.confirmDelete')} onConfirm={() => handleDeleteLead(record.id)}>
+          <Button
+            size="small"
+            icon={<EditOutlined />}
+            onClick={() => handleOpenEditDrawer(record)}
+          />
+          <Popconfirm
+            title="Xóa Lead này?"
+            onConfirm={() => handleDeleteLead(record.id)}
+            okText="Xóa"
+            cancelText="Hủy"
+          >
             <Button size="small" danger icon={<DeleteOutlined />} />
           </Popconfirm>
         </div>
@@ -232,51 +296,75 @@ export const LeadListPage: React.FC = () => {
     },
   ];
 
-
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
+    <div className="space-y-6">
+      {/* Top Header */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">{t('leads.title')}</h1>
-          <p className="text-sm text-slate-500">Quản lý vòng đời tiềm năng từ tiếp cận đến chuyển đổi</p>
+          <h1 className="text-2xl font-extrabold text-slate-900">{t('leads.title')}</h1>
+          <p className="text-sm text-slate-500">{t('leads.subtitle')}</p>
         </div>
         <Button
           type="primary"
           icon={<PlusOutlined />}
           size="large"
-          className="bg-indigo-600 font-semibold rounded-lg"
           onClick={handleOpenCreateDrawer}
+          className="bg-indigo-600 hover:bg-indigo-700 shadow-md shadow-indigo-200"
         >
           {t('leads.addLead')}
         </Button>
       </div>
 
-      {/* Filters Bar */}
-      <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs flex flex-wrap items-center gap-3">
+      {/* Filter Bar */}
+      <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-wrap items-center gap-3">
         <Input
+          placeholder={t('common.search') + '...'}
           prefix={<SearchOutlined className="text-slate-400" />}
-          placeholder={t('common.searchPlaceholder')}
-          className="w-72"
+          value={search}
+          onChange={(e) => {
+            setSearch(e.target.value);
+            setPage(1);
+          }}
+          className="w-64"
           allowClear
-          onChange={(e) => setSearch(e.target.value)}
         />
 
         <Select
           placeholder={t('common.status')}
+          value={statusFilter}
+          onChange={(val) => {
+            setStatusFilter(val);
+            setPage(1);
+          }}
           className="w-40"
           allowClear
-          onChange={(val) => setStatusFilter(val)}
         >
           <Select.Option value="NEW">{t('leads.status.NEW')}</Select.Option>
           <Select.Option value="CONTACTED">{t('leads.status.CONTACTED')}</Select.Option>
           <Select.Option value="QUALIFIED">{t('leads.status.QUALIFIED')}</Select.Option>
           <Select.Option value="UNQUALIFIED">{t('leads.status.UNQUALIFIED')}</Select.Option>
           <Select.Option value="CONVERTED">{t('leads.status.CONVERTED')}</Select.Option>
+          <Select.Option value="LOST">Mất</Select.Option>
+        </Select>
+
+        <Select
+          placeholder="Đánh giá"
+          value={ratingFilter}
+          onChange={(val) => {
+            setRatingFilter(val);
+            setPage(1);
+          }}
+          className="w-40"
+          allowClear
+        >
+          <Select.Option value="HOT">Nóng (Hot)</Select.Option>
+          <Select.Option value="WARM">Ấm (Warm)</Select.Option>
+          <Select.Option value="COLD">Lạnh (Cold)</Select.Option>
         </Select>
       </div>
 
       {/* Table */}
-      <div className="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden">
+      <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden p-4">
         <Table
           columns={columns}
           dataSource={leads}
@@ -304,29 +392,48 @@ export const LeadListPage: React.FC = () => {
         }
       >
         <Form form={form} layout="vertical" onFinish={handleSaveLead}>
+          {identityResult && identityResult.status === 'MATCHED' && (
+            <Alert
+              type="success"
+              showIcon
+              message="Khớp Customer thành công!"
+              description={`Số điện thoại/Email trùng với Customer ${identityResult.matchedCustomerName} (${identityResult.matchedCustomerCode}). Lead này sẽ được gắn trực tiếp vào Customer!`}
+              className="mb-4"
+            />
+          )}
+
+          {identityResult && identityResult.status === 'POTENTIAL_DUPLICATE' && (
+            <Alert
+              type="warning"
+              showIcon
+              message="Cảnh báo Trùng số Điện thoại (Potential Duplicate)"
+              description={`Số điện thoại đã thuộc về Customer '${identityResult.matchedCustomerName}' (${identityResult.matchedCustomerCode}) nhưng tên Lead khác. CRM vẫn cho tạo Lead và gắn cờ chờ xác minh!`}
+              className="mb-4"
+            />
+          )}
 
           <div className="grid grid-cols-2 gap-3">
             <Form.Item name="firstName" label={t('leads.form.firstName')} rules={[{ required: true }]}>
-              <Input placeholder="Văn A" />
+              <Input placeholder="Văn A" onBlur={handlePhoneBlur} />
             </Form.Item>
             <Form.Item name="lastName" label={t('leads.form.lastName')} rules={[{ required: true }]}>
-              <Input placeholder="Nguyễn" />
+              <Input placeholder="Nguyễn" onBlur={handlePhoneBlur} />
             </Form.Item>
           </div>
 
           <Form.Item name="email" label={t('common.email')}>
-            <Input placeholder="nguyenvana@example.com" />
+            <Input placeholder="nguyenvana@example.com" onBlur={handlePhoneBlur} />
           </Form.Item>
 
           <Form.Item name="phone" label={t('common.phone')}>
-            <Input placeholder="0901234567" />
+            <Input placeholder="0901234567" onBlur={handlePhoneBlur} />
           </Form.Item>
 
           <Form.Item name="ownerId" label="Sale phụ trách (Bổ nhiệm)">
             <Select placeholder="Chọn nhân viên Sale phụ trách" allowClear>
               {users.map((u) => (
                 <Select.Option key={u.id} value={u.id}>
-                  👤 {u.firstName} {u.lastName} ({u.email})
+                  👤 {u.lastName} {u.firstName} ({u.email})
                 </Select.Option>
               ))}
             </Select>

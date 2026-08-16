@@ -102,7 +102,7 @@ export const MyLeadsPage: React.FC = () => {
             onClick={() => navigate(`/leads/${record.id}`)}
             className="font-semibold text-indigo-600 hover:text-indigo-800"
           >
-            {record.firstName} {record.lastName}
+            {record.lastName} {record.firstName}
           </a>
           {record.jobTitle && <div className="text-xs text-slate-400">{record.jobTitle}</div>}
         </div>

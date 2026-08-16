@@ -90,7 +90,7 @@ export const ContactListPage: React.FC = () => {
       key: 'name',
       render: (_: any, r: Contact) => (
         <div>
-          <span className="font-bold text-slate-900">{r.firstName} {r.lastName}</span>
+          <span className="font-bold text-slate-900">{r.lastName} {r.firstName}</span>
           {r.isPrimary && <Tag color="gold" className="ml-2">CHÍNH</Tag>}
         </div>
       ),

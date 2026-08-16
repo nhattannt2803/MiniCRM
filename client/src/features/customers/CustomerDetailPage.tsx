@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Card, Tag, Button, Tabs, Table, Spin, Modal, Form, Input, Select, Popconfirm, notification, Divider } from 'antd';
-import { ArrowLeftOutlined, EditOutlined, DeleteOutlined, UserOutlined, BankOutlined, PhoneOutlined, MailOutlined, HomeOutlined, IdcardOutlined } from '@ant-design/icons';
+import { Card, Tag, Button, Tabs, Table, Spin, Modal, Form, Input, Select, Popconfirm, notification, Divider, Badge } from 'antd';
+import { ArrowLeftOutlined, EditOutlined, DeleteOutlined, UserOutlined, BankOutlined, PhoneOutlined, MailOutlined, HomeOutlined, IdcardOutlined, PlusOutlined, CheckCircleOutlined, MessageOutlined } from '@ant-design/icons';
 import { crmService } from '../../services/crmService';
-import { Customer, User } from '../../types';
+import { Customer, User, CustomerIdentity, Lead } from '../../types';
 import { ActivityTimeline } from '../../components/Timeline/ActivityTimeline';
 
 export const CustomerDetailPage: React.FC = () => {
@@ -12,9 +12,12 @@ export const CustomerDetailPage: React.FC = () => {
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
+
   const [editModalVisible, setEditModalVisible] = useState(false);
+  const [identityModalVisible, setIdentityModalVisible] = useState(false);
 
   const [form] = Form.useForm();
+  const [identityForm] = Form.useForm();
 
   const fetchCustomerDetails = async () => {
     if (!id) return;
@@ -89,6 +92,19 @@ export const CustomerDetailPage: React.FC = () => {
     }
   };
 
+  const handleAddIdentity = async (values: any) => {
+    if (!id) return;
+    try {
+      await crmService.addCustomerIdentity(id, values.type, values.identityValue);
+      notification.success({ message: 'Thêm điểm nhận diện thành công!' });
+      setIdentityModalVisible(false);
+      identityForm.resetFields();
+      fetchCustomerDetails();
+    } catch (err: any) {
+      notification.error({ message: 'Thêm thất bại', description: err.message });
+    }
+  };
+
   const handleDeleteCustomer = async () => {
     if (!id) return;
     try {
@@ -105,6 +121,76 @@ export const CustomerDetailPage: React.FC = () => {
   if (loading || !customer) {
     return <div className="h-96 flex items-center justify-center"><Spin size="large" /></div>;
   }
+
+  const identityColumns = [
+    {
+      title: 'Loại điểm nhận diện (Type)',
+      dataIndex: 'type',
+      key: 'type',
+      render: (t: string) => {
+        switch (t) {
+          case 'PHONE': return <Tag color="blue">📞 SĐT (Phone)</Tag>;
+          case 'EMAIL': return <Tag color="cyan">✉ Email</Tag>;
+          case 'ZALO_UID': return <Tag color="blue">💬 Zalo UID</Tag>;
+          case 'FB_PSID': return <Tag color="purple">Facebook PSID</Tag>;
+          case 'WEB_VISITOR': return <Tag color="orange">🌐 Web Visitor</Tag>;
+          default: return <Tag>{t}</Tag>;
+        }
+      },
+    },
+    {
+      title: 'Giá trị định danh (Value)',
+      dataIndex: 'identityValue',
+      key: 'identityValue',
+      render: (val: string) => <span className="font-semibold text-slate-900">{val}</span>,
+    },
+    {
+      title: 'Trạng thái xác minh',
+      dataIndex: 'isVerified',
+      key: 'isVerified',
+      render: (verified: boolean) =>
+        verified ? (
+          <Badge status="success" text="Đã xác minh" />
+        ) : (
+          <Badge status="warning" text="Chờ xác minh" />
+        ),
+    },
+    {
+      title: 'Ngày liên kết',
+      dataIndex: 'createdAt',
+      key: 'createdAt',
+      render: (d: string) => new Date(d).toLocaleDateString('vi-VN'),
+    },
+  ];
+
+  const leadColumns = [
+    {
+      title: 'Tên Lead',
+      key: 'name',
+      render: (_: any, r: Lead) => (
+        <span
+          className="font-bold text-indigo-600 cursor-pointer hover:underline"
+          onClick={() => navigate(`/leads/${r.id}`)}
+        >
+          {r.lastName} {r.firstName}
+        </span>
+      ),
+    },
+    { title: 'Nguồn', dataIndex: 'source', key: 'source', render: (s: string) => <Tag>{s}</Tag> },
+    { title: 'Trạng thái', dataIndex: 'status', key: 'status', render: (s: string) => <Tag color="blue">{s}</Tag> },
+    {
+      title: 'Xác minh Identity',
+      dataIndex: 'identityResolutionStatus',
+      key: 'identityResolutionStatus',
+      render: (s: string) => <Tag color={s === 'POTENTIAL_DUPLICATE' ? 'orange' : 'green'}>{s || 'MATCHED'}</Tag>,
+    },
+    {
+      title: 'Ngày tạo',
+      dataIndex: 'createdAt',
+      key: 'createdAt',
+      render: (d: string) => new Date(d).toLocaleDateString('vi-VN'),
+    },
+  ];
 
   const oppColumns = [
     { title: 'Tên Cơ hội', dataIndex: 'name', key: 'name' },
@@ -125,7 +211,7 @@ export const CustomerDetailPage: React.FC = () => {
   const isCompany = customer.entityType === 'COMPANY';
   const customerName = isCompany
     ? customer.company?.name
-    : `${customer.contact?.firstName || ''} ${customer.contact?.lastName || ''}`;
+    : `${customer.contact?.lastName || ''} ${customer.contact?.firstName || ''}`.trim();
 
   return (
     <div className="space-y-6">
@@ -143,11 +229,14 @@ export const CustomerDetailPage: React.FC = () => {
                 {customer.status === 'ACTIVE' ? 'Đang hoạt động' : 'Tạm dừng'}
               </Tag>
             </div>
-            <p className="text-sm text-slate-500">Hồ sơ khách hàng chính thức</p>
+            <p className="text-sm text-slate-500">Hồ sơ khách hàng chính thức (Customer Profile)</p>
           </div>
         </div>
 
         <div className="flex items-center gap-2">
+          <Button icon={<PlusOutlined />} type="primary" onClick={() => setIdentityModalVisible(true)} className="bg-emerald-600">
+            + Thêm điểm liên lạc (Identity)
+          </Button>
           <Button icon={<EditOutlined />} onClick={handleOpenEditModal}>
             Chỉnh sửa thông tin
           </Button>
@@ -179,10 +268,14 @@ export const CustomerDetailPage: React.FC = () => {
               </div>
               <Divider className="my-2" />
               <div>
+                <span className="text-slate-400 font-medium block text-xs">Số lượng Identity liên kết</span>
+                <span className="text-slate-800 font-bold">{customer.identities?.length || 0} Điểm liên lạc</span>
+              </div>
+              <div>
                 <span className="text-slate-400 font-medium block text-xs">Sales phụ trách</span>
                 <span className="text-slate-800 font-semibold flex items-center gap-1.5 mt-0.5">
                   <UserOutlined className="text-indigo-600" />
-                  {customer.owner ? `${customer.owner.firstName} ${customer.owner.lastName}` : <span className="text-slate-400 font-normal">Chưa gán</span>}
+                  {customer.owner ? `${customer.owner.lastName} ${customer.owner.firstName}` : <span className="text-slate-400 font-normal">Chưa gán</span>}
                 </span>
               </div>
               <div>
@@ -278,14 +371,38 @@ export const CustomerDetailPage: React.FC = () => {
           </Card>
         </div>
 
-        {/* Right Column: Won Deals & Activity Timeline */}
+        {/* Right Column: Identities, Leads & Won Deals */}
         <div className="lg:col-span-2">
           <Card className="shadow-xs border-slate-200 rounded-xl bg-white">
             <Tabs
               items={[
                 {
+                  key: 'identities',
+                  label: `🔑 Điểm liên lạc & Identities (${customer.identities?.length || 0})`,
+                  children: (
+                    <Table
+                      columns={identityColumns}
+                      dataSource={customer.identities || []}
+                      rowKey="id"
+                      pagination={false}
+                    />
+                  ),
+                },
+                {
+                  key: 'leads',
+                  label: `💬 Cơ hội & Lead đang nuôi dưỡng (${customer.leads?.length || 0})`,
+                  children: (
+                    <Table
+                      columns={leadColumns}
+                      dataSource={customer.leads || []}
+                      rowKey="id"
+                      pagination={false}
+                    />
+                  ),
+                },
+                {
                   key: 'wonDeals',
-                  label: `Hợp đồng đã chốt (${customer.wonOpportunities?.length || 0})`,
+                  label: `🏆 Hợp đồng đã chốt (${customer.wonOpportunities?.length || 0})`,
                   children: (
                     <Table
                       columns={oppColumns}
@@ -305,6 +422,30 @@ export const CustomerDetailPage: React.FC = () => {
           </Card>
         </div>
       </div>
+
+      {/* Add Identity Modal */}
+      <Modal
+        title="Bổ sung Điểm liên lạc (Add Customer Identity)"
+        open={identityModalVisible}
+        onCancel={() => setIdentityModalVisible(false)}
+        onOk={() => identityForm.submit()}
+      >
+        <Form form={identityForm} layout="vertical" onFinish={handleAddIdentity} initialValues={{ type: 'PHONE' }}>
+          <Form.Item name="type" label="Loại điểm liên lạc (Channel / Type)" rules={[{ required: true }]}>
+            <Select>
+              <Select.Option value="PHONE">📞 Số điện thoại (Phone)</Select.Option>
+              <Select.Option value="EMAIL">✉ Email</Select.Option>
+              <Select.Option value="ZALO_UID">💬 Zalo UID</Select.Option>
+              <Select.Option value="FB_PSID">Facebook PSID</Select.Option>
+              <Select.Option value="WEB_VISITOR">🌐 Web Visitor ID</Select.Option>
+            </Select>
+          </Form.Item>
+
+          <Form.Item name="identityValue" label="Giá trị định danh (SĐT / Email / UID)" rules={[{ required: true, message: 'Nhập giá trị định danh' }]}>
+            <Input placeholder="Ví dụ: 0912345678, user@gmail.com, ZA123" />
+          </Form.Item>
+        </Form>
+      </Modal>
 
       {/* Edit Customer Modal */}
       <Modal

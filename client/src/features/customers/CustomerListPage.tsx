@@ -169,7 +169,7 @@ export const CustomerListPage: React.FC = () => {
       key: 'account',
       render: (_: any, r: Customer) => {
         const isCompany = r.entityType === 'COMPANY';
-        const name = isCompany ? r.company?.name : `${r.contact?.firstName || ''} ${r.contact?.lastName || ''}`;
+        const name = isCompany ? r.company?.name : `${r.contact?.lastName || ''} ${r.contact?.firstName || ''}`.trim();
         return (
           <div className="flex items-center gap-2">
             {isCompany ? (
@@ -193,16 +193,26 @@ export const CustomerListPage: React.FC = () => {
       ),
     },
     {
-      title: 'Liên hệ',
+      title: 'Liên hệ & Điểm nhận diện',
       key: 'contactInfo',
       render: (_: any, r: Customer) => {
-        const phone = r.company?.phone || r.contact?.phone;
+        const companyPhone = r.company?.phone;
+        const contactPhone = r.contact?.phone;
         const email = r.company?.email || r.contact?.email;
+        const identities = r.identities || [];
+        const extraPhones = identities.filter(i => i.type === 'PHONE' && i.identityValue !== companyPhone && i.identityValue !== contactPhone);
+
         return (
-          <div className="text-xs text-slate-600 space-y-0.5">
-            {phone && <div>📞 {phone}</div>}
+          <div className="text-xs text-slate-600 space-y-1">
+            {companyPhone && <div>🏢 Cty: <span className="font-semibold">{companyPhone}</span></div>}
+            {contactPhone && (
+              <div>📞 DĐ: <span className="font-semibold text-slate-900">{contactPhone}</span> {r.contact?.lastName && <span className="text-slate-400">({r.contact.lastName} {r.contact.firstName})</span>}</div>
+            )}
+            {extraPhones.map((ip) => (
+              <div key={ip.id} className="text-slate-500">📱 {ip.identityValue}</div>
+            ))}
             {email && <div className="text-slate-400">✉️ {email}</div>}
-            {!phone && !email && <span className="text-slate-400">-</span>}
+            {!companyPhone && !contactPhone && !email && <span className="text-slate-400">-</span>}
           </div>
         );
       },
@@ -212,7 +222,7 @@ export const CustomerListPage: React.FC = () => {
       key: 'owner',
       render: (_: any, r: any) => (
         <span className="text-sm text-slate-700 font-medium">
-          {r.owner ? `${r.owner.firstName} ${r.owner.lastName}` : <span className="text-slate-400">Chưa gán</span>}
+          {r.owner ? `${r.owner.lastName} ${r.owner.firstName}` : <span className="text-slate-400">Chưa gán</span>}
         </span>
       ),
     },
@@ -358,7 +368,7 @@ export const CustomerListPage: React.FC = () => {
               <Select placeholder="Chọn sales phụ trách" allowClear>
                 {users.map((u) => (
                   <Select.Option key={u.id} value={u.id}>
-                    {u.firstName} {u.lastName} {u.roles?.length ? `(${u.roles.join(', ')})` : ''}
+                    {u.lastName} {u.firstName} {u.roles?.length ? `(${u.roles.join(', ')})` : ''}
 
                   </Select.Option>
                 ))}
@@ -487,7 +497,7 @@ export const CustomerListPage: React.FC = () => {
             <Select placeholder="Chọn sales phụ trách" allowClear>
               {users.map((u) => (
                 <Select.Option key={u.id} value={u.id}>
-                  {u.firstName} {u.lastName} {u.roles?.length ? `(${u.roles.join(', ')})` : ''}
+                  {u.lastName} {u.firstName} {u.roles?.length ? `(${u.roles.join(', ')})` : ''}
                 </Select.Option>
 
               ))}

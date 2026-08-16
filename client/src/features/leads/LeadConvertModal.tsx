@@ -34,14 +34,14 @@ export const LeadConvertModal: React.FC<LeadConvertModalProps> = ({
 
       form.setFieldsValue({
         companyMode: 'CREATE',
-        newCompanyName: lead.companyName || `Công ty ${lead.firstName} ${lead.lastName}`,
+        newCompanyName: lead.companyName || `Công ty ${lead.lastName} ${lead.firstName}`,
         contactMode: 'CREATE',
         newContactFirstName: lead.firstName,
         newContactLastName: lead.lastName,
         newContactEmail: lead.email,
         newContactPhone: lead.phone,
         createOpportunity: true,
-        opportunityName: `Cơ hội - ${lead.firstName} ${lead.lastName}`,
+        opportunityName: `Cơ hội - ${lead.lastName} ${lead.firstName}`,
         opportunityAmount: 15000000,
       });
     }
@@ -148,7 +148,7 @@ export const LeadConvertModal: React.FC<LeadConvertModalProps> = ({
               <Select placeholder="Chọn người liên hệ">
                 {contacts.map((c) => (
                   <Select.Option key={c.id} value={c.id}>
-                    {c.firstName} {c.lastName} ({c.email || c.phone || 'Chưa có email'})
+                    {c.lastName} {c.firstName} ({c.email || c.phone || 'Chưa có email'})
                   </Select.Option>
                 ))}
               </Select>

@@ -273,7 +273,7 @@ export const MainLayout: React.FC = () => {
                   {user?.firstName ? user.firstName[0] : 'U'}
                 </Avatar>
                 <span className="font-semibold text-slate-700 text-sm hidden md:inline">
-                  {user?.firstName} {user?.lastName}
+                  {user?.lastName} {user?.firstName}
                 </span>
               </div>
             </Dropdown>

@@ -269,7 +269,7 @@ export class DashboardService {
 
       return {
         id: userIdStr,
-        name: `${user.firstName} ${user.lastName}`.trim(),
+        name: `${user.lastName} ${user.firstName}`.trim(),
         email: user.email,
         phone: user.phone,
         overdueCount: userOverdueTasks.length,
@@ -288,7 +288,7 @@ export class DashboardService {
         })),
         inactiveLeads: userInactiveLeads.map((l) => ({
           id: l.id.toString(),
-          name: `${l.firstName} ${l.lastName}`.trim(),
+          name: `${l.lastName} ${l.firstName}`.trim(),
           companyName: l.companyName,
           phone: l.phone,
           createdAt: l.createdAt,
@@ -340,7 +340,7 @@ export class DashboardService {
     return {
       success: true,
       notificationId: notification.id.toString(),
-      recipientName: `${user.firstName} ${user.lastName}`.trim(),
+      recipientName: `${user.lastName} ${user.firstName}`.trim(),
     };
   }
 }

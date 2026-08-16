@@ -20,10 +20,12 @@ router.get('/auth/me', crm.getMe);
 // Leads
 router.get('/leads', crm.getLeads);
 router.post('/leads', crm.createLead);
+router.post('/leads/check-identity', crm.checkIdentity);
 router.get('/leads/:id', crm.getLeadById);
 router.patch('/leads/:id', crm.updateLead);
 router.delete('/leads/:id', crm.deleteLead);
 router.post('/leads/:id/convert', crm.convertLead);
+router.post('/leads/:id/resolve-identity', crm.resolveLeadIdentity);
 
 // Companies
 router.get('/companies', crm.getCompanies);
@@ -44,6 +46,15 @@ router.get('/customers/:id', crm.getCustomerById);
 router.put('/customers/:id', crm.updateCustomer);
 router.patch('/customers/:id', crm.updateCustomer);
 router.delete('/customers/:id', crm.deleteCustomer);
+router.get('/customers/:id/identities', crm.getCustomerIdentities);
+router.post('/customers/:id/identities', crm.addCustomerIdentity);
+
+// Conversations
+router.get('/conversations', crm.getConversations);
+router.post('/conversations', crm.createConversation);
+router.get('/conversations/:id', crm.getConversationById);
+router.post('/conversations/:id/messages', crm.addMessage);
+
 
 
 

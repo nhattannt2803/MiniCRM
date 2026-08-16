@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Card, Tag, Button, Select, Tabs, Modal, Form, Input, DatePicker, notification, Spin } from 'antd';
-import { ArrowLeftOutlined, SwapOutlined, PlusOutlined, PhoneOutlined, EditOutlined } from '@ant-design/icons';
+import { Card, Tag, Button, Select, Tabs, Modal, Form, Input, DatePicker, notification, Spin, Alert, Radio } from 'antd';
+import { ArrowLeftOutlined, SwapOutlined, PlusOutlined, PhoneOutlined, EditOutlined, WarningOutlined, MessageOutlined, SendOutlined } from '@ant-design/icons';
 import { crmService } from '../../services/crmService';
-import { Lead, User } from '../../types';
+import { Lead, User, Conversation, Customer } from '../../types';
 import { ActivityTimeline } from '../../components/Timeline/ActivityTimeline';
 import { LeadConvertModal } from './LeadConvertModal';
 
@@ -13,16 +13,23 @@ export const LeadDetailPage: React.FC = () => {
 
   const [lead, setLead] = useState<Lead | null>(null);
   const [users, setUsers] = useState<User[]>([]);
+  const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
 
   const [convertModalVisible, setConvertModalVisible] = useState(false);
   const [activityModalVisible, setActivityModalVisible] = useState(false);
   const [taskModalVisible, setTaskModalVisible] = useState(false);
   const [editModalVisible, setEditModalVisible] = useState(false);
+  const [resolveModalVisible, setResolveModalVisible] = useState(false);
+
+  // New message state
+  const [newMessage, setNewMessage] = useState('');
+  const [sendingMsg, setSendingMsg] = useState(false);
 
   const [activityForm] = Form.useForm();
   const [taskForm] = Form.useForm();
   const [editForm] = Form.useForm();
+  const [resolveForm] = Form.useForm();
 
   const fetchLeadDetails = async () => {
     if (!id) return;
@@ -43,6 +50,9 @@ export const LeadDetailPage: React.FC = () => {
     fetchLeadDetails();
     crmService.getUsers().then((res: any) => {
       if (res.success) setUsers(res.data);
+    }).catch(err => console.error(err));
+    crmService.getCustomers({ limit: 100 }).then((res: any) => {
+      if (res.success) setCustomers(res.data);
     }).catch(err => console.error(err));
   }, [id]);
 
@@ -72,6 +82,47 @@ export const LeadDetailPage: React.FC = () => {
       fetchLeadDetails();
     } catch (err: any) {
       notification.error({ message: 'Cập nhật thất bại', description: err.message });
+    }
+  };
+
+  const handleResolveIdentity = async (values: any) => {
+    if (!id) return;
+    try {
+      await crmService.resolveLeadIdentity(id, values.action, values.targetCustomerId);
+      notification.success({ message: 'Xác minh điểm nhận diện thành công!' });
+      setResolveModalVisible(false);
+      fetchLeadDetails();
+    } catch (err: any) {
+      notification.error({ message: 'Thất bại', description: err.message });
+    }
+  };
+
+  const handleSendMessage = async (convId: string) => {
+    if (!newMessage.trim()) return;
+    setSendingMsg(true);
+    try {
+      await crmService.addMessage(convId, { content: newMessage, senderType: 'AGENT' });
+      setNewMessage('');
+      fetchLeadDetails();
+    } catch (err: any) {
+      notification.error({ message: 'Error sending message', description: err.message });
+    } finally {
+      setSendingMsg(false);
+    }
+  };
+
+  const handleCreateConversation = async () => {
+    if (!id) return;
+    try {
+      await crmService.createConversation({
+        leadId: id,
+        channelType: lead?.source === 'FACEBOOK' ? 'FACEBOOK' : lead?.source === 'ZALO' ? 'ZALO' : 'WEBCHAT',
+        initialMessage: 'Bắt đầu cuộc trò chuyện tư vấn mới...',
+        senderType: 'SYSTEM',
+      });
+      fetchLeadDetails();
+    } catch (err: any) {
+      notification.error({ message: 'Thất bại', description: err.message });
     }
   };
 
@@ -121,8 +172,38 @@ export const LeadDetailPage: React.FC = () => {
     return <div className="h-96 flex items-center justify-center"><Spin size="large" /></div>;
   }
 
+  const activeConv = lead.conversations && lead.conversations.length > 0 ? lead.conversations[0] : null;
+
   return (
     <div className="space-y-6">
+      {/* Potential Duplicate Banner */}
+      {lead.identityResolutionStatus === 'POTENTIAL_DUPLICATE' && (
+        <Alert
+          type="warning"
+          showIcon
+          icon={<WarningOutlined className="text-xl" />}
+          message={
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <span className="font-bold text-amber-900 text-base block">⚠️ Cảnh báo Trùng điểm Nhận diện (Potential Duplicate)</span>
+                <span className="text-xs text-amber-800">
+                  Số điện thoại <strong>{lead.phone}</strong> đã thuộc về một Customer trên hệ thống nhưng tên Lead khác nhau.
+                </span>
+              </div>
+              <Button
+                type="primary"
+                danger
+                size="small"
+                onClick={() => setResolveModalVisible(true)}
+                className="bg-amber-600 border-amber-600 hover:bg-amber-700 font-semibold"
+              >
+                Xác minh ngay (Resolve Identity)
+              </Button>
+            </div>
+          }
+        />
+      )}
+
       {/* Top Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
@@ -130,9 +211,14 @@ export const LeadDetailPage: React.FC = () => {
           <div>
             <div className="flex items-center gap-2">
               <h1 className="text-2xl font-bold text-slate-900">
-                {lead.firstName} {lead.lastName}
+                {lead.lastName} {lead.firstName}
               </h1>
               <Tag color="blue">{lead.status}</Tag>
+              {lead.customer && (
+                <Tag color="green" className="cursor-pointer" onClick={() => navigate(`/customers/${lead.customer?.id}`)}>
+                  🏢 Customer: {lead.customer.customerCode}
+                </Tag>
+              )}
             </div>
             <p className="text-sm text-slate-500">{lead.companyName || 'Individual Prospect'}</p>
           </div>
@@ -168,7 +254,6 @@ export const LeadDetailPage: React.FC = () => {
         </div>
       </div>
 
-
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left Column: Details Card */}
         <div className="space-y-6">
@@ -191,9 +276,15 @@ export const LeadDetailPage: React.FC = () => {
                 <Tag>{lead.source}</Tag>
               </div>
               <div>
+                <span className="text-slate-400 font-medium block text-xs">Identity Status</span>
+                <Tag color={lead.identityResolutionStatus === 'POTENTIAL_DUPLICATE' ? 'orange' : 'green'}>
+                  {lead.identityResolutionStatus || 'MATCHED'}
+                </Tag>
+              </div>
+              <div>
                 <span className="text-slate-400 font-medium block text-xs">Owner</span>
                 <span className="text-slate-800 font-semibold">
-                  {lead.owner ? `${lead.owner.firstName} ${lead.owner.lastName}` : 'Unassigned'}
+                  {lead.owner ? `${lead.owner.lastName} ${lead.owner.firstName}` : 'Unassigned'}
                 </span>
               </div>
               {lead.notes && (
@@ -206,7 +297,7 @@ export const LeadDetailPage: React.FC = () => {
           </Card>
         </div>
 
-        {/* Right Column: Timeline & Tasks */}
+        {/* Right Column: Tabs */}
         <div className="lg:col-span-2 space-y-6">
           <Card
             className="shadow-xs border-slate-200 rounded-xl bg-white"
@@ -233,6 +324,71 @@ export const LeadDetailPage: React.FC = () => {
           >
             <Tabs
               items={[
+                {
+                  key: 'conversations',
+                  label: `💬 Hội thoại Đa kênh (${lead.conversations?.length || 0})`,
+                  children: (
+                    <div className="space-y-4 py-2">
+                      {activeConv ? (
+                        <div className="border border-slate-200 rounded-xl p-4 space-y-3 bg-slate-50">
+                          <div className="flex items-center justify-between border-b border-slate-200 pb-2">
+                            <span className="font-bold text-slate-800 text-sm">
+                              Kênh: <Tag color="purple">{activeConv.channelType}</Tag>
+                            </span>
+                            <span className="text-xs text-slate-400">Thread ID: {activeConv.id}</span>
+                          </div>
+
+                          <div className="max-h-64 overflow-y-auto space-y-2 p-2">
+                            {activeConv.messages && activeConv.messages.length > 0 ? (
+                              activeConv.messages.map((m) => (
+                                <div
+                                  key={m.id}
+                                  className={`p-2.5 rounded-lg text-xs max-w-md ${
+                                    m.senderType === 'AGENT'
+                                      ? 'bg-indigo-600 text-white ml-auto text-right'
+                                      : 'bg-white text-slate-800 border border-slate-200'
+                                  }`}
+                                >
+                                  <div>{m.content}</div>
+                                  <div className="text-[10px] opacity-70 mt-1">
+                                    {new Date(m.sentAt).toLocaleTimeString('vi-VN')} ({m.senderType})
+                                  </div>
+                                </div>
+                              ))
+                            ) : (
+                              <div className="text-slate-400 text-xs text-center py-4">Chưa có tin nhắn</div>
+                            )}
+                          </div>
+
+                          <div className="flex items-center gap-2 pt-2 border-t border-slate-200">
+                            <Input
+                              placeholder="Nhập tin nhắn trả lời..."
+                              value={newMessage}
+                              onChange={(e) => setNewMessage(e.target.value)}
+                              onPressEnter={() => handleSendMessage(activeConv.id)}
+                            />
+                            <Button
+                              type="primary"
+                              icon={<SendOutlined />}
+                              loading={sendingMsg}
+                              onClick={() => handleSendMessage(activeConv.id)}
+                              className="bg-indigo-600"
+                            >
+                              Gửi
+                            </Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="text-center py-8 bg-slate-50 rounded-xl border border-dashed border-slate-300">
+                          <p className="text-slate-500 text-sm mb-3">Chưa có luồng hội thoại đa kênh cho Lead này</p>
+                          <Button icon={<MessageOutlined />} type="primary" onClick={handleCreateConversation} className="bg-indigo-600">
+                            Tạo cuộc hội thoại mới
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  ),
+                },
                 {
                   key: 'timeline',
                   label: 'Activity Timeline',
@@ -266,6 +422,46 @@ export const LeadDetailPage: React.FC = () => {
           </Card>
         </div>
       </div>
+
+      {/* Resolve Identity Modal */}
+      <Modal
+        title="Xác minh & Giải quyết Nghi ngờ Trùng lặp"
+        open={resolveModalVisible}
+        onCancel={() => setResolveModalVisible(false)}
+        onOk={() => resolveForm.submit()}
+      >
+        <Form form={resolveForm} layout="vertical" onFinish={handleResolveIdentity} initialValues={{ action: 'ATTACH_TO_EXISTING' }}>
+          <Form.Item name="action" label="Hành động xử lý">
+            <Radio.Group>
+              <Radio value="ATTACH_TO_EXISTING" className="block mb-2">
+                <strong>Gắn vào Customer sẵn có:</strong> Xác nhận cùng một người, gộp Identity & Lead vào Hồ sơ Customer.
+              </Radio>
+              <Radio value="CREATE_SEPARATE_CUSTOMER" className="block">
+                <strong>Tạo Customer mới riêng biệt:</strong> Xác nhận 2 người khác nhau dùng chung số điện thoại.
+              </Radio>
+            </Radio.Group>
+          </Form.Item>
+
+          <Form.Item
+            noStyle
+            shouldUpdate={(prevValues, currentValues) => prevValues.action !== currentValues.action}
+          >
+            {({ getFieldValue }) =>
+              getFieldValue('action') === 'ATTACH_TO_EXISTING' ? (
+                <Form.Item name="targetCustomerId" label="Chọn Customer muốn gộp" rules={[{ required: true, message: 'Vui lòng chọn Customer' }]}>
+                  <Select placeholder="Chọn Customer">
+                    {customers.map((c) => (
+                      <Select.Option key={c.id} value={c.id}>
+                        🏢 {c.customerCode} - {c.company?.name || `${c.contact?.lastName || ''} ${c.contact?.firstName || ''}`.trim()}
+                      </Select.Option>
+                    ))}
+                  </Select>
+                </Form.Item>
+              ) : null
+            }
+          </Form.Item>
+        </Form>
+      </Modal>
 
       {/* Convert Lead Modal */}
       <LeadConvertModal
@@ -367,7 +563,7 @@ export const LeadDetailPage: React.FC = () => {
             <Select placeholder="Chọn nhân viên Sale phụ trách" allowClear>
               {users.map((u) => (
                 <Select.Option key={u.id} value={u.id}>
-                  👤 {u.firstName} {u.lastName} ({u.email})
+                  👤 {u.lastName} {u.firstName} ({u.email})
                 </Select.Option>
               ))}
             </Select>
@@ -410,4 +606,3 @@ export const LeadDetailPage: React.FC = () => {
     </div>
   );
 };
-

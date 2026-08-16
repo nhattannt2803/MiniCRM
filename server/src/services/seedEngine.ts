@@ -207,7 +207,7 @@ export async function runSeedEngine(industryKey: string = 'xedien') {
       }
 
       if (customer) {
-        await prisma.customer.create({
+        const custRecord = await prisma.customer.create({
           data: {
             customerCode: customer.customerCode,
             entityType: 'COMPANY',
@@ -218,6 +218,28 @@ export async function runSeedEngine(industryKey: string = 'xedien') {
             lifetimeValue: customer.lifetimeValue || 0.0,
           },
         });
+
+        if (company.phone) {
+          await prisma.customerIdentity.upsert({
+            where: { type_identityValue: { type: 'PHONE', identityValue: company.phone } },
+            update: { customerId: custRecord.id },
+            create: { customerId: custRecord.id, type: 'PHONE', identityValue: company.phone, isVerified: true },
+          });
+        }
+        if (company.email) {
+          await prisma.customerIdentity.upsert({
+            where: { type_identityValue: { type: 'EMAIL', identityValue: company.email } },
+            update: { customerId: custRecord.id },
+            create: { customerId: custRecord.id, type: 'EMAIL', identityValue: company.email, isVerified: true },
+          });
+        }
+        if (contactRecord?.phone && contactRecord.phone !== company.phone) {
+          await prisma.customerIdentity.upsert({
+            where: { type_identityValue: { type: 'PHONE', identityValue: contactRecord.phone } },
+            update: { customerId: custRecord.id },
+            create: { customerId: custRecord.id, type: 'PHONE', identityValue: contactRecord.phone, isVerified: true },
+          });
+        }
       }
     }
   }

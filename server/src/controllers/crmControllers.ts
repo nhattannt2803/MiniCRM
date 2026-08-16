@@ -14,6 +14,8 @@ import { DashboardService } from '../services/DashboardService';
 import { AutomationService } from '../services/AutomationService';
 import { NotificationService } from '../services/NotificationService';
 import { UserService } from '../services/UserService';
+import { IdentityResolutionService } from '../services/IdentityResolutionService';
+import { ConversationService } from '../services/ConversationService';
 import { runSeedEngine } from '../services/seedEngine';
 
 // -----------------------------------------------------------------------------
@@ -645,5 +647,86 @@ export const allocateLeads = async (req: AuthenticatedRequest, res: Response, ne
     next(err);
   }
 };
+
+// -----------------------------------------------------------------------------
+// Identity Resolution & Customer Identities Controllers
+// -----------------------------------------------------------------------------
+export const checkIdentity = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  try {
+    const result = await IdentityResolutionService.resolveIdentity(req.body);
+    res.json({ success: true, data: result });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const resolveLeadIdentity = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  try {
+    const { action, targetCustomerId } = req.body;
+    const result = await IdentityResolutionService.resolveDuplicateLead(req.params.id, action, targetCustomerId);
+    res.json({ success: true, data: result });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const getCustomerIdentities = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  try {
+    const identities = await IdentityResolutionService.getCustomerIdentities(req.params.id);
+    res.json({ success: true, data: identities });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const addCustomerIdentity = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  try {
+    const { type, identityValue } = req.body;
+    const identity = await IdentityResolutionService.addIdentityToCustomer(req.params.id, type, identityValue);
+    res.status(201).json({ success: true, data: identity });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// -----------------------------------------------------------------------------
+// Conversations & Messages Controllers
+// -----------------------------------------------------------------------------
+export const getConversations = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  try {
+    const convs = await ConversationService.getConversations(req.query);
+    res.json({ success: true, data: convs.data, meta: convs.meta });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const getConversationById = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  try {
+    const conv = await ConversationService.getConversationById(req.params.id);
+    res.json({ success: true, data: conv });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const createConversation = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  try {
+    const conv = await ConversationService.createConversation(req.body);
+    res.status(201).json({ success: true, data: conv });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const addMessage = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  try {
+    const msg = await ConversationService.addMessage(req.params.id, req.body);
+    res.status(201).json({ success: true, data: msg });
+  } catch (err) {
+    next(err);
+  }
+};
+
 
 

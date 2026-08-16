@@ -6,6 +6,11 @@ export const crmService = {
   getLeaderDashboardStats: () => api.get('/dashboard/leader'),
   nudgeSales: (userId: string, message?: string) => api.post('/dashboard/nudge-sales', { userId, message }),
 
+  // Identity Resolution & Check
+  checkIdentity: (data: { phone?: string; email?: string; name?: string; fbPsid?: string; zaloUid?: string; webVisitorId?: string }) =>
+    api.post('/leads/check-identity', data),
+  resolveLeadIdentity: (leadId: string, action: 'ATTACH_TO_EXISTING' | 'CREATE_SEPARATE_CUSTOMER', targetCustomerId?: string) =>
+    api.post(`/leads/${leadId}/resolve-identity`, { action, targetCustomerId }),
 
   // Leads
   getLeads: (params?: any) => api.get('/leads', { params }),
@@ -27,14 +32,22 @@ export const crmService = {
   createContact: (data: any) => api.post('/contacts', data),
   updateContact: (id: string, data: any) => api.patch(`/contacts/${id}`, data),
 
-  // Customers
+  // Customers & Customer Identities
   getCustomers: (params?: any) => api.get('/customers', { params }),
   getCustomerById: (id: string) => api.get(`/customers/${id}`),
   createCustomer: (data: any) => api.post('/customers', data),
   updateCustomer: (id: string, data: any) => api.put(`/customers/${id}`, data),
   deleteCustomer: (id: string) => api.delete(`/customers/${id}`),
+  getCustomerIdentities: (customerId: string) => api.get(`/customers/${customerId}/identities`),
+  addCustomerIdentity: (customerId: string, type: string, identityValue: string) =>
+    api.post(`/customers/${customerId}/identities`, { type, identityValue }),
 
-
+  // Conversations & Multichannel Threading
+  getConversations: (params?: any) => api.get('/conversations', { params }),
+  getConversationById: (id: string) => api.get(`/conversations/${id}`),
+  createConversation: (data: any) => api.post('/conversations', data),
+  addMessage: (conversationId: string, data: { content: string; senderType?: string; senderId?: string }) =>
+    api.post(`/conversations/${conversationId}/messages`, data),
 
   // Opportunities & Kanban
   getOpportunities: (params?: any) => api.get('/opportunities', { params }),
@@ -52,7 +65,6 @@ export const crmService = {
   createProduct: (data: any) => api.post('/products', data),
   updateProduct: (id: string, data: any) => api.patch(`/products/${id}`, data),
   deleteProduct: (id: string) => api.delete(`/products/${id}`),
-
 
   // Quotes
   getQuotes: (params?: any) => api.get('/quotes', { params }),

@@ -20,6 +20,7 @@ export class CustomerService {
         { company: { name: { contains: params.search } } },
         { contact: { firstName: { contains: params.search } } },
         { contact: { lastName: { contains: params.search } } },
+        { identities: { some: { identityValue: { contains: params.search } } } },
       ];
     }
 
@@ -33,8 +34,9 @@ export class CustomerService {
         include: {
           company: true,
           contact: true,
+          identities: true,
           owner: { select: { id: true, firstName: true, lastName: true } },
-          _count: { select: { opportunities: true } },
+          _count: { select: { opportunities: true, leads: true } },
         },
       }),
     ]);
@@ -47,6 +49,8 @@ export class CustomerService {
         contactId: c.contactId?.toString(),
         ownerId: c.ownerId?.toString(),
         opportunityCount: c._count.opportunities,
+        leadCount: c._count.leads,
+        identities: c.identities.map((i) => ({ ...i, id: i.id.toString(), customerId: i.customerId.toString() })),
       })),
       meta: { page, limit, total, totalPages: Math.ceil(total / limit) },
     };
@@ -59,6 +63,16 @@ export class CustomerService {
       include: {
         company: { include: { contacts: true } },
         contact: true,
+        identities: { orderBy: { createdAt: 'desc' } },
+        leads: {
+          where: { deletedAt: null },
+          orderBy: { createdAt: 'desc' },
+          include: { owner: { select: { id: true, firstName: true, lastName: true } } },
+        },
+        conversations: {
+          orderBy: { updatedAt: 'desc' },
+          include: { messages: { orderBy: { sentAt: 'desc' }, take: 1 } },
+        },
         owner: { select: { id: true, firstName: true, lastName: true } },
         opportunities: {
           where: { status: 'WON', deletedAt: null },
@@ -95,6 +109,23 @@ export class CustomerService {
       companyId: customer.companyId?.toString(),
       contactId: customer.contactId?.toString(),
       ownerId: customer.ownerId?.toString(),
+      identities: customer.identities.map((i) => ({
+        ...i,
+        id: i.id.toString(),
+        customerId: i.customerId.toString(),
+      })),
+      leads: customer.leads.map((l) => ({
+        ...l,
+        id: l.id.toString(),
+        customerId: l.customerId?.toString(),
+        ownerId: l.ownerId?.toString(),
+      })),
+      conversations: customer.conversations.map((c) => ({
+        ...c,
+        id: c.id.toString(),
+        customerId: c.customerId?.toString(),
+        leadId: c.leadId?.toString(),
+      })),
       wonOpportunities: customer.opportunities.map((op) => ({
         ...op,
         id: op.id.toString(),
@@ -121,6 +152,8 @@ export class CustomerService {
       contactEmail,
       contactPhone,
       position,
+      zaloUid,
+      fbPsid,
     } = data;
 
     if (!entityType || !['COMPANY', 'CONTACT'].includes(entityType)) {
@@ -203,6 +236,42 @@ export class CustomerService {
         },
       });
 
+      // Automatically create CustomerIdentities
+      const effectivePhone = phone || contactPhone;
+      const effectiveEmail = email || contactEmail;
+
+      if (effectivePhone && effectivePhone.trim()) {
+        await tx.customerIdentity.upsert({
+          where: { type_identityValue: { type: 'PHONE', identityValue: effectivePhone.trim() } },
+          update: { customerId: customer.id, status: 'ACTIVE' },
+          create: { customerId: customer.id, type: 'PHONE', identityValue: effectivePhone.trim(), isVerified: true },
+        });
+      }
+
+      if (effectiveEmail && effectiveEmail.trim()) {
+        await tx.customerIdentity.upsert({
+          where: { type_identityValue: { type: 'EMAIL', identityValue: effectiveEmail.trim().toLowerCase() } },
+          update: { customerId: customer.id, status: 'ACTIVE' },
+          create: { customerId: customer.id, type: 'EMAIL', identityValue: effectiveEmail.trim().toLowerCase(), isVerified: true },
+        });
+      }
+
+      if (zaloUid && zaloUid.trim()) {
+        await tx.customerIdentity.upsert({
+          where: { type_identityValue: { type: 'ZALO_UID', identityValue: zaloUid.trim() } },
+          update: { customerId: customer.id, status: 'ACTIVE' },
+          create: { customerId: customer.id, type: 'ZALO_UID', identityValue: zaloUid.trim(), isVerified: true },
+        });
+      }
+
+      if (fbPsid && fbPsid.trim()) {
+        await tx.customerIdentity.upsert({
+          where: { type_identityValue: { type: 'FB_PSID', identityValue: fbPsid.trim() } },
+          update: { customerId: customer.id, status: 'ACTIVE' },
+          create: { customerId: customer.id, type: 'FB_PSID', identityValue: fbPsid.trim(), isVerified: true },
+        });
+      }
+
       return customer;
     });
 
@@ -236,6 +305,7 @@ export class CustomerService {
         include: {
           company: true,
           contact: true,
+          identities: true,
           owner: { select: { id: true, firstName: true, lastName: true } },
         },
       });
@@ -285,6 +355,7 @@ export class CustomerService {
       companyId: updated.companyId?.toString(),
       contactId: updated.contactId?.toString(),
       ownerId: updated.ownerId?.toString(),
+      identities: updated.identities.map((i) => ({ ...i, id: i.id.toString(), customerId: i.customerId.toString() })),
     };
   }
 
@@ -301,5 +372,3 @@ export class CustomerService {
     return { success: true };
   }
 }
-
-

@@ -7,6 +7,42 @@ export interface User {
   roles: string[];
 }
 
+export interface CustomerIdentity {
+  id: string;
+  customerId: string;
+  type: 'PHONE' | 'EMAIL' | 'FB_PSID' | 'ZALO_UID' | 'WEB_VISITOR' | string;
+  identityValue: string;
+  isVerified: boolean;
+  status: string;
+  createdAt: string;
+}
+
+export interface Message {
+  id: string;
+  conversationId: string;
+  senderType: 'CUSTOMER' | 'AGENT' | 'SYSTEM' | string;
+  senderId?: string;
+  content: string;
+  metadata?: any;
+  sentAt: string;
+}
+
+export interface Conversation {
+  id: string;
+  customerId?: string;
+  leadId?: string;
+  channelType: 'FACEBOOK' | 'ZALO' | 'WEBCHAT' | 'PHONE_CALL' | 'EMAIL' | string;
+  channelThreadId?: string;
+  status: string;
+  lastMessageAt?: string;
+  createdAt: string;
+  messages?: Message[];
+  messageCount?: number;
+  lastMessage?: Message;
+  customer?: Customer;
+  lead?: Lead;
+}
+
 export interface Lead {
   id: string;
   firstName: string;
@@ -18,9 +54,11 @@ export interface Lead {
   source: string;
   status: 'NEW' | 'CONTACTED' | 'QUALIFIED' | 'UNQUALIFIED' | 'CONVERTED' | 'LOST';
   rating: 'HOT' | 'WARM' | 'COLD';
+  identityResolutionStatus?: 'MATCHED' | 'POTENTIAL_DUPLICATE' | 'PENDING_REVIEW' | 'NEW_CUSTOMER';
   notes?: string;
   companyId?: string;
   contactId?: string;
+  customerId?: string;
   campaignId?: string;
   ownerId?: string;
   convertedOpportunityId?: string;
@@ -30,6 +68,8 @@ export interface Lead {
   owner?: User;
   company?: Company;
   contact?: Contact;
+  customer?: Customer;
+  conversations?: Conversation[];
   activities?: Activity[];
   tasks?: Task[];
 }
@@ -82,6 +122,11 @@ export interface Customer {
   createdAt: string;
   company?: Company;
   contact?: Contact;
+  identities?: CustomerIdentity[];
+  leads?: Lead[];
+  conversations?: Conversation[];
+  opportunityCount?: number;
+  leadCount?: number;
   wonOpportunities?: Opportunity[];
   activities?: Activity[];
   tasks?: Task[];
