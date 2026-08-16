@@ -620,7 +620,8 @@ model CustomerIdentity {
   updatedAt     DateTime  @default(now()) @updatedAt @map("updated_at") @db.DateTime(3)
   customer      Customer  @relation(fields: [customerId], references: [id], onDelete: Cascade)
 
-  @@unique([type, identityValue], name: "type_identityValue", map: "uk_identity_type_value")
+  @@unique([customerId, type, identityValue], name: "customerId_type_identityValue", map: "uk_customer_identity_type_value")
+  @@index([type, identityValue], map: "idx_identity_type_value")
   @@index([customerId], map: "idx_identity_customer")
   @@map("customer_identities")
 }

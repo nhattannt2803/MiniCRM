@@ -28,8 +28,8 @@ export class IdentityResolutionService {
 
     // 1. Check direct Identity Table match (Exact match on FB PSID / Zalo UID / Web Visitor)
     if (fbPsid) {
-      const fbIdent = await prisma.customerIdentity.findUnique({
-        where: { type_identityValue: { type: 'FB_PSID', identityValue: fbPsid } },
+      const fbIdent = await prisma.customerIdentity.findFirst({
+        where: { type: 'FB_PSID', identityValue: fbPsid },
         include: { customer: { include: { company: true, contact: true } } },
       });
       if (fbIdent && fbIdent.customer && !fbIdent.customer.deletedAt) {
@@ -44,8 +44,8 @@ export class IdentityResolutionService {
     }
 
     if (zaloUid) {
-      const zaloIdent = await prisma.customerIdentity.findUnique({
-        where: { type_identityValue: { type: 'ZALO_UID', identityValue: zaloUid } },
+      const zaloIdent = await prisma.customerIdentity.findFirst({
+        where: { type: 'ZALO_UID', identityValue: zaloUid },
         include: { customer: { include: { company: true, contact: true } } },
       });
       if (zaloIdent && zaloIdent.customer && !zaloIdent.customer.deletedAt) {
@@ -60,8 +60,8 @@ export class IdentityResolutionService {
     }
 
     if (webVisitorId) {
-      const webIdent = await prisma.customerIdentity.findUnique({
-        where: { type_identityValue: { type: 'WEB_VISITOR', identityValue: webVisitorId } },
+      const webIdent = await prisma.customerIdentity.findFirst({
+        where: { type: 'WEB_VISITOR', identityValue: webVisitorId },
         include: { customer: { include: { company: true, contact: true } } },
       });
       if (webIdent && webIdent.customer && !webIdent.customer.deletedAt) {
@@ -183,8 +183,8 @@ export class IdentityResolutionService {
 
     // Upsert identity
     const identity = await prisma.customerIdentity.upsert({
-      where: { type_identityValue: { type, identityValue: cleanValue } },
-      update: { customerId: custId, status: 'ACTIVE' },
+      where: { customerId_type_identityValue: { customerId: custId, type, identityValue: cleanValue } },
+      update: { status: 'ACTIVE' },
       create: {
         customerId: custId,
         type,
@@ -241,17 +241,17 @@ export class IdentityResolutionService {
         });
 
         // Add phone & email identities to customer if present on lead
-        if (lead.phone) {
+        if (lead.phone && lead.phone.trim()) {
           await tx.customerIdentity.upsert({
-            where: { type_identityValue: { type: 'PHONE', identityValue: lead.phone.trim() } },
-            update: { customerId: custId },
+            where: { customerId_type_identityValue: { customerId: custId, type: 'PHONE', identityValue: lead.phone.trim() } },
+            update: { status: 'ACTIVE' },
             create: { customerId: custId, type: 'PHONE', identityValue: lead.phone.trim(), isVerified: true },
           });
         }
-        if (lead.email) {
+        if (lead.email && lead.email.trim()) {
           await tx.customerIdentity.upsert({
-            where: { type_identityValue: { type: 'EMAIL', identityValue: lead.email.trim().toLowerCase() } },
-            update: { customerId: custId },
+            where: { customerId_type_identityValue: { customerId: custId, type: 'EMAIL', identityValue: lead.email.trim().toLowerCase() } },
+            update: { status: 'ACTIVE' },
             create: { customerId: custId, type: 'EMAIL', identityValue: lead.email.trim().toLowerCase(), isVerified: true },
           });
         }
@@ -289,14 +289,18 @@ export class IdentityResolutionService {
           },
         });
 
-        if (lead.phone) {
-          await tx.customerIdentity.create({
-            data: { customerId: customer.id, type: 'PHONE', identityValue: lead.phone.trim(), isVerified: true },
+        if (lead.phone && lead.phone.trim()) {
+          await tx.customerIdentity.upsert({
+            where: { customerId_type_identityValue: { customerId: customer.id, type: 'PHONE', identityValue: lead.phone.trim() } },
+            update: { status: 'ACTIVE' },
+            create: { customerId: customer.id, type: 'PHONE', identityValue: lead.phone.trim(), isVerified: true },
           });
         }
-        if (lead.email) {
-          await tx.customerIdentity.create({
-            data: { customerId: customer.id, type: 'EMAIL', identityValue: lead.email.trim().toLowerCase(), isVerified: true },
+        if (lead.email && lead.email.trim()) {
+          await tx.customerIdentity.upsert({
+            where: { customerId_type_identityValue: { customerId: customer.id, type: 'EMAIL', identityValue: lead.email.trim().toLowerCase() } },
+            update: { status: 'ACTIVE' },
+            create: { customerId: customer.id, type: 'EMAIL', identityValue: lead.email.trim().toLowerCase(), isVerified: true },
           });
         }
       });

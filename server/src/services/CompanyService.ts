@@ -173,15 +173,15 @@ export class CompanyService {
         // Add contact phone & email as CustomerIdentities
         if (data.phone && data.phone.trim()) {
           await tx.customerIdentity.upsert({
-            where: { type_identityValue: { type: 'PHONE', identityValue: data.phone.trim() } },
-            update: { customerId: linkedCustomer.id },
+            where: { customerId_type_identityValue: { customerId: linkedCustomer.id, type: 'PHONE', identityValue: data.phone.trim() } },
+            update: { status: 'ACTIVE' },
             create: { customerId: linkedCustomer.id, type: 'PHONE', identityValue: data.phone.trim(), isVerified: true },
           });
         }
         if (data.email && data.email.trim()) {
           await tx.customerIdentity.upsert({
-            where: { type_identityValue: { type: 'EMAIL', identityValue: data.email.trim().toLowerCase() } },
-            update: { customerId: linkedCustomer.id },
+            where: { customerId_type_identityValue: { customerId: linkedCustomer.id, type: 'EMAIL', identityValue: data.email.trim().toLowerCase() } },
+            update: { status: 'ACTIVE' },
             create: { customerId: linkedCustomer.id, type: 'EMAIL', identityValue: data.email.trim().toLowerCase(), isVerified: true },
           });
         }

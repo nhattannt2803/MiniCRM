@@ -84,8 +84,13 @@ export class ConversationService {
   }
 
   public static async createConversation(dto: CreateConversationDTO) {
-    const customerId = dto.customerId ? BigInt(dto.customerId) : null;
+    let customerId = dto.customerId ? BigInt(dto.customerId) : null;
     const leadId = dto.leadId ? BigInt(dto.leadId) : null;
+
+    if (!customerId && leadId) {
+      const l = await prisma.lead.findUnique({ where: { id: leadId }, select: { customerId: true } });
+      if (l?.customerId) customerId = l.customerId;
+    }
 
     const result = await prisma.$transaction(async (tx) => {
       const conv = await tx.conversation.create({

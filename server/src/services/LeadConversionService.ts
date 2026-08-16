@@ -139,6 +139,7 @@ export class LeadConversionService {
             name: oppName,
             companyId,
             contactId,
+            customerId: lead.customerId,
             leadId: lead.id,
             ownerId: lead.ownerId,
             pipelineId,

@@ -248,32 +248,32 @@ export class CustomerService {
 
       if (effectivePhone && effectivePhone.trim()) {
         await tx.customerIdentity.upsert({
-          where: { type_identityValue: { type: 'PHONE', identityValue: effectivePhone.trim() } },
-          update: { customerId: customer.id, status: 'ACTIVE' },
+          where: { customerId_type_identityValue: { customerId: customer.id, type: 'PHONE', identityValue: effectivePhone.trim() } },
+          update: { status: 'ACTIVE' },
           create: { customerId: customer.id, type: 'PHONE', identityValue: effectivePhone.trim(), isVerified: true },
         });
       }
 
       if (effectiveEmail && effectiveEmail.trim()) {
         await tx.customerIdentity.upsert({
-          where: { type_identityValue: { type: 'EMAIL', identityValue: effectiveEmail.trim().toLowerCase() } },
-          update: { customerId: customer.id, status: 'ACTIVE' },
+          where: { customerId_type_identityValue: { customerId: customer.id, type: 'EMAIL', identityValue: effectiveEmail.trim().toLowerCase() } },
+          update: { status: 'ACTIVE' },
           create: { customerId: customer.id, type: 'EMAIL', identityValue: effectiveEmail.trim().toLowerCase(), isVerified: true },
         });
       }
 
       if (zaloUid && zaloUid.trim()) {
         await tx.customerIdentity.upsert({
-          where: { type_identityValue: { type: 'ZALO_UID', identityValue: zaloUid.trim() } },
-          update: { customerId: customer.id, status: 'ACTIVE' },
+          where: { customerId_type_identityValue: { customerId: customer.id, type: 'ZALO_UID', identityValue: zaloUid.trim() } },
+          update: { status: 'ACTIVE' },
           create: { customerId: customer.id, type: 'ZALO_UID', identityValue: zaloUid.trim(), isVerified: true },
         });
       }
 
       if (fbPsid && fbPsid.trim()) {
         await tx.customerIdentity.upsert({
-          where: { type_identityValue: { type: 'FB_PSID', identityValue: fbPsid.trim() } },
-          update: { customerId: customer.id, status: 'ACTIVE' },
+          where: { customerId_type_identityValue: { customerId: customer.id, type: 'FB_PSID', identityValue: fbPsid.trim() } },
+          update: { status: 'ACTIVE' },
           create: { customerId: customer.id, type: 'FB_PSID', identityValue: fbPsid.trim(), isVerified: true },
         });
       }

@@ -221,22 +221,22 @@ export async function runSeedEngine(industryKey: string = 'xedien') {
 
         if (company.phone) {
           await prisma.customerIdentity.upsert({
-            where: { type_identityValue: { type: 'PHONE', identityValue: company.phone } },
-            update: { customerId: custRecord.id },
+            where: { customerId_type_identityValue: { customerId: custRecord.id, type: 'PHONE', identityValue: company.phone } },
+            update: { status: 'ACTIVE' },
             create: { customerId: custRecord.id, type: 'PHONE', identityValue: company.phone, isVerified: true },
           });
         }
         if (company.email) {
           await prisma.customerIdentity.upsert({
-            where: { type_identityValue: { type: 'EMAIL', identityValue: company.email } },
-            update: { customerId: custRecord.id },
+            where: { customerId_type_identityValue: { customerId: custRecord.id, type: 'EMAIL', identityValue: company.email } },
+            update: { status: 'ACTIVE' },
             create: { customerId: custRecord.id, type: 'EMAIL', identityValue: company.email, isVerified: true },
           });
         }
         if (contactRecord?.phone && contactRecord.phone !== company.phone) {
           await prisma.customerIdentity.upsert({
-            where: { type_identityValue: { type: 'PHONE', identityValue: contactRecord.phone } },
-            update: { customerId: custRecord.id },
+            where: { customerId_type_identityValue: { customerId: custRecord.id, type: 'PHONE', identityValue: contactRecord.phone } },
+            update: { status: 'ACTIVE' },
             create: { customerId: custRecord.id, type: 'PHONE', identityValue: contactRecord.phone, isVerified: true },
           });
         }
