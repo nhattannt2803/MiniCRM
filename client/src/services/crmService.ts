@@ -25,6 +25,9 @@ export const crmService = {
   getCompanyById: (id: string) => api.get(`/companies/${id}`),
   createCompany: (data: any) => api.post('/companies', data),
   updateCompany: (id: string, data: any) => api.patch(`/companies/${id}`, data),
+  addCompanyContact: (companyId: string, data: any) => api.post(`/companies/${companyId}/contacts`, data),
+  setPrimaryCompanyContact: (companyId: string, contactId: string) =>
+    api.patch(`/companies/${companyId}/contacts/${contactId}/set-primary`),
 
   // Contacts
   getContacts: (params?: any) => api.get('/contacts', { params }),

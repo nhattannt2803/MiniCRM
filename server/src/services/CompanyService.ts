@@ -125,4 +125,108 @@ export class CompanyService {
     });
     return { ...updated, id: updated.id.toString() };
   }
+
+  public static async addContact(companyId: string | number, data: any) {
+    const compId = BigInt(companyId);
+    const company = await prisma.company.findFirst({ where: { id: compId, deletedAt: null } });
+    if (!company) throw new AppError('Company not found', 404, 'COMPANY_NOT_FOUND');
+
+    const isPrimary = Boolean(data.isPrimary);
+
+    return await prisma.$transaction(async (tx) => {
+      if (isPrimary) {
+        // Reset existing contacts to secondary
+        await tx.contact.updateMany({
+          where: { companyId: compId },
+          data: { isPrimary: false },
+        });
+      }
+
+      const newContact = await tx.contact.create({
+        data: {
+          companyId: compId,
+          firstName: data.firstName,
+          lastName: data.lastName,
+          email: data.email || null,
+          phone: data.phone || null,
+          position: data.position || null,
+          department: data.department || null,
+          isPrimary,
+          isCustomer: company.isCustomer,
+          ownerId: company.ownerId,
+        },
+      });
+
+      // Find associated Customer profile for this company
+      const linkedCustomer = await tx.customer.findFirst({
+        where: { companyId: compId, entityType: 'COMPANY', deletedAt: null },
+      });
+
+      if (linkedCustomer) {
+        if (isPrimary) {
+          await tx.customer.update({
+            where: { id: linkedCustomer.id },
+            data: { contactId: newContact.id },
+          });
+        }
+
+        // Add contact phone & email as CustomerIdentities
+        if (data.phone && data.phone.trim()) {
+          await tx.customerIdentity.upsert({
+            where: { type_identityValue: { type: 'PHONE', identityValue: data.phone.trim() } },
+            update: { customerId: linkedCustomer.id },
+            create: { customerId: linkedCustomer.id, type: 'PHONE', identityValue: data.phone.trim(), isVerified: true },
+          });
+        }
+        if (data.email && data.email.trim()) {
+          await tx.customerIdentity.upsert({
+            where: { type_identityValue: { type: 'EMAIL', identityValue: data.email.trim().toLowerCase() } },
+            update: { customerId: linkedCustomer.id },
+            create: { customerId: linkedCustomer.id, type: 'EMAIL', identityValue: data.email.trim().toLowerCase(), isVerified: true },
+          });
+        }
+      }
+
+      return {
+        ...newContact,
+        id: newContact.id.toString(),
+        companyId: compId.toString(),
+      };
+    });
+  }
+
+  public static async setPrimaryContact(companyId: string | number, contactId: string | number) {
+    const compId = BigInt(companyId);
+    const ctId = BigInt(contactId);
+
+    return await prisma.$transaction(async (tx) => {
+      await tx.contact.updateMany({
+        where: { companyId: compId },
+        data: { isPrimary: false },
+      });
+
+      const updated = await tx.contact.update({
+        where: { id: ctId },
+        data: { isPrimary: true },
+      });
+
+      // Update linked customer's primary contactId
+      const linkedCustomer = await tx.customer.findFirst({
+        where: { companyId: compId, entityType: 'COMPANY', deletedAt: null },
+      });
+
+      if (linkedCustomer) {
+        await tx.customer.update({
+          where: { id: linkedCustomer.id },
+          data: { contactId: ctId },
+        });
+      }
+
+      return {
+        ...updated,
+        id: updated.id.toString(),
+        companyId: compId.toString(),
+      };
+    });
+  }
 }

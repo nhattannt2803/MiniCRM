@@ -15,9 +15,39 @@ export const CustomerDetailPage: React.FC = () => {
 
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [identityModalVisible, setIdentityModalVisible] = useState(false);
+  const [addContactModalVisible, setAddContactModalVisible] = useState(false);
 
   const [form] = Form.useForm();
   const [identityForm] = Form.useForm();
+  const [addContactForm] = Form.useForm();
+
+  const handleAddCompanyContact = async (values: any) => {
+    if (!customer?.companyId) return;
+    try {
+      const res: any = await crmService.addCompanyContact(customer.companyId.toString(), values);
+      if (res.success) {
+        notification.success({ message: 'Thêm người liên hệ doanh nghiệp thành công' });
+        setAddContactModalVisible(false);
+        addContactForm.resetFields();
+        fetchCustomerDetails();
+      }
+    } catch (err: any) {
+      notification.error({ message: 'Thêm người liên hệ thất bại', description: err.message });
+    }
+  };
+
+  const handleSetPrimaryContact = async (contactId: string) => {
+    if (!customer?.companyId) return;
+    try {
+      const res: any = await crmService.setPrimaryCompanyContact(customer.companyId.toString(), contactId);
+      if (res.success) {
+        notification.success({ message: 'Đã đổi người đại diện chính thành công' });
+        fetchCustomerDetails();
+      }
+    } catch (err: any) {
+      notification.error({ message: 'Đổi người đại diện thất bại', description: err.message });
+    }
+  };
 
   const fetchCustomerDetails = async () => {
     if (!id) return;
@@ -335,18 +365,78 @@ export const CustomerDetailPage: React.FC = () => {
                 </>
               )}
 
-              {customer.contact && (
+              {isCompany && customer.company ? (
                 <>
-                  {isCompany && <Divider className="my-2" />}
+                  <Divider className="my-3" />
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="text-xs font-bold text-slate-700 uppercase tracking-wider">
+                      Đại diện doanh nghiệp ({customer.company.contacts?.length || 0})
+                    </div>
+                    <Button
+                      size="small"
+                      type="dashed"
+                      icon={<PlusOutlined />}
+                      onClick={() => setAddContactModalVisible(true)}
+                      className="text-xs border-indigo-300 text-indigo-600 hover:text-indigo-700"
+                    >
+                      Thêm đại diện
+                    </Button>
+                  </div>
+
+                  <div className="space-y-2.5">
+                    {customer.company.contacts && customer.company.contacts.length > 0 ? (
+                      [...customer.company.contacts]
+                        .sort((a, b) => (b.isPrimary ? 1 : 0) - (a.isPrimary ? 1 : 0))
+                        .map((ct: any) => (
+                          <div
+                            key={ct.id}
+                            className={`p-2.5 rounded-lg border text-xs space-y-1 transition-all ${
+                              ct.isPrimary ? 'bg-amber-50/70 border-amber-300 shadow-2xs' : 'bg-slate-50 border-slate-200'
+                            }`}
+                          >
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-1.5 font-bold text-slate-900">
+                                {ct.isPrimary ? (
+                                  <Tag color="gold" className="m-0 font-bold text-xs">👑 Đại diện chính</Tag>
+                                ) : (
+                                  <Tag color="blue" className="m-0 text-xs">👤 Đại diện phụ</Tag>
+                                )}
+                                <span>{ct.lastName} {ct.firstName}</span>
+                              </div>
+                              {!ct.isPrimary && (
+                                <Button
+                                  size="small"
+                                  type="link"
+                                  className="p-0 text-indigo-600 text-xs h-auto font-semibold hover:underline"
+                                  onClick={() => handleSetPrimaryContact(ct.id.toString())}
+                                >
+                                  Đặt làm chính
+                                </Button>
+                              )}
+                            </div>
+
+                            {ct.position && <div className="text-slate-600 font-medium pl-1">Chức vụ: {ct.position} {ct.department ? `(${ct.department})` : ''}</div>}
+                            {ct.phone && <div className="text-slate-800 pl-1">📞 DĐ: <span className="font-bold">{ct.phone}</span></div>}
+                            {ct.email && <div className="text-slate-500 pl-1">✉️ Email: {ct.email}</div>}
+                          </div>
+                        ))
+                    ) : (
+                      <div className="text-xs text-slate-400 italic">Chưa có danh sách đại diện.</div>
+                    )}
+                  </div>
+                </>
+              ) : customer.contact ? (
+                <>
+                  <Divider className="my-2" />
                   <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
-                    {isCompany ? 'Người liên hệ đại diện' : 'Thông tin liên hệ'}
+                    Thông tin liên hệ Cá nhân
                   </div>
                   <div className="flex items-start gap-2.5">
                     <UserOutlined className="text-blue-600 mt-1" />
                     <div>
                       <div className="text-xs text-slate-400">Họ và tên</div>
                       <div className="font-semibold text-slate-800">
-                        {customer.contact.firstName} {customer.contact.lastName}
+                        {customer.contact.lastName} {customer.contact.firstName}
                         {customer.contact.position && <span className="text-slate-500 text-xs font-normal"> ({customer.contact.position})</span>}
                       </div>
                     </div>
@@ -366,7 +456,7 @@ export const CustomerDetailPage: React.FC = () => {
                     </div>
                   </div>
                 </>
-              )}
+              ) : null}
             </div>
           </Card>
         </div>
@@ -531,6 +621,51 @@ export const CustomerDetailPage: React.FC = () => {
               </Form.Item>
             </div>
           )}
+        </Form>
+      </Modal>
+
+      {/* Add Company Contact Modal */}
+      <Modal
+        title="Thêm Người liên hệ / Đại diện Doanh nghiệp"
+        open={addContactModalVisible}
+        onCancel={() => setAddContactModalVisible(false)}
+        onOk={() => addContactForm.submit()}
+        width={480}
+      >
+        <Form form={addContactForm} layout="vertical" onFinish={handleAddCompanyContact}>
+          <div className="grid grid-cols-2 gap-3">
+            <Form.Item name="lastName" label="Họ & Tên đệm" rules={[{ required: true, message: 'Vui lòng nhập họ' }]}>
+              <Input placeholder="Nguyễn Văn" />
+            </Form.Item>
+            <Form.Item name="firstName" label="Tên" rules={[{ required: true, message: 'Vui lòng nhập tên' }]}>
+              <Input placeholder="Nam" />
+            </Form.Item>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <Form.Item name="phone" label="Số điện thoại">
+              <Input placeholder="0912345678" />
+            </Form.Item>
+            <Form.Item name="email" label="Email">
+              <Input placeholder="nam.nguyen@company.vn" />
+            </Form.Item>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <Form.Item name="position" label="Chức vụ">
+              <Input placeholder="Trưởng phòng Kỹ thuật / Kế toán" />
+            </Form.Item>
+            <Form.Item name="department" label="Phòng ban">
+              <Input placeholder="Phòng Kế hoạch" />
+            </Form.Item>
+          </div>
+
+          <Form.Item name="isPrimary" label="Loại đại diện" initialValue={false}>
+            <Select>
+              <Select.Option value={false}>👤 Đại diện phụ (Liên hệ dự phòng)</Select.Option>
+              <Select.Option value={true}>👑 Đại diện chính (Người quyết định)</Select.Option>
+            </Select>
+          </Form.Item>
         </Form>
       </Modal>
     </div>

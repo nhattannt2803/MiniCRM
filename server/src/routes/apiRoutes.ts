@@ -32,6 +32,8 @@ router.get('/companies', crm.getCompanies);
 router.post('/companies', crm.createCompany);
 router.get('/companies/:id', crm.getCompanyById);
 router.patch('/companies/:id', crm.updateCompany);
+router.post('/companies/:id/contacts', crm.addCompanyContact);
+router.patch('/companies/:id/contacts/:contactId/set-primary', crm.setPrimaryCompanyContact);
 
 // Contacts
 router.get('/contacts', crm.getContacts);

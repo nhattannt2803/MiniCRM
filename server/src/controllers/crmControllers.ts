@@ -136,6 +136,24 @@ export const updateCompany = async (req: AuthenticatedRequest, res: Response, ne
   }
 };
 
+export const addCompanyContact = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  try {
+    const contact = await CompanyService.addContact(req.params.id, req.body);
+    res.status(201).json({ success: true, data: contact });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const setPrimaryCompanyContact = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  try {
+    const contact = await CompanyService.setPrimaryContact(req.params.id, req.params.contactId);
+    res.json({ success: true, data: contact });
+  } catch (err) {
+    next(err);
+  }
+};
+
 // -----------------------------------------------------------------------------
 // Contact Controller
 // -----------------------------------------------------------------------------

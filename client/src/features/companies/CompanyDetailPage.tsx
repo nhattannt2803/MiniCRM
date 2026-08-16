@@ -60,19 +60,79 @@ export const CompanyDetailPage: React.FC = () => {
     }
   };
 
+  const [addContactModalVisible, setAddContactModalVisible] = useState(false);
+  const [addContactForm] = Form.useForm();
+
+  const handleAddContact = async (values: any) => {
+    if (!id) return;
+    try {
+      const res: any = await crmService.addCompanyContact(id, values);
+      if (res.success) {
+        notification.success({ message: 'Thêm người liên hệ thành công' });
+        setAddContactModalVisible(false);
+        addContactForm.resetFields();
+        fetchCompany();
+      }
+    } catch (err: any) {
+      notification.error({ message: 'Thêm thất bại', description: err.message });
+    }
+  };
+
+  const handleSetPrimaryContact = async (contactId: string) => {
+    if (!id) return;
+    try {
+      const res: any = await crmService.setPrimaryCompanyContact(id, contactId);
+      if (res.success) {
+        notification.success({ message: 'Đã cập nhật đại diện chính' });
+        fetchCompany();
+      }
+    } catch (err: any) {
+      notification.error({ message: 'Thất bại', description: err.message });
+    }
+  };
+
   if (loading || !company) {
     return <div className="h-96 flex items-center justify-center"><Spin size="large" /></div>;
   }
 
   const contactColumns = [
     {
-      title: 'Contact Name',
+      title: 'Họ và Tên',
       key: 'name',
-      render: (_: any, r: any) => `${r.firstName} ${r.lastName}`,
+      render: (_: any, r: any) => (
+        <span className="font-bold text-slate-900">{r.lastName} {r.firstName}</span>
+      ),
     },
-    { title: 'Position', dataIndex: 'position', key: 'position' },
-    { title: 'Email', dataIndex: 'email', key: 'email' },
-    { title: 'Phone', dataIndex: 'phone', key: 'phone' },
+    {
+      title: 'Vai trò',
+      key: 'isPrimary',
+      render: (_: any, r: any) => (
+        r.isPrimary ? (
+          <Tag color="gold" className="font-bold">👑 Đại diện chính</Tag>
+        ) : (
+          <Tag color="blue">👤 Đại diện phụ</Tag>
+        )
+      ),
+    },
+    { title: 'Chức vụ', dataIndex: 'position', key: 'position', render: (v: string) => v || '—' },
+    { title: 'Số điện thoại', dataIndex: 'phone', key: 'phone', render: (v: string) => <span className="font-semibold text-slate-800">{v || '—'}</span> },
+    { title: 'Email', dataIndex: 'email', key: 'email', render: (v: string) => v || '—' },
+    {
+      title: 'Thao tác',
+      key: 'actions',
+      render: (_: any, r: any) => (
+        !r.isPrimary ? (
+          <Button
+            type="link"
+            size="small"
+            className="text-indigo-600 font-semibold p-0"
+            onClick={() => handleSetPrimaryContact(r.id)}
+          >
+            Đặt làm đại diện chính
+          </Button>
+        ) : <span className="text-slate-400 text-xs">Đang là chính</span>
+      ),
+    },
   ];
 
   const oppColumns = [
@@ -106,9 +166,11 @@ export const CompanyDetailPage: React.FC = () => {
           </div>
         </div>
 
-        <Button icon={<EditOutlined />} onClick={handleOpenEditModal}>
-          Chỉnh sửa thông tin
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button icon={<EditOutlined />} onClick={handleOpenEditModal}>
+            Chỉnh sửa thông tin
+          </Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -139,14 +201,25 @@ export const CompanyDetailPage: React.FC = () => {
               items={[
                 {
                   key: 'contacts',
-                  label: `Contacts (${company.contacts?.length || 0})`,
+                  label: `Người liên hệ (${company.contacts?.length || 0})`,
                   children: (
-                    <Table
-                      columns={contactColumns}
-                      dataSource={company.contacts}
-                      rowKey="id"
-                      pagination={false}
-                    />
+                    <div className="space-y-4">
+                      <div className="flex justify-end">
+                        <Button
+                          type="primary"
+                          className="bg-indigo-600 text-xs font-semibold"
+                          onClick={() => setAddContactModalVisible(true)}
+                        >
+                          + Thêm đại diện
+                        </Button>
+                      </div>
+                      <Table
+                        columns={contactColumns}
+                        dataSource={company.contacts ? [...company.contacts].sort((a, b) => (b.isPrimary ? 1 : 0) - (a.isPrimary ? 1 : 0)) : []}
+                        rowKey="id"
+                        pagination={false}
+                      />
+                    </div>
                   ),
                 },
                 {
@@ -209,6 +282,51 @@ export const CompanyDetailPage: React.FC = () => {
               <Select.Option value="PROSPECT">Tiềm năng (Prospect)</Select.Option>
               <Select.Option value="ACTIVE">Hoạt động (Active)</Select.Option>
               <Select.Option value="INACTIVE">Ngừng hoạt động (Inactive)</Select.Option>
+            </Select>
+          </Form.Item>
+        </Form>
+      </Modal>
+
+      {/* Add Contact Modal */}
+      <Modal
+        title="Thêm Người liên hệ / Đại diện Doanh nghiệp"
+        open={addContactModalVisible}
+        onCancel={() => setAddContactModalVisible(false)}
+        onOk={() => addContactForm.submit()}
+        width={480}
+      >
+        <Form form={addContactForm} layout="vertical" onFinish={handleAddContact}>
+          <div className="grid grid-cols-2 gap-3">
+            <Form.Item name="lastName" label="Họ & Tên đệm" rules={[{ required: true, message: 'Vui lòng nhập họ' }]}>
+              <Input placeholder="Nguyễn Văn" />
+            </Form.Item>
+            <Form.Item name="firstName" label="Tên" rules={[{ required: true, message: 'Vui lòng nhập tên' }]}>
+              <Input placeholder="Nam" />
+            </Form.Item>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <Form.Item name="phone" label="Số điện thoại">
+              <Input placeholder="0912345678" />
+            </Form.Item>
+            <Form.Item name="email" label="Email">
+              <Input placeholder="nam.nguyen@company.vn" />
+            </Form.Item>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <Form.Item name="position" label="Chức vụ">
+              <Input placeholder="Trưởng phòng Kỹ thuật / Kế toán" />
+            </Form.Item>
+            <Form.Item name="department" label="Phòng ban">
+              <Input placeholder="Phòng Kế hoạch" />
+            </Form.Item>
+          </div>
+
+          <Form.Item name="isPrimary" label="Loại đại diện" initialValue={false}>
+            <Select>
+              <Select.Option value={false}>👤 Đại diện phụ (Liên hệ dự phòng)</Select.Option>
+              <Select.Option value={true}>👑 Đại diện chính (Người quyết định)</Select.Option>
             </Select>
           </Form.Item>
         </Form>
