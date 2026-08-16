@@ -1,14 +1,16 @@
 import React from 'react';
 import { Card, Tag, Alert, Radio, Typography } from 'antd';
-import { GlobalOutlined } from '@ant-design/icons';
+import { GlobalOutlined, UserOutlined } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '../../stores/authStore';
+import { useSettingsStore } from '../../stores/settingsStore';
 
 const { Title, Text } = Typography;
 
 export const SettingsPage: React.FC = () => {
   const { t, i18n } = useTranslation();
   const { user } = useAuthStore();
+  const { defaultEntityType, setDefaultEntityType } = useSettingsStore();
 
   const handleLanguageChange = (e: any) => {
     const lang = e.target.value;
@@ -22,6 +24,36 @@ export const SettingsPage: React.FC = () => {
         <h1 className="text-2xl font-bold text-slate-900 tracking-tight">{t('settings.title')}</h1>
         <p className="text-sm text-slate-500">{t('settings.general')}</p>
       </div>
+
+      {/* Default Entity Type Settings Card */}
+      <Card
+        title={
+          <div className="flex items-center gap-2">
+            <UserOutlined className="text-indigo-600" />
+            <span>{t('settings.defaultEntityTypeTitle')}</span>
+          </div>
+        }
+        className="shadow-xs border-slate-200 rounded-xl bg-white"
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-slate-500">{t('settings.defaultEntityTypeDesc')}</p>
+          <Radio.Group
+            onChange={(e) => setDefaultEntityType(e.target.value)}
+            value={defaultEntityType}
+            optionType="button"
+            buttonStyle="solid"
+            size="large"
+            className="w-full grid grid-cols-2 gap-3"
+          >
+            <Radio.Button value="CONTACT" className="text-center font-medium rounded-lg">
+              {t('settings.contactOption')}
+            </Radio.Button>
+            <Radio.Button value="COMPANY" className="text-center font-medium rounded-lg">
+              {t('settings.companyOption')}
+            </Radio.Button>
+          </Radio.Group>
+        </div>
+      </Card>
 
       {/* Language Selection Card */}
       <Card

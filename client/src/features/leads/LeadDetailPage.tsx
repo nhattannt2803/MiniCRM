@@ -174,6 +174,37 @@ export const LeadDetailPage: React.FC = () => {
 
   const activeConv = lead.conversations && lead.conversations.length > 0 ? lead.conversations[0] : null;
 
+  // Filter only customers that are duplicates/matching with the current Lead
+  const duplicateCustomers = customers.filter((c: any) => {
+    if (!lead) return false;
+    if (lead.customerId && String(c.id) === String(lead.customerId)) return true;
+
+    const leadPhone = lead.phone?.trim();
+    const leadEmail = lead.email?.trim().toLowerCase();
+
+    const phoneMatch = Boolean(
+      leadPhone && (
+        c.company?.phone?.trim() === leadPhone ||
+        c.contact?.phone?.trim() === leadPhone ||
+        c.company?.contacts?.some((ct: any) => ct.phone?.trim() === leadPhone) ||
+        c.identities?.some((i: any) => i.type === 'PHONE' && i.identityValue?.trim() === leadPhone)
+      )
+    );
+
+    const emailMatch = Boolean(
+      leadEmail && (
+        c.company?.email?.trim().toLowerCase() === leadEmail ||
+        c.contact?.email?.trim().toLowerCase() === leadEmail ||
+        c.company?.contacts?.some((ct: any) => ct.email?.trim().toLowerCase() === leadEmail) ||
+        c.identities?.some((i: any) => i.type === 'EMAIL' && i.identityValue?.trim().toLowerCase() === leadEmail)
+      )
+    );
+
+    return phoneMatch || emailMatch;
+  });
+
+  const targetCustomers = duplicateCustomers.length > 0 ? duplicateCustomers : customers;
+
   return (
     <div className="space-y-6">
       {/* Potential Duplicate Banner */}
@@ -448,13 +479,68 @@ export const LeadDetailPage: React.FC = () => {
           >
             {({ getFieldValue }) =>
               getFieldValue('action') === 'ATTACH_TO_EXISTING' ? (
-                <Form.Item name="targetCustomerId" label="Chọn Customer muốn gộp" rules={[{ required: true, message: 'Vui lòng chọn Customer' }]}>
-                  <Select placeholder="Chọn Customer">
-                    {customers.map((c) => (
-                      <Select.Option key={c.id} value={c.id}>
-                        🏢 {c.customerCode} - {c.company?.name || `${c.contact?.lastName || ''} ${c.contact?.firstName || ''}`.trim()}
-                      </Select.Option>
-                    ))}
+                <Form.Item
+                  name="targetCustomerId"
+                  label="Chọn Customer trùng lặp muốn gộp"
+                  rules={[{ required: true, message: 'Vui lòng chọn Customer' }]}
+                >
+                  <Select placeholder="Chọn Customer bị trùng" optionLabelProp="label" className="w-full">
+                    {targetCustomers.map((c: any) => {
+                      const isCompany = c.entityType === 'COMPANY' || c.company;
+                      const companyName = c.company?.name || 'Công ty';
+                      const contacts = c.company?.contacts || [];
+
+                      // Find primary & secondary contacts
+                      const primary = contacts.find((ct: any) => ct.isPrimary) || c.contact || contacts[0];
+                      const secondaryList = contacts.filter((ct: any) => ct.id !== primary?.id);
+
+                      const primaryName = primary
+                        ? `${primary.lastName || ''} ${primary.firstName || ''}`.trim() + (primary.position ? ` (${primary.position})` : '')
+                        : 'Chưa có';
+
+                      const secondaryNames = secondaryList.length > 0
+                        ? secondaryList
+                            .map((ct: any) => `${ct.lastName || ''} ${ct.firstName || ''}`.trim() + (ct.position ? ` (${ct.position})` : ''))
+                            .join(', ')
+                        : '';
+
+                      const optionLabelText = isCompany
+                        ? `🏢 [${c.customerCode}] ${companyName} | ĐD chính: ${primaryName}${secondaryNames ? ` | ĐD phụ: ${secondaryNames}` : ''}`
+                        : `👤 [${c.customerCode}] ${c.contact ? `${c.contact.lastName || ''} ${c.contact.firstName || ''}`.trim() : 'Cá nhân'}`;
+
+                      return (
+                        <Select.Option key={c.id} value={c.id} label={optionLabelText}>
+                          <div className="py-1">
+                            {isCompany ? (
+                              <>
+                                <div className="font-bold text-slate-800">🏢 [{c.customerCode}] {companyName}</div>
+                                <div className="text-xs text-slate-600 mt-1 space-y-0.5">
+                                  <div>
+                                    <span className="font-semibold text-indigo-600">👤 Đại diện chính:</span> {primaryName}
+                                  </div>
+                                  {secondaryNames ? (
+                                    <div>
+                                      <span className="font-semibold text-amber-700">👥 Đại diện phụ:</span> {secondaryNames}
+                                    </div>
+                                  ) : (
+                                    <div className="text-slate-400 italic">👥 Đại diện phụ: (Chưa có)</div>
+                                  )}
+                                </div>
+                              </>
+                            ) : (
+                              <>
+                                <div className="font-bold text-slate-800">
+                                  👤 [{c.customerCode}] Cá nhân: {c.contact ? `${c.contact.lastName || ''} ${c.contact.firstName || ''}`.trim() : ''}
+                                </div>
+                                <div className="text-xs text-slate-500">
+                                  📞 {[c.contact?.phone || c.phone, c.contact?.email || c.email].filter(Boolean).join(' - ')}
+                                </div>
+                              </>
+                            )}
+                          </div>
+                        </Select.Option>
+                      );
+                    })}
                   </Select>
                 </Form.Item>
               ) : null

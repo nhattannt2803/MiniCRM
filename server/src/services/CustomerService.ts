@@ -32,7 +32,13 @@ export class CustomerService {
         take: limit,
         orderBy: { createdAt: 'desc' },
         include: {
-          company: true,
+          company: {
+            include: {
+              contacts: {
+                where: { deletedAt: null },
+              },
+            },
+          },
           contact: true,
           identities: true,
           owner: { select: { id: true, firstName: true, lastName: true } },

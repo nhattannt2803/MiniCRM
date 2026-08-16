@@ -284,6 +284,10 @@
     "copyApiKey": "Copy Key",
     "apiKeyCopied": "API Key copied to clipboard!",
     "profile": "Profile Info",
-    "theme": "Theme (Light / Dark)"
+    "theme": "Theme (Light / Dark)",
+    "defaultEntityTypeTitle": "Default Entity Type for Creation",
+    "defaultEntityTypeDesc": "Select whether Individual or Business is set as default when creating a new Lead or Customer.",
+    "contactOption": "👤 Individual (Contact)",
+    "companyOption": "🏢 Business (Company)"
   }
 }

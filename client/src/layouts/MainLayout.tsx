@@ -34,6 +34,8 @@ import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '../stores/authStore';
 import { crmService } from '../services/crmService';
 import { Notification } from '../types';
+import { QuickCreateLeadModal } from '../features/leads/QuickCreateLeadModal';
+import { PlusOutlined } from '@ant-design/icons';
 
 const { Header, Sider, Content } = Layout;
 const { Text } = Typography;
@@ -43,6 +45,7 @@ export const MainLayout: React.FC = () => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [switchingDemo, setSwitchingDemo] = useState(false);
+  const [createLeadModalOpen, setCreateLeadModalOpen] = useState(false);
   const [currentIndustry, setCurrentIndustry] = useState<string>(
     localStorage.getItem('crm_demo_industry') || 'xedien'
   );
@@ -209,6 +212,20 @@ export const MainLayout: React.FC = () => {
           </div>
           {!collapsed && <span className="font-bold text-slate-900 text-base tracking-tight">{t('common.appName')}</span>}
         </div>
+
+        {/* Action Button at Top of Sidebar */}
+        <div className="p-3 border-b border-slate-100">
+          <Button
+            type="primary"
+            icon={<PlusOutlined />}
+            onClick={() => setCreateLeadModalOpen(true)}
+            className="w-full bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 text-white font-bold shadow-md h-10 flex items-center justify-center rounded-xl border-none transition-all"
+            title="Tạo Lead Mới"
+          >
+            {!collapsed && <span>+ Tạo Lead Mới</span>}
+          </Button>
+        </div>
+
         <Menu
           mode="inline"
           selectedKeys={[location.pathname]}
@@ -285,6 +302,12 @@ export const MainLayout: React.FC = () => {
           <Outlet />
         </Content>
       </Layout>
+
+      {/* Global Quick Create Lead Modal */}
+      <QuickCreateLeadModal
+        visible={createLeadModalOpen}
+        onClose={() => setCreateLeadModalOpen(false)}
+      />
     </Layout>
   );
 };

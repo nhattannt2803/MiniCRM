@@ -1,0 +1,215 @@
+import React, { useState, useEffect } from 'react';
+import { Drawer, Form, Input, Select, Radio, Button, Alert, notification } from 'antd';
+import { useTranslation } from 'react-i18next';
+import { crmService } from '../../services/crmService';
+import { User } from '../../types';
+import { useSettingsStore } from '../../stores/settingsStore';
+
+interface QuickCreateLeadModalProps {
+  visible: boolean;
+  onClose: () => void;
+  onSuccess?: () => void;
+}
+
+export const QuickCreateLeadModal: React.FC<QuickCreateLeadModalProps> = ({
+  visible,
+  onClose,
+  onSuccess,
+}) => {
+  const [form] = Form.useForm();
+  const { t } = useTranslation();
+  const { defaultEntityType } = useSettingsStore();
+
+  const [users, setUsers] = useState<User[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [entityType, setEntityType] = useState<'CONTACT' | 'COMPANY'>(defaultEntityType);
+  const [identityResult, setIdentityResult] = useState<any>(null);
+
+  useEffect(() => {
+    if (visible) {
+      setEntityType(defaultEntityType);
+      setIdentityResult(null);
+      form.resetFields();
+      crmService
+        .getUsers()
+        .then((res: any) => {
+          if (res.success) setUsers(res.data);
+        })
+        .catch(() => {});
+    }
+  }, [visible, defaultEntityType, form]);
+
+  const handlePhoneBlur = async () => {
+    const phone = form.getFieldValue('phone');
+    const email = form.getFieldValue('email');
+    const firstName = form.getFieldValue('firstName') || '';
+    const lastName = form.getFieldValue('lastName') || '';
+
+    if ((phone && phone.length >= 6) || (email && email.includes('@'))) {
+      try {
+        const res: any = await crmService.checkIdentity({
+          phone,
+          email,
+          name: `${firstName} ${lastName}`.trim(),
+        });
+        if (res.success) {
+          setIdentityResult(res.data);
+        }
+      } catch (err) {
+        console.error('Identity check error:', err);
+      }
+    }
+  };
+
+  const handleSaveLead = async (values: any) => {
+    setLoading(true);
+    try {
+      const payload = {
+        ...values,
+        customerId: identityResult?.status === 'MATCHED' ? identityResult.matchedCustomerId : undefined,
+      };
+      const res: any = await crmService.createLead(payload);
+      if (res.success) {
+        if (res.data.identityResolutionResult?.status === 'POTENTIAL_DUPLICATE') {
+          notification.warning({
+            message: 'Cảnh báo Trùng số Điện thoại',
+            description: 'Lead đã được tạo nhưng gắn cờ Nghi trùng số để quản lý xác minh!',
+          });
+        } else {
+          notification.success({ message: t('common.success'), description: t('leads.addLead') });
+        }
+        form.resetFields();
+        setIdentityResult(null);
+        onClose();
+        if (onSuccess) onSuccess();
+        window.dispatchEvent(new CustomEvent('leadCreated'));
+      }
+    } catch (err: any) {
+      notification.error({ message: t('common.error'), description: err.message });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <Drawer
+      title={<span className="font-bold text-slate-900 text-lg">⚡ Tạo Lead Mới</span>}
+      open={visible}
+      onClose={onClose}
+      width={480}
+      extra={
+        <Button
+          type="primary"
+          onClick={() => form.submit()}
+          loading={loading}
+          className="bg-indigo-600 hover:bg-indigo-700 font-semibold"
+        >
+          {t('common.save')}
+        </Button>
+      }
+    >
+      <Form form={form} layout="vertical" onFinish={handleSaveLead}>
+        <div className="mb-4 p-3 bg-slate-50 rounded-lg border border-slate-200">
+          <label className="block text-xs font-semibold text-slate-600 mb-2">Loại hình Lead:</label>
+          <Radio.Group
+            value={entityType}
+            onChange={(e) => setEntityType(e.target.value)}
+            buttonStyle="solid"
+            className="w-full grid grid-cols-2"
+          >
+            <Radio.Button value="CONTACT" className="text-center font-medium">
+              👤 Cá nhân (Contact)
+            </Radio.Button>
+            <Radio.Button value="COMPANY" className="text-center font-medium">
+              🏢 Doanh nghiệp (Company)
+            </Radio.Button>
+          </Radio.Group>
+        </div>
+
+        {identityResult && identityResult.status === 'MATCHED' && (
+          <Alert
+            type="success"
+            showIcon
+            message="Khớp Customer thành công!"
+            description={`Số điện thoại/Email trùng với Customer ${identityResult.matchedCustomerName} (${identityResult.matchedCustomerCode}). Lead này sẽ được gắn trực tiếp vào Customer!`}
+            className="mb-4"
+          />
+        )}
+
+        {identityResult && identityResult.status === 'POTENTIAL_DUPLICATE' && (
+          <Alert
+            type="warning"
+            showIcon
+            message="Cảnh báo Trùng số Điện thoại (Potential Duplicate)"
+            description={`Số điện thoại đã thuộc về Customer '${identityResult.matchedCustomerName}' (${identityResult.matchedCustomerCode}) nhưng tên Lead khác. CRM vẫn cho tạo Lead và gắn cờ chờ xác minh!`}
+            className="mb-4"
+          />
+        )}
+
+        <div className="grid grid-cols-2 gap-3">
+          <Form.Item name="firstName" label={t('leads.form.firstName')} rules={[{ required: true, message: 'Vui lòng nhập họ' }]}>
+            <Input placeholder="Văn A" onBlur={handlePhoneBlur} />
+          </Form.Item>
+          <Form.Item name="lastName" label={t('leads.form.lastName')} rules={[{ required: true, message: 'Vui lòng nhập tên' }]}>
+            <Input placeholder="Nguyễn" onBlur={handlePhoneBlur} />
+          </Form.Item>
+        </div>
+
+        <Form.Item name="email" label={t('common.email')}>
+          <Input placeholder="nguyenvana@example.com" onBlur={handlePhoneBlur} />
+        </Form.Item>
+
+        <Form.Item name="phone" label={t('common.phone')}>
+          <Input placeholder="0901234567" onBlur={handlePhoneBlur} />
+        </Form.Item>
+
+        <Form.Item name="ownerId" label="Sale phụ trách (Bổ nhiệm)">
+          <Select placeholder="Chọn nhân viên Sale phụ trách" allowClear>
+            {users.map((u) => (
+              <Select.Option key={u.id} value={u.id}>
+                👤 {u.lastName} {u.firstName} ({u.email})
+              </Select.Option>
+            ))}
+          </Select>
+        </Form.Item>
+
+        <Form.Item
+          name="companyName"
+          label={t('leads.form.company')}
+          rules={entityType === 'COMPANY' ? [{ required: true, message: 'Vui lòng nhập tên công ty' }] : []}
+        >
+          <Input placeholder="Công ty ABC" />
+        </Form.Item>
+
+        <Form.Item name="jobTitle" label={t('leads.form.title')}>
+          <Input placeholder="Giám đốc kinh doanh" />
+        </Form.Item>
+
+        <div className="grid grid-cols-2 gap-3">
+          <Form.Item name="source" label={t('leads.source')} initialValue="WEBSITE">
+            <Select>
+              <Select.Option value="WEBSITE">Website</Select.Option>
+              <Select.Option value="REFERRAL">Giới thiệu</Select.Option>
+              <Select.Option value="FB_ADS">Facebook Ads</Select.Option>
+              <Select.Option value="GOOGLE_ADS">Google Ads</Select.Option>
+              <Select.Option value="EVENT">Hội thảo / Sự kiện</Select.Option>
+              <Select.Option value="OUTBOUND">Trực tiếp</Select.Option>
+            </Select>
+          </Form.Item>
+
+          <Form.Item name="rating" label="Đánh giá" initialValue="WARM">
+            <Select>
+              <Select.Option value="HOT">Nóng (Hot)</Select.Option>
+              <Select.Option value="WARM">Ấm (Warm)</Select.Option>
+              <Select.Option value="COLD">Lạnh (Cold)</Select.Option>
+            </Select>
+          </Form.Item>
+        </div>
+
+        <Form.Item name="notes" label={t('common.notes')}>
+          <Input.TextArea rows={3} placeholder="Ghi chú thêm về tiềm năng..." />
+        </Form.Item>
+      </Form>
+    </Drawer>
+  );
+};

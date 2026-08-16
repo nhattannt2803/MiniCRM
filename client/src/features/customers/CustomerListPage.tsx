@@ -5,8 +5,10 @@ import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { crmService } from '../../services/crmService';
 import { Customer, User } from '../../types';
+import { useSettingsStore } from '../../stores/settingsStore';
 
 export const CustomerListPage: React.FC = () => {
+  const { defaultEntityType } = useSettingsStore();
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
@@ -20,7 +22,7 @@ export const CustomerListPage: React.FC = () => {
   const [createModalVisible, setCreateModalVisible] = useState(false);
   const [editDrawerVisible, setEditDrawerVisible] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<any>(null);
-  const [entityType, setEntityType] = useState<'COMPANY' | 'CONTACT'>('COMPANY');
+  const [entityType, setEntityType] = useState<'COMPANY' | 'CONTACT'>(defaultEntityType);
 
   const [createForm] = Form.useForm();
   const [editForm] = Form.useForm();
@@ -281,7 +283,7 @@ export const CustomerListPage: React.FC = () => {
           className="bg-indigo-600 hover:bg-indigo-700 shadow-sm"
           onClick={() => {
             createForm.resetFields();
-            setEntityType('COMPANY');
+            setEntityType(defaultEntityType);
             setCreateModalVisible(true);
           }}
         >

@@ -284,6 +284,10 @@
     "copyApiKey": "Sao chép Key",
     "apiKeyCopied": "Đã sao chép API Key vào bộ nhớ tạm!",
     "profile": "Thông tin cá nhân",
-    "theme": "Giao diện (Sáng / Tối)"
+    "theme": "Giao diện (Sáng / Tối)",
+    "defaultEntityTypeTitle": "Loại hình mặc định khi tạo mới",
+    "defaultEntityTypeDesc": "Tuỳ chọn loại hình (Cá nhân hoặc Doanh nghiệp) được tự động chọn sẵn làm mặc định khi tạo Lead hoặc Khách hàng mới.",
+    "contactOption": "👤 Cá nhân (Contact / Individual)",
+    "companyOption": "🏢 Doanh nghiệp (Company / Business)"
   }
 }

@@ -1,13 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { Table, Button, Input, Select, Tag, Drawer, Form, Popconfirm, notification, Alert, Space } from 'antd';
+import { Table, Button, Input, Select, Tag, Drawer, Form, Popconfirm, notification, Alert, Space, Radio } from 'antd';
 import { PlusOutlined, SearchOutlined, EyeOutlined, EditOutlined, SwapOutlined, DeleteOutlined, WarningOutlined, CheckCircleOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { crmService } from '../../services/crmService';
 import { Lead, User } from '../../types';
 import { LeadConvertModal } from './LeadConvertModal';
+import { useSettingsStore } from '../../stores/settingsStore';
 
 export const LeadListPage: React.FC = () => {
+  const { defaultEntityType } = useSettingsStore();
   const [leads, setLeads] = useState<Lead[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
@@ -19,6 +21,7 @@ export const LeadListPage: React.FC = () => {
 
   const [createDrawerVisible, setCreateDrawerVisible] = useState(false);
   const [editingLead, setEditingLead] = useState<Lead | null>(null);
+  const [entityType, setEntityType] = useState<'CONTACT' | 'COMPANY'>(defaultEntityType);
   const [convertModalVisible, setConvertModalVisible] = useState(false);
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
 
@@ -59,6 +62,12 @@ export const LeadListPage: React.FC = () => {
     crmService.getUsers().then((res: any) => {
       if (res.success) setUsers(res.data);
     }).catch((err) => console.error(err));
+
+    const handleLeadCreated = () => {
+      fetchLeads();
+    };
+    window.addEventListener('leadCreated', handleLeadCreated);
+    return () => window.removeEventListener('leadCreated', handleLeadCreated);
   }, []);
 
   const handlePhoneBlur = async () => {
@@ -127,6 +136,7 @@ export const LeadListPage: React.FC = () => {
   const handleOpenCreateDrawer = () => {
     setEditingLead(null);
     setIdentityResult(null);
+    setEntityType(defaultEntityType);
     form.resetFields();
     setCreateDrawerVisible(true);
   };
@@ -392,6 +402,21 @@ export const LeadListPage: React.FC = () => {
         }
       >
         <Form form={form} layout="vertical" onFinish={handleSaveLead}>
+          {!editingLead && (
+            <div className="mb-4 p-3 bg-slate-50 rounded-lg border border-slate-200">
+              <label className="block text-xs font-semibold text-slate-600 mb-2">Loại hình Lead:</label>
+              <Radio.Group
+                value={entityType}
+                onChange={(e) => setEntityType(e.target.value)}
+                buttonStyle="solid"
+                className="w-full grid grid-cols-2"
+              >
+                <Radio.Button value="CONTACT" className="text-center font-medium">👤 Cá nhân (Contact)</Radio.Button>
+                <Radio.Button value="COMPANY" className="text-center font-medium">🏢 Doanh nghiệp (Company)</Radio.Button>
+              </Radio.Group>
+            </div>
+          )}
+
           {identityResult && identityResult.status === 'MATCHED' && (
             <Alert
               type="success"
@@ -413,10 +438,10 @@ export const LeadListPage: React.FC = () => {
           )}
 
           <div className="grid grid-cols-2 gap-3">
-            <Form.Item name="firstName" label={t('leads.form.firstName')} rules={[{ required: true }]}>
+            <Form.Item name="firstName" label={t('leads.form.firstName')} rules={[{ required: true, message: 'Vui lòng nhập họ' }]}>
               <Input placeholder="Văn A" onBlur={handlePhoneBlur} />
             </Form.Item>
-            <Form.Item name="lastName" label={t('leads.form.lastName')} rules={[{ required: true }]}>
+            <Form.Item name="lastName" label={t('leads.form.lastName')} rules={[{ required: true, message: 'Vui lòng nhập tên' }]}>
               <Input placeholder="Nguyễn" onBlur={handlePhoneBlur} />
             </Form.Item>
           </div>
@@ -439,7 +464,11 @@ export const LeadListPage: React.FC = () => {
             </Select>
           </Form.Item>
 
-          <Form.Item name="companyName" label={t('leads.form.company')}>
+          <Form.Item
+            name="companyName"
+            label={t('leads.form.company')}
+            rules={entityType === 'COMPANY' ? [{ required: true, message: 'Vui lòng nhập tên công ty' }] : []}
+          >
             <Input placeholder="Công ty ABC" />
           </Form.Item>
 
