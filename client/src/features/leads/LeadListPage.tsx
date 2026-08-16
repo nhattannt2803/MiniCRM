@@ -86,6 +86,13 @@ export const LeadListPage: React.FC = () => {
         });
         if (res.success) {
           setIdentityResult(res.data);
+          if (res.data.status === 'MATCHED') {
+            const fieldsToUpdate: any = {};
+            if (res.data.matchedLastName) fieldsToUpdate.lastName = res.data.matchedLastName;
+            if (res.data.matchedFirstName) fieldsToUpdate.firstName = res.data.matchedFirstName;
+            if (res.data.matchedCompanyName) fieldsToUpdate.companyName = res.data.matchedCompanyName;
+            form.setFieldsValue(fieldsToUpdate);
+          }
         }
       } catch (err) {
         console.error('Identity check error:', err);

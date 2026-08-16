@@ -15,6 +15,9 @@ export interface IdentityResolutionResult {
   matchedCustomerId?: string;
   matchedCustomerCode?: string;
   matchedCustomerName?: string;
+  matchedFirstName?: string;
+  matchedLastName?: string;
+  matchedCompanyName?: string;
   matchedIdentities?: any[];
   reason?: string;
 }
@@ -123,6 +126,9 @@ export class IdentityResolutionService {
           matchedCustomerId: foundCustomer.id.toString(),
           matchedCustomerCode: foundCustomer.customerCode,
           matchedCustomerName: customerName,
+          matchedFirstName: foundCustomer.contact?.firstName || '',
+          matchedLastName: foundCustomer.contact?.lastName || '',
+          matchedCompanyName: foundCustomer.company?.name || '',
           reason: `Matched phone number (${cleanPhone})`,
         };
       }
@@ -159,6 +165,9 @@ export class IdentityResolutionService {
           matchedCustomerId: foundCustomer.id.toString(),
           matchedCustomerCode: foundCustomer.customerCode,
           matchedCustomerName: customerName,
+          matchedFirstName: foundCustomer.contact?.firstName || '',
+          matchedLastName: foundCustomer.contact?.lastName || '',
+          matchedCompanyName: foundCustomer.company?.name || '',
           reason: `Matched email address (${cleanEmail})`,
         };
       }
