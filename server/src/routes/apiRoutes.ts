@@ -39,8 +39,12 @@ router.patch('/contacts/:id', crm.updateContact);
 
 // Customers
 router.get('/customers', crm.getCustomers);
+router.post('/customers', crm.createCustomer);
 router.get('/customers/:id', crm.getCustomerById);
+router.put('/customers/:id', crm.updateCustomer);
 router.patch('/customers/:id', crm.updateCustomer);
+router.delete('/customers/:id', crm.deleteCustomer);
+
 
 
 // Opportunities & Kanban

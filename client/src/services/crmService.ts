@@ -30,7 +30,10 @@ export const crmService = {
   // Customers
   getCustomers: (params?: any) => api.get('/customers', { params }),
   getCustomerById: (id: string) => api.get(`/customers/${id}`),
-  updateCustomer: (id: string, data: any) => api.patch(`/customers/${id}`, data),
+  createCustomer: (data: any) => api.post('/customers', data),
+  updateCustomer: (id: string, data: any) => api.put(`/customers/${id}`, data),
+  deleteCustomer: (id: string) => api.delete(`/customers/${id}`),
+
 
 
   // Opportunities & Kanban

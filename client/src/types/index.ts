@@ -76,6 +76,7 @@ export interface Customer {
   companyId?: string;
   contactId?: string;
   ownerId?: string;
+  owner?: User;
   status: string;
   lifetimeValue: number;
   createdAt: string;

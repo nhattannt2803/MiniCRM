@@ -1,15 +1,16 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Card, Tag, Button, Tabs, Table, Spin, Modal, Form, Input, Select, notification } from 'antd';
-import { ArrowLeftOutlined, EditOutlined } from '@ant-design/icons';
+import { Card, Tag, Button, Tabs, Table, Spin, Modal, Form, Input, Select, Popconfirm, notification, Divider } from 'antd';
+import { ArrowLeftOutlined, EditOutlined, DeleteOutlined, UserOutlined, BankOutlined, PhoneOutlined, MailOutlined, HomeOutlined, IdcardOutlined } from '@ant-design/icons';
 import { crmService } from '../../services/crmService';
-import { Customer } from '../../types';
+import { Customer, User } from '../../types';
 import { ActivityTimeline } from '../../components/Timeline/ActivityTimeline';
 
 export const CustomerDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [customer, setCustomer] = useState<Customer | null>(null);
+  const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [editModalVisible, setEditModalVisible] = useState(false);
 
@@ -28,16 +29,49 @@ export const CustomerDetailPage: React.FC = () => {
     }
   };
 
+  const fetchUsers = async () => {
+    try {
+      const res: any = await crmService.getUsers();
+      if (res.success) setUsers(res.data);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   useEffect(() => {
     fetchCustomerDetails();
+    fetchUsers();
   }, [id]);
 
   const handleOpenEditModal = () => {
     if (!customer) return;
-    form.setFieldsValue({
+    const initialValues: any = {
       customerCode: customer.customerCode,
       status: customer.status || 'ACTIVE',
-    });
+      ownerId: customer.ownerId ? customer.ownerId.toString() : undefined,
+    };
+
+    if (customer.entityType === 'COMPANY' && customer.company) {
+      initialValues.companyName = customer.company.name;
+      initialValues.taxCode = customer.company.taxCode;
+      initialValues.phone = customer.company.phone;
+      initialValues.email = customer.company.email;
+      initialValues.address = customer.company.address;
+    }
+
+    if (customer.contact) {
+      initialValues.firstName = customer.contact.firstName;
+      initialValues.lastName = customer.contact.lastName;
+      initialValues.contactEmail = customer.contact.email;
+      initialValues.contactPhone = customer.contact.phone;
+      initialValues.position = customer.contact.position;
+      if (customer.entityType === 'CONTACT') {
+        initialValues.phone = customer.contact.phone;
+        initialValues.email = customer.contact.email;
+      }
+    }
+
+    form.setFieldsValue(initialValues);
     setEditModalVisible(true);
   };
 
@@ -51,7 +85,20 @@ export const CustomerDetailPage: React.FC = () => {
         fetchCustomerDetails();
       }
     } catch (err: any) {
-      notification.error({ message: 'Cập nhật thất bại', description: err.message });
+      notification.error({ message: 'Cập nhật thất bại', description: err.response?.data?.message || err.message });
+    }
+  };
+
+  const handleDeleteCustomer = async () => {
+    if (!id) return;
+    try {
+      const res: any = await crmService.deleteCustomer(id);
+      if (res.success) {
+        notification.success({ message: 'Đã xóa khách hàng thành công' });
+        navigate('/customers');
+      }
+    } catch (err: any) {
+      notification.error({ message: 'Xóa thất bại', description: err.response?.data?.message || err.message });
     }
   };
 
@@ -60,74 +107,189 @@ export const CustomerDetailPage: React.FC = () => {
   }
 
   const oppColumns = [
-    { title: 'Deal Name', dataIndex: 'name', key: 'name' },
+    { title: 'Tên Cơ hội', dataIndex: 'name', key: 'name' },
     {
-      title: 'Won Amount (VND)',
+      title: 'Giá trị Chốt (VND)',
       dataIndex: 'amount',
       key: 'amount',
-      render: (v: number) => `${Number(v).toLocaleString('vi-VN')} ₫`,
+      render: (v: number) => `${Number(v || 0).toLocaleString('vi-VN')} ₫`,
     },
     {
-      title: 'Won Date',
+      title: 'Ngày thành công',
       dataIndex: 'wonAt',
       key: 'wonAt',
       render: (d: string) => (d ? new Date(d).toLocaleDateString('vi-VN') : '—'),
     },
   ];
 
+  const isCompany = customer.entityType === 'COMPANY';
+  const customerName = isCompany
+    ? customer.company?.name
+    : `${customer.contact?.firstName || ''} ${customer.contact?.lastName || ''}`;
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-4">
         <div className="flex items-center gap-3">
           <Button icon={<ArrowLeftOutlined />} onClick={() => navigate('/customers')} />
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-2xl font-bold text-slate-900">
-                {customer.entityType === 'COMPANY'
-                  ? customer.company?.name
-                  : `${customer.contact?.firstName} ${customer.contact?.lastName}`}
-              </h1>
-              <Tag color="purple">{customer.customerCode}</Tag>
-              <Tag color="green">{customer.status}</Tag>
+              <h1 className="text-2xl font-bold text-slate-900">{customerName || 'Chi tiết khách hàng'}</h1>
+              <Tag color={isCompany ? 'purple' : 'blue'}>
+                {isCompany ? 'DOANH NGHIỆP' : 'CÁ NHÂN'}
+              </Tag>
+              <Tag color="geekblue">{customer.customerCode}</Tag>
+              <Tag color={customer.status === 'ACTIVE' ? 'green' : 'default'}>
+                {customer.status === 'ACTIVE' ? 'Đang hoạt động' : 'Tạm dừng'}
+              </Tag>
             </div>
-            <p className="text-sm text-slate-500">Official Customer Account Profile</p>
+            <p className="text-sm text-slate-500">Hồ sơ khách hàng chính thức</p>
           </div>
         </div>
 
-        <Button icon={<EditOutlined />} onClick={handleOpenEditModal}>
-          Chỉnh sửa thông tin
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button icon={<EditOutlined />} onClick={handleOpenEditModal}>
+            Chỉnh sửa thông tin
+          </Button>
+          <Popconfirm
+            title="Xác nhận xóa khách hàng"
+            description="Bạn có chắc chắn muốn xóa khách hàng này? Thao tác này không thể hoàn tác."
+            onConfirm={handleDeleteCustomer}
+            okText="Xóa"
+            cancelText="Hủy"
+            okButtonProps={{ danger: true }}
+          >
+            <Button danger icon={<DeleteOutlined />}>
+              Xóa khách hàng
+            </Button>
+          </Popconfirm>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <Card title="Account Overview" className="shadow-xs border-slate-200 rounded-xl bg-white">
-          <div className="space-y-3 text-sm">
-            <div>
-              <span className="text-slate-400 font-medium block text-xs">Customer Since</span>
-              <span className="text-slate-800 font-semibold">
-                {new Date(customer.createdAt).toLocaleDateString('vi-VN')}
-              </span>
+        {/* Left Column: Account Details & Contact Info */}
+        <div className="space-y-6">
+          <Card title="Tổng quan tài khoản" className="shadow-xs border-slate-200 rounded-xl bg-white">
+            <div className="space-y-4 text-sm">
+              <div>
+                <span className="text-slate-400 font-medium block text-xs">Giá trị vòng đời (LTV)</span>
+                <span className="text-emerald-600 font-black text-xl">
+                  {Number(customer.lifetimeValue || 0).toLocaleString('vi-VN')} ₫
+                </span>
+              </div>
+              <Divider className="my-2" />
+              <div>
+                <span className="text-slate-400 font-medium block text-xs">Sales phụ trách</span>
+                <span className="text-slate-800 font-semibold flex items-center gap-1.5 mt-0.5">
+                  <UserOutlined className="text-indigo-600" />
+                  {customer.owner ? `${customer.owner.firstName} ${customer.owner.lastName}` : <span className="text-slate-400 font-normal">Chưa gán</span>}
+                </span>
+              </div>
+              <div>
+                <span className="text-slate-400 font-medium block text-xs">Trở thành khách hàng từ</span>
+                <span className="text-slate-800 font-semibold">
+                  {customer.createdAt ? new Date(customer.createdAt).toLocaleDateString('vi-VN') : '—'}
+                </span>
+              </div>
             </div>
-            <div>
-              <span className="text-slate-400 font-medium block text-xs">Lifetime Value (LTV)</span>
-              <span className="text-emerald-600 font-black text-base">
-                {Number(customer.lifetimeValue).toLocaleString('vi-VN')} ₫
-              </span>
-            </div>
-          </div>
-        </Card>
+          </Card>
 
+          {/* Details Card */}
+          <Card
+            title={isCompany ? "Thông tin Doanh nghiệp" : "Thông tin Cá nhân"}
+            className="shadow-xs border-slate-200 rounded-xl bg-white"
+          >
+            <div className="space-y-3.5 text-sm">
+              {isCompany && (
+                <>
+                  <div className="flex items-start gap-2.5">
+                    <BankOutlined className="text-purple-600 mt-1" />
+                    <div>
+                      <div className="text-xs text-slate-400">Tên công ty</div>
+                      <div className="font-semibold text-slate-800">{customer.company?.name || '—'}</div>
+                    </div>
+                  </div>
+                  {customer.company?.taxCode && (
+                    <div className="flex items-start gap-2.5">
+                      <IdcardOutlined className="text-purple-600 mt-1" />
+                      <div>
+                        <div className="text-xs text-slate-400">Mã số thuế</div>
+                        <div className="font-medium text-slate-700">{customer.company.taxCode}</div>
+                      </div>
+                    </div>
+                  )}
+                  <div className="flex items-start gap-2.5">
+                    <PhoneOutlined className="text-purple-600 mt-1" />
+                    <div>
+                      <div className="text-xs text-slate-400">Số điện thoại công ty</div>
+                      <div className="font-medium text-slate-700">{customer.company?.phone || '—'}</div>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-2.5">
+                    <MailOutlined className="text-purple-600 mt-1" />
+                    <div>
+                      <div className="text-xs text-slate-400">Email công ty</div>
+                      <div className="font-medium text-slate-700">{customer.company?.email || '—'}</div>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-2.5">
+                    <HomeOutlined className="text-purple-600 mt-1" />
+                    <div>
+                      <div className="text-xs text-slate-400">Địa chỉ trụ sở</div>
+                      <div className="font-medium text-slate-700">{customer.company?.address || '—'}</div>
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {customer.contact && (
+                <>
+                  {isCompany && <Divider className="my-2" />}
+                  <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
+                    {isCompany ? 'Người liên hệ đại diện' : 'Thông tin liên hệ'}
+                  </div>
+                  <div className="flex items-start gap-2.5">
+                    <UserOutlined className="text-blue-600 mt-1" />
+                    <div>
+                      <div className="text-xs text-slate-400">Họ và tên</div>
+                      <div className="font-semibold text-slate-800">
+                        {customer.contact.firstName} {customer.contact.lastName}
+                        {customer.contact.position && <span className="text-slate-500 text-xs font-normal"> ({customer.contact.position})</span>}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-2.5">
+                    <PhoneOutlined className="text-blue-600 mt-1" />
+                    <div>
+                      <div className="text-xs text-slate-400">Số điện thoại</div>
+                      <div className="font-medium text-slate-700">{customer.contact.phone || '—'}</div>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-2.5">
+                    <MailOutlined className="text-blue-600 mt-1" />
+                    <div>
+                      <div className="text-xs text-slate-400">Email liên hệ</div>
+                      <div className="font-medium text-slate-700">{customer.contact.email || '—'}</div>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+          </Card>
+        </div>
+
+        {/* Right Column: Won Deals & Activity Timeline */}
         <div className="lg:col-span-2">
           <Card className="shadow-xs border-slate-200 rounded-xl bg-white">
             <Tabs
               items={[
                 {
                   key: 'wonDeals',
-                  label: `Won Deals (${customer.wonOpportunities?.length || 0})`,
+                  label: `Hợp đồng đã chốt (${customer.wonOpportunities?.length || 0})`,
                   children: (
                     <Table
                       columns={oppColumns}
-                      dataSource={customer.wonOpportunities}
+                      dataSource={customer.wonOpportunities || []}
                       rowKey="id"
                       pagination={false}
                     />
@@ -135,7 +297,7 @@ export const CustomerDetailPage: React.FC = () => {
                 },
                 {
                   key: 'timeline',
-                  label: 'Activity Timeline',
+                  label: 'Nhật ký hoạt động',
                   children: <ActivityTimeline activities={customer.activities || []} />,
                 },
               ]}
@@ -144,27 +306,92 @@ export const CustomerDetailPage: React.FC = () => {
         </div>
       </div>
 
+      {/* Edit Customer Modal */}
       <Modal
         title="Chỉnh sửa thông tin Khách hàng"
         open={editModalVisible}
         onCancel={() => setEditModalVisible(false)}
         onOk={() => form.submit()}
-        width={400}
+        width={600}
+        okText="Lưu thay đổi"
+        cancelText="Hủy"
+        okButtonProps={{ className: 'bg-indigo-600' }}
       >
         <Form form={form} layout="vertical" onFinish={handleUpdateCustomer}>
-          <Form.Item name="customerCode" label="Mã khách hàng" rules={[{ required: true }]}>
-            <Input />
-          </Form.Item>
+          <div className="grid grid-cols-2 gap-4">
+            <Form.Item name="customerCode" label="Mã khách hàng" rules={[{ required: true, message: 'Vui lòng nhập mã khách hàng' }]}>
+              <Input />
+            </Form.Item>
 
-          <Form.Item name="status" label="Trạng thái">
-            <Select>
-              <Select.Option value="ACTIVE">Đang hoạt động (Active)</Select.Option>
-              <Select.Option value="INACTIVE">Tạm dừng (Inactive)</Select.Option>
+            <Form.Item name="status" label="Trạng thái">
+              <Select>
+                <Select.Option value="ACTIVE">Đang hoạt động (Active)</Select.Option>
+                <Select.Option value="INACTIVE">Tạm dừng (Inactive)</Select.Option>
+              </Select>
+            </Form.Item>
+          </div>
+
+          <Form.Item name="ownerId" label="Sales phụ trách">
+            <Select placeholder="Chọn sales phụ trách" allowClear>
+              {users.map((u) => (
+                <Select.Option key={u.id} value={u.id}>
+                  {u.firstName} {u.lastName} {u.roles?.length ? `(${u.roles.join(', ')})` : ''}
+                </Select.Option>
+              ))}
             </Select>
           </Form.Item>
+
+          {isCompany && (
+            <div className="border-t border-slate-200 pt-3 mt-2">
+              <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider mb-3">Thông tin Doanh nghiệp</h4>
+              <Form.Item name="companyName" label="Tên doanh nghiệp" rules={[{ required: true, message: 'Vui lòng nhập tên doanh nghiệp' }]}>
+                <Input />
+              </Form.Item>
+              <div className="grid grid-cols-2 gap-4">
+                <Form.Item name="taxCode" label="Mã số thuế">
+                  <Input />
+                </Form.Item>
+                <Form.Item name="phone" label="Số điện thoại công ty">
+                  <Input />
+                </Form.Item>
+              </div>
+              <Form.Item name="email" label="Email công ty">
+                <Input />
+              </Form.Item>
+              <Form.Item name="address" label="Địa chỉ công ty">
+                <Input />
+              </Form.Item>
+            </div>
+          )}
+
+          {customer.contact && (
+            <div className="border-t border-slate-200 pt-3 mt-2">
+              <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider mb-3">
+                {isCompany ? 'Người liên hệ đại diện' : 'Thông tin Cá nhân'}
+              </h4>
+              <div className="grid grid-cols-2 gap-4">
+                <Form.Item name="firstName" label="Họ" rules={[{ required: !isCompany, message: 'Vui lòng nhập họ' }]}>
+                  <Input />
+                </Form.Item>
+                <Form.Item name="lastName" label="Tên">
+                  <Input />
+                </Form.Item>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <Form.Item name="contactPhone" label="Số điện thoại">
+                  <Input />
+                </Form.Item>
+                <Form.Item name="contactEmail" label="Email">
+                  <Input />
+                </Form.Item>
+              </div>
+              <Form.Item name="position" label="Chức vụ">
+                <Input />
+              </Form.Item>
+            </div>
+          )}
         </Form>
       </Modal>
     </div>
   );
 };
-

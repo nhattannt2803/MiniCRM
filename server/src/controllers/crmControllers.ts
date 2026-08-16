@@ -194,6 +194,19 @@ export const getCustomerById = async (req: AuthenticatedRequest, res: Response, 
   }
 };
 
+export const createCustomer = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  try {
+    const customer = await CustomerService.createCustomer({
+      ...req.body,
+      ownerId: req.body.ownerId || req.user?.userId,
+    });
+    res.status(201).json({ success: true, data: customer });
+  } catch (err) {
+    next(err);
+  }
+};
+
+
 export const updateCustomer = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
     const customer = await CustomerService.updateCustomer(req.params.id, req.body);
@@ -202,6 +215,16 @@ export const updateCustomer = async (req: AuthenticatedRequest, res: Response, n
     next(err);
   }
 };
+
+export const deleteCustomer = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  try {
+    const result = await CustomerService.deleteCustomer(req.params.id);
+    res.json({ success: true, data: result });
+  } catch (err) {
+    next(err);
+  }
+};
+
 
 
 // -----------------------------------------------------------------------------
