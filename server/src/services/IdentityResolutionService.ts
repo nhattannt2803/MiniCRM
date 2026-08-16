@@ -1,5 +1,6 @@
 import prisma from '../config/database';
 import { AppError } from '../middleware/errorMiddleware';
+import { parseFbPsidInput } from '../utils/identityHelper';
 
 export interface IdentityLookupInput {
   phone?: string | null;
@@ -30,50 +31,66 @@ export class IdentityResolutionService {
     const { phone, email, fbPsid, zaloUid, webVisitorId, name } = input;
 
     // 1. Check direct Identity Table match (Exact match on FB PSID / Zalo UID / Web Visitor)
-    if (fbPsid) {
+    const parsedFb = parseFbPsidInput(fbPsid);
+    if (parsedFb) {
+      const cleanFb = parsedFb;
       const fbIdent = await prisma.customerIdentity.findFirst({
-        where: { type: 'FB_PSID', identityValue: fbPsid },
+        where: { type: 'FB_PSID', identityValue: cleanFb },
         include: { customer: { include: { company: true, contact: true } } },
       });
       if (fbIdent && fbIdent.customer && !fbIdent.customer.deletedAt) {
+        const customerName = this.getCustomerName(fbIdent.customer);
         return {
           status: 'MATCHED',
           matchedCustomerId: fbIdent.customerId.toString(),
           matchedCustomerCode: fbIdent.customer.customerCode,
-          matchedCustomerName: this.getCustomerName(fbIdent.customer),
-          reason: 'Matched Facebook PSID identity',
+          matchedCustomerName: customerName,
+          matchedFirstName: fbIdent.customer.contact?.firstName || '',
+          matchedLastName: fbIdent.customer.contact?.lastName || '',
+          matchedCompanyName: fbIdent.customer.company?.name || '',
+          reason: `Matched Facebook PSID identity (${cleanFb})`,
         };
       }
     }
 
-    if (zaloUid) {
+    if (zaloUid && zaloUid.trim()) {
+      const cleanZalo = zaloUid.trim();
       const zaloIdent = await prisma.customerIdentity.findFirst({
-        where: { type: 'ZALO_UID', identityValue: zaloUid },
+        where: { type: 'ZALO_UID', identityValue: cleanZalo },
         include: { customer: { include: { company: true, contact: true } } },
       });
       if (zaloIdent && zaloIdent.customer && !zaloIdent.customer.deletedAt) {
+        const customerName = this.getCustomerName(zaloIdent.customer);
         return {
           status: 'MATCHED',
           matchedCustomerId: zaloIdent.customerId.toString(),
           matchedCustomerCode: zaloIdent.customer.customerCode,
-          matchedCustomerName: this.getCustomerName(zaloIdent.customer),
-          reason: 'Matched Zalo UID identity',
+          matchedCustomerName: customerName,
+          matchedFirstName: zaloIdent.customer.contact?.firstName || '',
+          matchedLastName: zaloIdent.customer.contact?.lastName || '',
+          matchedCompanyName: zaloIdent.customer.company?.name || '',
+          reason: `Matched Zalo UID identity (${cleanZalo})`,
         };
       }
     }
 
-    if (webVisitorId) {
+    if (webVisitorId && webVisitorId.trim()) {
+      const cleanWeb = webVisitorId.trim();
       const webIdent = await prisma.customerIdentity.findFirst({
-        where: { type: 'WEB_VISITOR', identityValue: webVisitorId },
+        where: { type: 'WEB_VISITOR', identityValue: cleanWeb },
         include: { customer: { include: { company: true, contact: true } } },
       });
       if (webIdent && webIdent.customer && !webIdent.customer.deletedAt) {
+        const customerName = this.getCustomerName(webIdent.customer);
         return {
           status: 'MATCHED',
           matchedCustomerId: webIdent.customerId.toString(),
           matchedCustomerCode: webIdent.customer.customerCode,
-          matchedCustomerName: this.getCustomerName(webIdent.customer),
-          reason: 'Matched Web Visitor identity',
+          matchedCustomerName: customerName,
+          matchedFirstName: webIdent.customer.contact?.firstName || '',
+          matchedLastName: webIdent.customer.contact?.lastName || '',
+          matchedCompanyName: webIdent.customer.company?.name || '',
+          reason: `Matched Web Visitor identity (${cleanWeb})`,
         };
       }
     }

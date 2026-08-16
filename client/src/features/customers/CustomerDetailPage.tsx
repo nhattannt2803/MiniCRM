@@ -5,6 +5,7 @@ import { ArrowLeftOutlined, EditOutlined, DeleteOutlined, UserOutlined, BankOutl
 import { crmService } from '../../services/crmService';
 import { Customer, User, CustomerIdentity, Lead } from '../../types';
 import { ActivityTimeline } from '../../components/Timeline/ActivityTimeline';
+import { parseFbPsidInput } from '../../utils/identityHelper';
 
 export const CustomerDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -125,7 +126,11 @@ export const CustomerDetailPage: React.FC = () => {
   const handleAddIdentity = async (values: any) => {
     if (!id) return;
     try {
-      await crmService.addCustomerIdentity(id, values.type, values.identityValue);
+      let val = values.identityValue;
+      if (values.type === 'FB_PSID' && val) {
+        val = parseFbPsidInput(val);
+      }
+      await crmService.addCustomerIdentity(id, values.type, val);
       notification.success({ message: 'Thêm điểm nhận diện thành công!' });
       setIdentityModalVisible(false);
       identityForm.resetFields();
@@ -530,8 +535,25 @@ export const CustomerDetailPage: React.FC = () => {
             </Select>
           </Form.Item>
 
-          <Form.Item name="identityValue" label="Giá trị định danh (SĐT / Email / UID)" rules={[{ required: true, message: 'Nhập giá trị định danh' }]}>
-            <Input placeholder="Ví dụ: 0912345678, user@gmail.com, ZA123" />
+          <Form.Item
+            name="identityValue"
+            label="Giá trị định danh (SĐT / Email / UID / Link Chat)"
+            rules={[{ required: true, message: 'Nhập giá trị định danh' }]}
+            extra={<span className="text-xs text-slate-400">💡 Hỗ trợ dán trực tiếp link chat Smax.ai hoặc Pancake.vn để tự trích xuất mã FB PSID!</span>}
+          >
+            <Input
+              placeholder="Ví dụ: 0912345678, user@gmail.com, hoặc dán link Smax / Pancake"
+              onBlur={() => {
+                const type = identityForm.getFieldValue('type');
+                const rawVal = identityForm.getFieldValue('identityValue');
+                if (type === 'FB_PSID' && rawVal) {
+                  const parsed = parseFbPsidInput(rawVal);
+                  if (parsed && parsed !== rawVal) {
+                    identityForm.setFieldsValue({ identityValue: parsed });
+                  }
+                }
+              }}
+            />
           </Form.Item>
         </Form>
       </Modal>

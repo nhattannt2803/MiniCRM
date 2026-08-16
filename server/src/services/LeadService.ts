@@ -2,6 +2,7 @@ import prisma from '../config/database';
 import { publishOutboxEvent } from '../events/outboxPublisher';
 import { AppError } from '../middleware/errorMiddleware';
 import { IdentityResolutionService } from './IdentityResolutionService';
+import { parseFbPsidInput } from '../utils/identityHelper';
 
 export class LeadService {
   public static async getLeads(params: {
@@ -214,6 +215,21 @@ export class LeadService {
             where: { customerId_type_identityValue: { customerId: assignedCustomerId, type: 'EMAIL', identityValue: data.email.trim().toLowerCase() } },
             update: { status: 'ACTIVE' },
             create: { customerId: assignedCustomerId, type: 'EMAIL', identityValue: data.email.trim().toLowerCase(), isVerified: true },
+          });
+        }
+        const cleanFb = parseFbPsidInput(data.fbPsid);
+        if (cleanFb) {
+          await tx.customerIdentity.upsert({
+            where: { customerId_type_identityValue: { customerId: assignedCustomerId, type: 'FB_PSID', identityValue: cleanFb } },
+            update: { status: 'ACTIVE' },
+            create: { customerId: assignedCustomerId, type: 'FB_PSID', identityValue: cleanFb, isVerified: true },
+          });
+        }
+        if (data.zaloUid && data.zaloUid.trim()) {
+          await tx.customerIdentity.upsert({
+            where: { customerId_type_identityValue: { customerId: assignedCustomerId, type: 'ZALO_UID', identityValue: data.zaloUid.trim() } },
+            update: { status: 'ACTIVE' },
+            create: { customerId: assignedCustomerId, type: 'ZALO_UID', identityValue: data.zaloUid.trim(), isVerified: true },
           });
         }
       }

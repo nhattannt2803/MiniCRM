@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { crmService } from '../../services/crmService';
 import { User } from '../../types';
 import { useSettingsStore } from '../../stores/settingsStore';
+import { parseFbPsidInput } from '../../utils/identityHelper';
 
 interface QuickCreateLeadModalProps {
   visible: boolean;
@@ -39,17 +40,31 @@ export const QuickCreateLeadModal: React.FC<QuickCreateLeadModalProps> = ({
     }
   }, [visible, defaultEntityType, form]);
 
-  const handlePhoneBlur = async () => {
+  const handleIdentityBlur = async () => {
     const phone = form.getFieldValue('phone');
     const email = form.getFieldValue('email');
+    const rawFb = form.getFieldValue('fbPsid');
+    const parsedFb = parseFbPsidInput(rawFb);
+    if (parsedFb && parsedFb !== rawFb) {
+      form.setFieldsValue({ fbPsid: parsedFb });
+    }
+    const fbPsid = parsedFb || rawFb;
+    const zaloUid = form.getFieldValue('zaloUid');
     const firstName = form.getFieldValue('firstName') || '';
     const lastName = form.getFieldValue('lastName') || '';
 
-    if ((phone && phone.length >= 6) || (email && email.includes('@'))) {
+    if (
+      (phone && phone.length >= 6) ||
+      (email && email.includes('@')) ||
+      (fbPsid && fbPsid.trim().length >= 3) ||
+      (zaloUid && zaloUid.trim().length >= 3)
+    ) {
       try {
         const res: any = await crmService.checkIdentity({
           phone,
           email,
+          fbPsid,
+          zaloUid,
           name: `${firstName} ${lastName}`.trim(),
         });
         if (res.success) {
@@ -155,20 +170,29 @@ export const QuickCreateLeadModal: React.FC<QuickCreateLeadModalProps> = ({
 
         <div className="grid grid-cols-2 gap-3">
           <Form.Item name="firstName" label={t('leads.form.firstName')} rules={[{ required: true, message: 'Vui lòng nhập họ' }]}>
-            <Input placeholder="Văn A" onBlur={handlePhoneBlur} />
+            <Input placeholder="Văn A" onBlur={handleIdentityBlur} />
           </Form.Item>
           <Form.Item name="lastName" label={t('leads.form.lastName')} rules={[{ required: true, message: 'Vui lòng nhập tên' }]}>
-            <Input placeholder="Nguyễn" onBlur={handlePhoneBlur} />
+            <Input placeholder="Nguyễn" onBlur={handleIdentityBlur} />
           </Form.Item>
         </div>
 
-        <Form.Item name="email" label={t('common.email')}>
-          <Input placeholder="nguyenvana@example.com" onBlur={handlePhoneBlur} />
+        <Form.Item name="phone" label={t('common.phone')}>
+          <Input placeholder="0901234567" onBlur={handleIdentityBlur} />
         </Form.Item>
 
-        <Form.Item name="phone" label={t('common.phone')}>
-          <Input placeholder="0901234567" onBlur={handlePhoneBlur} />
+        <Form.Item name="email" label={t('common.email')}>
+          <Input placeholder="nguyenvana@example.com" onBlur={handleIdentityBlur} />
         </Form.Item>
+
+        <div className="grid grid-cols-2 gap-3">
+          <Form.Item name="fbPsid" label="Facebook PSID (UID)">
+            <Input placeholder="fb_102938475" onBlur={handleIdentityBlur} prefix={<span className="text-blue-600 font-bold text-xs">FB</span>} />
+          </Form.Item>
+          <Form.Item name="zaloUid" label="Zalo UID">
+            <Input placeholder="zalo_987654321" onBlur={handleIdentityBlur} prefix={<span className="text-blue-500 font-bold text-xs">Zalo</span>} />
+          </Form.Item>
+        </div>
 
         <Form.Item name="ownerId" label="Sale phụ trách (Bổ nhiệm)">
           <Select placeholder="Chọn nhân viên Sale phụ trách" allowClear>
