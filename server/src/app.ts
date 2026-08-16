@@ -9,8 +9,18 @@ dotenv.config();
 
 const app = express();
 
-// Security HTTP headers
-app.use(helmet());
+// Security HTTP headers - Allow iframe embedding from external domains
+app.use(
+  helmet({
+    frameguard: false, // Disables X-Frame-Options header
+    contentSecurityPolicy: {
+      directives: {
+        ...helmet.contentSecurityPolicy.getDefaultDirectives(),
+        'frame-ancestors': ['*'], // Allows embedding in iframe on any domain
+      },
+    },
+  })
+);
 
 // CORS configuration
 const allowedOrigins = [process.env.CLIENT_URL || 'http://localhost:5173'];

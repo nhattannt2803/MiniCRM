@@ -222,7 +222,7 @@ export const MainLayout: React.FC = () => {
             className="w-full bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 text-white font-bold shadow-md h-10 flex items-center justify-center rounded-xl border-none transition-all"
             title="Tạo Lead Mới"
           >
-            {!collapsed && <span>+ Tạo Lead Mới</span>}
+            {!collapsed && <span> Tạo Lead Mới</span>}
           </Button>
         </div>
 

@@ -265,7 +265,7 @@ export const CustomerDetailPage: React.FC = () => {
 
         <div className="flex items-center gap-2">
           <Button icon={<PlusOutlined />} type="primary" onClick={() => setIdentityModalVisible(true)} className="bg-emerald-600">
-            + Thêm điểm liên lạc (Identity)
+            Thêm điểm liên lạc (Identity)
           </Button>
           <Button icon={<EditOutlined />} onClick={handleOpenEditModal}>
             Chỉnh sửa thông tin
@@ -390,9 +390,8 @@ export const CustomerDetailPage: React.FC = () => {
                         .map((ct: any) => (
                           <div
                             key={ct.id}
-                            className={`p-2.5 rounded-lg border text-xs space-y-1 transition-all ${
-                              ct.isPrimary ? 'bg-amber-50/70 border-amber-300 shadow-2xs' : 'bg-slate-50 border-slate-200'
-                            }`}
+                            className={`p-2.5 rounded-lg border text-xs space-y-1 transition-all ${ct.isPrimary ? 'bg-amber-50/70 border-amber-300 shadow-2xs' : 'bg-slate-50 border-slate-200'
+                              }`}
                           >
                             <div className="flex items-center justify-between">
                               <div className="flex items-center gap-1.5 font-bold text-slate-900">
