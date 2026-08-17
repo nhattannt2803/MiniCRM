@@ -71,6 +71,13 @@ router.post('/opportunities/:id/products', crm.addOpportunityProduct);
 
 // Pipelines & Products
 router.get('/pipelines', crm.getPipelines);
+router.post('/pipelines', crm.createPipeline);
+router.put('/pipelines/:id', crm.updatePipeline);
+router.delete('/pipelines/:id', crm.deletePipeline);
+router.post('/pipelines/:id/stages', crm.addPipelineStage);
+router.put('/pipelines/stages/:stageId', crm.updatePipelineStage);
+router.delete('/pipelines/stages/:stageId', crm.deletePipelineStage);
+
 router.get('/products', crm.getProducts);
 router.post('/products', crm.createProduct);
 router.get('/products/:id', crm.getProductById);

@@ -63,6 +63,12 @@ export const crmService = {
 
   // Pipelines & Products
   getPipelines: () => api.get('/pipelines'),
+  createPipeline: (data: any) => api.post('/pipelines', data),
+  updatePipeline: (id: string, data: any) => api.put(`/pipelines/${id}`, data),
+  deletePipeline: (id: string) => api.delete(`/pipelines/${id}`),
+  addPipelineStage: (id: string, data: any) => api.post(`/pipelines/${id}/stages`, data),
+  updatePipelineStage: (stageId: string, data: any) => api.put(`/pipelines/stages/${stageId}`, data),
+  deletePipelineStage: (stageId: string) => api.delete(`/pipelines/stages/${stageId}`),
   getProducts: (params?: any) => api.get('/products', { params }),
   getProductById: (id: string) => api.get(`/products/${id}`),
   createProduct: (data: any) => api.post('/products', data),

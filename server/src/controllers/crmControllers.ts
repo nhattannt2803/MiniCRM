@@ -331,6 +331,60 @@ export const getPipelines = async (req: AuthenticatedRequest, res: Response, nex
   }
 };
 
+export const createPipeline = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  try {
+    const pipeline = await PipelineService.createPipeline(req.body);
+    res.status(201).json({ success: true, data: pipeline });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const updatePipeline = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  try {
+    const pipeline = await PipelineService.updatePipeline(req.params.id, req.body);
+    res.json({ success: true, data: pipeline });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const deletePipeline = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  try {
+    const result = await PipelineService.deletePipeline(req.params.id);
+    res.json({ success: true, data: result });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const addPipelineStage = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  try {
+    const stage = await PipelineService.addStage(req.params.id, req.body);
+    res.status(201).json({ success: true, data: stage });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const updatePipelineStage = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  try {
+    const stage = await PipelineService.updateStage(req.params.stageId, req.body);
+    res.json({ success: true, data: stage });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const deletePipelineStage = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  try {
+    const result = await PipelineService.deleteStage(req.params.stageId);
+    res.json({ success: true, data: result });
+  } catch (err) {
+    next(err);
+  }
+};
+
 export const getProducts = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
     const products = await ProductService.getProducts(req.query);

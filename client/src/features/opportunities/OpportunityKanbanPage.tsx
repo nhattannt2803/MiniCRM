@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Button, Select, notification, Spin, Drawer, Form, Input, InputNumber } from 'antd';
-import { TableOutlined, PlusOutlined } from '@ant-design/icons';
+import { TableOutlined, PlusOutlined, SettingOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { crmService } from '../../services/crmService';
 import { KanbanBoard, KanbanColumn } from '../../components/Kanban/KanbanBoard';
 import { Opportunity, Pipeline, PipelineStage, User } from '../../types';
+import { PipelineManagementModal } from './PipelineManagementModal';
 
 export const OpportunityKanbanPage: React.FC = () => {
   const [pipelines, setPipelines] = useState<Pipeline[]>([]);
@@ -14,19 +15,26 @@ export const OpportunityKanbanPage: React.FC = () => {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [drawerVisible, setDrawerVisible] = useState(false);
+  const [pipelineModalOpen, setPipelineModalOpen] = useState(false);
   const [formPipelineId, setFormPipelineId] = useState<string | undefined>();
 
   const [form] = Form.useForm();
   const navigate = useNavigate();
   const { t } = useTranslation();
 
-  const fetchPipelines = async () => {
+  const fetchPipelines = async (preferredId?: string) => {
     try {
       const res: any = await crmService.getPipelines();
       if (res.success && res.data.length > 0) {
         setPipelines(res.data);
-        const def = res.data.find((p: any) => p.isDefault) || res.data[0];
-        setSelectedPipelineId(def.id);
+        const targetId = preferredId || selectedPipelineId;
+        const exists = res.data.find((p: any) => p.id === targetId);
+        if (exists) {
+          setSelectedPipelineId(targetId);
+        } else {
+          const def = res.data.find((p: any) => p.isDefault) || res.data[0];
+          setSelectedPipelineId(def.id);
+        }
       }
     } catch (err) {
       console.error(err);
@@ -132,6 +140,14 @@ export const OpportunityKanbanPage: React.FC = () => {
             ))}
           </Select>
 
+          <Button
+            icon={<SettingOutlined />}
+            onClick={() => setPipelineModalOpen(true)}
+            title="Quản lý quy trình và các cột trạng thái"
+          >
+            Quản lý quy trình
+          </Button>
+
           <Button icon={<TableOutlined />} onClick={() => navigate('/opportunities/list')}>
             {t('opportunities.listView')}
           </Button>
@@ -211,6 +227,12 @@ export const OpportunityKanbanPage: React.FC = () => {
           </Form.Item>
         </Form>
       </Drawer>
+
+      <PipelineManagementModal
+        open={pipelineModalOpen}
+        onClose={() => setPipelineModalOpen(false)}
+        onPipelinesUpdated={(newId) => fetchPipelines(newId)}
+      />
     </div>
   );
 };
