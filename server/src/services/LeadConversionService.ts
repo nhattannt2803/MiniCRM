@@ -21,6 +21,7 @@ export interface ConvertLeadDTO {
   opportunityAmount?: number;
   pipelineId?: string | number;
   stageId?: string | number;
+  productIds?: (string | number)[];
 }
 
 export class LeadConversionService {
@@ -159,6 +160,25 @@ export class LeadConversionService {
             changedBy: lead.ownerId,
           },
         });
+
+        // Save products if productIds provided
+        if (dto.productIds && Array.isArray(dto.productIds) && dto.productIds.length > 0) {
+          for (const pid of dto.productIds) {
+            const prod = await tx.product.findFirst({ where: { id: BigInt(pid) } });
+            if (prod) {
+              const uPrice = Number(prod.unitPrice);
+              await tx.opportunityProduct.create({
+                data: {
+                  opportunityId: opp.id,
+                  productId: prod.id,
+                  quantity: 1,
+                  unitPrice: uPrice,
+                  totalPrice: uPrice,
+                },
+              });
+            }
+          }
+        }
 
         // Publish Event
         await publishOutboxEvent(tx, 'OPPORTUNITY_CREATED', 'OPPORTUNITY', opp.id, {
