@@ -6,7 +6,7 @@ set -e
 # Configurable variables
 DB_NAME="minicrm"
 DB_USER="minicrm_user"
-DB_PASS="MatKhauBaoMat123!"
+DB_PASS="123tan"
 
 echo "=============================================="
 echo " Starting Server Setup for Mini CRM "
