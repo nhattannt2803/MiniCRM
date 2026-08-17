@@ -225,12 +225,16 @@ export const QuickCreateLeadModal: React.FC<QuickCreateLeadModalProps> = ({
         <div className="grid grid-cols-2 gap-3">
           <Form.Item name="source" label={t('leads.source')} initialValue="WEBSITE">
             <Select>
-              <Select.Option value="WEBSITE">Website</Select.Option>
-              <Select.Option value="REFERRAL">Giới thiệu</Select.Option>
-              <Select.Option value="FB_ADS">Facebook Ads</Select.Option>
-              <Select.Option value="GOOGLE_ADS">Google Ads</Select.Option>
-              <Select.Option value="EVENT">Hội thảo / Sự kiện</Select.Option>
-              <Select.Option value="OUTBOUND">Trực tiếp</Select.Option>
+              <Select.Option value="WEBSITE">🌐 Website</Select.Option>
+              <Select.Option value="FB_ADS">📢 Facebook Ads</Select.Option>
+              <Select.Option value="FACEBOOK">📘 Facebook (Fanpage/Group)</Select.Option>
+              <Select.Option value="ZALO">💬 Zalo</Select.Option>
+              <Select.Option value="INSTAGRAM">📸 Instagram</Select.Option>
+              <Select.Option value="TIKTOK">🎵 TikTok</Select.Option>
+              <Select.Option value="GOOGLE_ADS">🎯 Google Ads</Select.Option>
+              <Select.Option value="REFERRAL">🤝 Giới thiệu (Referral)</Select.Option>
+              <Select.Option value="EVENT">🎪 Hội thảo / Sự kiện</Select.Option>
+              <Select.Option value="OUTBOUND">📞 Outbound / Trực tiếp</Select.Option>
             </Select>
           </Form.Item>
 
