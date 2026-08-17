@@ -14,6 +14,7 @@ export const LeadDetailPage: React.FC = () => {
   const [lead, setLead] = useState<Lead | null>(null);
   const [users, setUsers] = useState<User[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
+  const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   const [convertModalVisible, setConvertModalVisible] = useState(false);
@@ -55,10 +56,16 @@ export const LeadDetailPage: React.FC = () => {
     crmService.getCustomers({ limit: 100 }).then((res: any) => {
       if (res.success) setCustomers(res.data);
     }).catch(err => console.error(err));
+    crmService.getProducts().then((res: any) => {
+      if (res.success) setProducts(res.data);
+    }).catch(err => console.error(err));
   }, [id]);
 
   const handleOpenEditModal = () => {
     if (!lead) return;
+    const currentProductIds = (lead as any).products
+      ? (lead as any).products.map((p: any) => p.productId)
+      : [];
     editForm.setFieldsValue({
       firstName: lead.firstName,
       lastName: lead.lastName,
@@ -70,6 +77,7 @@ export const LeadDetailPage: React.FC = () => {
       rating: lead.rating,
       ownerId: lead.ownerId,
       notes: lead.notes,
+      productIds: currentProductIds,
     });
     setEditModalVisible(true);
   };
@@ -333,6 +341,20 @@ export const LeadDetailPage: React.FC = () => {
                 <span className="text-slate-800 font-semibold">
                   {lead.owner ? `${lead.owner.lastName} ${lead.owner.firstName}` : 'Unassigned'}
                 </span>
+              </div>
+              <div>
+                <span className="text-slate-400 font-medium block text-xs mb-1">🛒 Sản phẩm quan tâm</span>
+                {(lead as any).products && (lead as any).products.length > 0 ? (
+                  <div className="flex flex-wrap gap-1">
+                    {(lead as any).products.map((p: any) => (
+                      <Tag key={p.id} color={p.isPrimary ? 'purple' : 'blue'} className="text-xs font-medium">
+                        📦 {p.product?.name || p.productId} {p.isPrimary ? '★' : ''}
+                      </Tag>
+                    ))}
+                  </div>
+                ) : (
+                  <span className="text-slate-400 text-xs italic">Chưa chọn sản phẩm quan tâm</span>
+                )}
               </div>
               {lead.notes && (
                 <div className="pt-2 border-t border-slate-100">
@@ -748,6 +770,21 @@ export const LeadDetailPage: React.FC = () => {
               </Select>
             </Form.Item>
           </div>
+
+          <Form.Item name="productIds" label="🛒 Sản phẩm / Dịch vụ quan tâm (Chọn nhiều)">
+            <Select
+              mode="multiple"
+              placeholder="Chọn các sản phẩm khách hàng quan tâm..."
+              allowClear
+              optionFilterProp="children"
+            >
+              {products.map((p) => (
+                <Select.Option key={p.id} value={p.id}>
+                  📦 {p.name} ({p.code}) - {p.unitPrice ? `${p.unitPrice.toLocaleString('vi-VN')} VND` : 'Liên hệ'}
+                </Select.Option>
+              ))}
+            </Select>
+          </Form.Item>
 
           <Form.Item name="notes" label="Ghi chú">
             <Input.TextArea rows={3} />

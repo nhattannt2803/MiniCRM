@@ -32,6 +32,7 @@ export const LeadListPage: React.FC = () => {
 
   const [form] = Form.useForm();
   const navigate = useNavigate();
+  const [products, setProducts] = useState<any[]>([]);
   const { t } = useTranslation();
 
   const fetchLeads = async () => {
@@ -62,6 +63,10 @@ export const LeadListPage: React.FC = () => {
   useEffect(() => {
     crmService.getUsers().then((res: any) => {
       if (res.success) setUsers(res.data);
+    }).catch((err) => console.error(err));
+
+    crmService.getProducts().then((res: any) => {
+      if (res.success) setProducts(res.data);
     }).catch((err) => console.error(err));
 
     const handleLeadCreated = () => {
@@ -181,6 +186,9 @@ export const LeadListPage: React.FC = () => {
   const handleOpenEditDrawer = (lead: Lead) => {
     setEditingLead(lead);
     setIdentityResult(null);
+    const currentProductIds = (lead as any).products
+      ? (lead as any).products.map((p: any) => p.productId)
+      : [];
     form.setFieldsValue({
       firstName: lead.firstName,
       lastName: lead.lastName,
@@ -192,6 +200,7 @@ export const LeadListPage: React.FC = () => {
       rating: lead.rating,
       ownerId: lead.ownerId,
       notes: lead.notes,
+      productIds: currentProductIds,
     });
     setCreateDrawerVisible(true);
   };
@@ -285,6 +294,23 @@ export const LeadListPage: React.FC = () => {
       dataIndex: 'status',
       key: 'status',
       render: (status: string) => getStatusTag(status),
+    },
+    {
+      title: 'Sản phẩm quan tâm',
+      key: 'products',
+      render: (_: any, record: Lead) => {
+        const prods = (record as any).products || [];
+        if (prods.length === 0) return <span className="text-slate-400 text-xs italic">—</span>;
+        return (
+          <div className="flex flex-wrap gap-1 max-w-[200px]">
+            {prods.map((p: any) => (
+              <Tag key={p.id} color={p.isPrimary ? 'purple' : 'blue'} className="text-[11px] font-medium">
+                📦 {p.product?.name || p.productId} {p.isPrimary ? '★' : ''}
+              </Tag>
+            ))}
+          </div>
+        );
+      },
     },
     {
       title: 'Đánh giá',
@@ -546,6 +572,21 @@ export const LeadListPage: React.FC = () => {
               </Select>
             </Form.Item>
           </div>
+
+          <Form.Item name="productIds" label="🛒 Sản phẩm / Dịch vụ quan tâm (Chọn nhiều)">
+            <Select
+              mode="multiple"
+              placeholder="Chọn các sản phẩm khách hàng quan tâm..."
+              allowClear
+              optionFilterProp="children"
+            >
+              {products.map((p) => (
+                <Select.Option key={p.id} value={p.id}>
+                  📦 {p.name} ({p.code}) - {p.unitPrice ? `${p.unitPrice.toLocaleString('vi-VN')} VND` : 'Liên hệ'}
+                </Select.Option>
+              ))}
+            </Select>
+          </Form.Item>
 
           <Form.Item name="notes" label={t('common.notes')}>
             <Input.TextArea rows={3} placeholder="Ghi chú thêm về tiềm năng..." />

@@ -22,6 +22,7 @@ export const QuickCreateLeadModal: React.FC<QuickCreateLeadModalProps> = ({
   const { defaultEntityType } = useSettingsStore();
 
   const [users, setUsers] = useState<User[]>([]);
+  const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [entityType, setEntityType] = useState<'CONTACT' | 'COMPANY'>(defaultEntityType);
   const [identityResult, setIdentityResult] = useState<any>(null);
@@ -35,6 +36,13 @@ export const QuickCreateLeadModal: React.FC<QuickCreateLeadModalProps> = ({
         .getUsers()
         .then((res: any) => {
           if (res.success) setUsers(res.data);
+        })
+        .catch(() => {});
+
+      crmService
+        .getProducts()
+        .then((res: any) => {
+          if (res.success) setProducts(res.data);
         })
         .catch(() => {});
     }
@@ -256,6 +264,21 @@ export const QuickCreateLeadModal: React.FC<QuickCreateLeadModalProps> = ({
             </Select>
           </Form.Item>
         </div>
+
+        <Form.Item name="productIds" label="🛒 Sản phẩm / Dịch vụ quan tâm (Chọn nhiều)">
+          <Select
+            mode="multiple"
+            placeholder="Chọn các sản phẩm khách hàng quan tâm..."
+            allowClear
+            optionFilterProp="children"
+          >
+            {products.map((p) => (
+              <Select.Option key={p.id} value={p.id}>
+                📦 {p.name} ({p.code}) - {p.unitPrice ? `${p.unitPrice.toLocaleString('vi-VN')} VND` : 'Liên hệ'}
+              </Select.Option>
+            ))}
+          </Select>
+        </Form.Item>
 
         <Form.Item name="notes" label={t('common.notes')}>
           <Input.TextArea rows={3} placeholder="Ghi chú thêm về tiềm năng..." />

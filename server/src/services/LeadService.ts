@@ -51,6 +51,7 @@ export class LeadService {
           contact: { select: { id: true, firstName: true, lastName: true } },
           customer: { select: { id: true, customerCode: true, company: true, contact: true } },
           campaign: { select: { id: true, name: true } },
+          products: { include: { product: true } },
         },
       }),
     ]);
@@ -64,6 +65,15 @@ export class LeadService {
         customerId: l.customerId?.toString(),
         campaignId: l.campaignId?.toString(),
         ownerId: l.ownerId?.toString(),
+        products: l.products
+          ? l.products.map((lp) => ({
+              ...lp,
+              id: lp.id.toString(),
+              leadId: lp.leadId.toString(),
+              productId: lp.productId.toString(),
+              product: lp.product ? { ...lp.product, id: lp.product.id.toString(), unitPrice: Number(lp.product.unitPrice) } : null,
+            }))
+          : [],
       })),
       meta: {
         page,
@@ -86,6 +96,7 @@ export class LeadService {
         campaign: true,
         convertedOpportunity: true,
         convertedCustomer: true,
+        products: { include: { product: true } },
         conversations: {
           orderBy: { updatedAt: 'desc' },
           include: { messages: { orderBy: { sentAt: 'desc' }, take: 1 } },
@@ -134,6 +145,15 @@ export class LeadService {
       })),
       activities: activities.map((a) => ({ ...a, id: a.id.toString() })),
       tasks: tasks.map((t) => ({ ...t, id: t.id.toString() })),
+      products: lead.products
+        ? lead.products.map((lp) => ({
+            ...lp,
+            id: lp.id.toString(),
+            leadId: lp.leadId.toString(),
+            productId: lp.productId.toString(),
+            product: lp.product ? { ...lp.product, id: lp.product.id.toString(), unitPrice: Number(lp.product.unitPrice) } : null,
+          }))
+        : [],
     };
   }
 
@@ -381,6 +401,20 @@ export class LeadService {
           ownerId: data.ownerId !== undefined ? (data.ownerId ? BigInt(data.ownerId) : null) : existing.ownerId,
         },
       });
+
+      if (data.productIds !== undefined && Array.isArray(data.productIds)) {
+        await tx.leadProduct.deleteMany({ where: { leadId } });
+        for (let i = 0; i < data.productIds.length; i++) {
+          const pId = BigInt(data.productIds[i]);
+          await tx.leadProduct.create({
+            data: {
+              leadId,
+              productId: pId,
+              isPrimary: i === 0,
+            },
+          });
+        }
+      }
 
       if (data.status && data.status !== existing.status) {
         const eventType = data.status === 'QUALIFIED' ? 'LEAD_QUALIFIED' : 'LEAD_UPDATED';
