@@ -35,4 +35,8 @@ certbot --nginx -d "$DOMAIN" --email "$EMAIL" --agree-tos --no-eff-email --non-i
 echo "=============================================="
 echo " 🎉 SSL has been configured successfully!"
 echo " Your CRM is now accessible via: https://$DOMAIN"
+echo ""
+echo " ⚠️ IMPORTANT: Update CLIENT_URL in /var/www/minicrm/server/.env:"
+echo " CLIENT_URL=\"https://$DOMAIN\""
+echo " Then run: pm2 restart minicrm-backend"
 echo "=============================================="
