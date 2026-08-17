@@ -72,6 +72,8 @@ export class TaskService {
     relatedType?: string;
     relatedId?: string | number;
     isOverdue?: boolean;
+    preset?: string;
+    limit?: string | number;
   }) {
     const where: any = {};
     if (params.status) where.status = params.status;
@@ -82,15 +84,48 @@ export class TaskService {
       where.relatedId = BigInt(params.relatedId);
     }
 
-    const isOverdue = params.isOverdue === true || String(params.isOverdue) === 'true';
-    if (isOverdue) {
-      where.status = { in: ['TODO', 'IN_PROGRESS'] };
-      where.dueAt = { lt: new Date() };
+    const now = new Date();
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+    const endOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+    const endOfNext2Days = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 2, 23, 59, 59, 999);
+
+    if (params.preset === 'OVERDUE_TODAY') {
+      where.OR = [
+        {
+          status: { in: ['TODO', 'IN_PROGRESS'] },
+          dueAt: { lt: startOfToday },
+        },
+        {
+          dueAt: { gte: startOfToday, lte: endOfToday },
+        },
+      ];
+    } else if (params.preset === 'OVERDUE') {
+      if (!params.status) {
+        where.status = { in: ['TODO', 'IN_PROGRESS'] };
+      }
+      where.dueAt = { lt: now };
+    } else if (params.preset === 'TODAY') {
+      where.dueAt = { gte: startOfToday, lte: endOfToday };
+    } else if (params.preset === 'NEXT_2_DAYS') {
+      where.dueAt = { gte: startOfToday, lte: endOfNext2Days };
+    } else if (params.isOverdue === true || String(params.isOverdue) === 'true') {
+      if (!params.status) {
+        where.status = { in: ['TODO', 'IN_PROGRESS'] };
+      }
+      where.dueAt = { lt: now };
+    }
+
+    let take: number | undefined;
+    if (params.limit) {
+      take = Number(params.limit);
+    } else if (!params.preset || params.preset === 'ALL') {
+      take = 30;
     }
 
     const tasks = await prisma.task.findMany({
       where,
       orderBy: { dueAt: 'asc' },
+      ...(take ? { take } : {}),
       include: {
         assignee: { select: { id: true, firstName: true, lastName: true } },
         creator: { select: { id: true, firstName: true, lastName: true } },
@@ -118,7 +153,6 @@ export class TaskService {
     const leadMap = new Map(leads.map((l) => [l.id.toString(), l]));
     const customerMap = new Map(customers.map((c) => [c.id.toString(), c]));
 
-    const now = new Date();
     return tasks.map((t) => {
       let relatedInfo: any = null;
       if (t.relatedType === 'LEAD') {

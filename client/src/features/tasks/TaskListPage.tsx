@@ -13,7 +13,7 @@ export const TaskListPage: React.FC = () => {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<string | undefined>();
-  const [overdueOnly, setOverdueOnly] = useState(false);
+  const [presetFilter, setPresetFilter] = useState<string | undefined>('OVERDUE_TODAY');
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
 
@@ -25,7 +25,7 @@ export const TaskListPage: React.FC = () => {
     try {
       const res: any = await crmService.getTasks({
         status: statusFilter,
-        isOverdue: overdueOnly ? true : undefined,
+        preset: presetFilter,
       });
       if (res.success) setTasks(res.data);
     } catch (err) {
@@ -47,7 +47,7 @@ export const TaskListPage: React.FC = () => {
   useEffect(() => {
     fetchTasks();
     fetchUsers();
-  }, [statusFilter, overdueOnly]);
+  }, [statusFilter, presetFilter]);
 
   const handleConfirmCompleteTask = async (task: Task) => {
     try {
@@ -233,17 +233,37 @@ export const TaskListPage: React.FC = () => {
         </div>
       </div>
 
-      <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs flex items-center gap-4">
-        <Select placeholder={t('common.status')} className="w-40" allowClear onChange={(v) => setStatusFilter(v)}>
-          <Select.Option value="TODO">{t('tasks.status.PENDING')}</Select.Option>
-          <Select.Option value="IN_PROGRESS">{t('tasks.status.IN_PROGRESS')}</Select.Option>
-          <Select.Option value="COMPLETED">{t('tasks.status.COMPLETED')}</Select.Option>
-          <Select.Option value="CANCELLED">Đã hủy</Select.Option>
-        </Select>
+      <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs flex flex-wrap items-center gap-4">
+        <div>
+          <span className="text-xs font-semibold text-slate-500 block mb-1">Bộ lọc thời gian:</span>
+          <Select
+            value={presetFilter}
+            onChange={(v) => setPresetFilter(v)}
+            placeholder="Tất cả (Tối đa 30 công việc)"
+            className="w-72"
+            allowClear
+          >
+            <Select.Option value="OVERDUE_TODAY">🔥 Chỉ xem quá hạn và Việc Hôm Nay</Select.Option>
+            <Select.Option value="OVERDUE">⚠️ Chỉ Xem Quá Hạn</Select.Option>
+            <Select.Option value="TODAY">📅 Việc Hôm Nay</Select.Option>
+            <Select.Option value="NEXT_2_DAYS">⏳ Việc trong 2 ngày tới</Select.Option>
+          </Select>
+        </div>
 
-        <Checkbox checked={overdueOnly} onChange={(e) => setOverdueOnly(e.target.checked)}>
-          Chỉ xem nhiệm vụ quá hạn
-        </Checkbox>
+        <div>
+          <span className="text-xs font-semibold text-slate-500 block mb-1">{t('common.status')}:</span>
+          <Select placeholder="Tất cả trạng thái" className="w-44" allowClear onChange={(v) => setStatusFilter(v)}>
+            <Select.Option value="TODO">{t('tasks.status.PENDING')}</Select.Option>
+            <Select.Option value="IN_PROGRESS">{t('tasks.status.IN_PROGRESS')}</Select.Option>
+            <Select.Option value="COMPLETED">{t('tasks.status.COMPLETED')}</Select.Option>
+            <Select.Option value="CANCELLED">Đã hủy</Select.Option>
+          </Select>
+        </div>
+
+        <div className="ml-auto text-xs text-slate-500 self-end mb-1">
+          Hiển thị: <strong className="text-indigo-600 font-semibold">{tasks.length}</strong> công việc
+          {(!presetFilter || presetFilter === 'ALL') && ' (Tối đa 30)'}
+        </div>
       </div>
 
       <div className="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden">
