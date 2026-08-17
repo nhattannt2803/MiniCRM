@@ -80,6 +80,7 @@ export const crmService = {
   createActivity: (data: any) => api.post('/activities', data),
   getTasks: (params?: any) => api.get('/tasks', { params }),
   createTask: (data: any) => api.post('/tasks', data),
+  updateTask: (id: string, data: any) => api.patch(`/tasks/${id}`, data),
   updateTaskStatus: (id: string, status: string) => api.patch(`/tasks/${id}/status`, { status }),
 
   // Campaigns

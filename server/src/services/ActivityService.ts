@@ -82,7 +82,8 @@ export class TaskService {
       where.relatedId = BigInt(params.relatedId);
     }
 
-    if (params.isOverdue) {
+    const isOverdue = params.isOverdue === true || String(params.isOverdue) === 'true';
+    if (isOverdue) {
       where.status = { in: ['TODO', 'IN_PROGRESS'] };
       where.dueAt = { lt: new Date() };
     }
@@ -96,15 +97,63 @@ export class TaskService {
       },
     });
 
+    const leadIds = tasks.filter((t) => t.relatedType === 'LEAD').map((t) => t.relatedId);
+    const customerIds = tasks.filter((t) => t.relatedType === 'CUSTOMER').map((t) => t.relatedId);
+
+    const [leads, customers] = await Promise.all([
+      leadIds.length > 0
+        ? prisma.lead.findMany({
+            where: { id: { in: leadIds } },
+            select: { id: true, firstName: true, lastName: true, companyName: true },
+          })
+        : [],
+      customerIds.length > 0
+        ? prisma.customer.findMany({
+            where: { id: { in: customerIds } },
+            include: { company: { select: { name: true } }, contact: { select: { firstName: true, lastName: true } } },
+          })
+        : [],
+    ]);
+
+    const leadMap = new Map(leads.map((l) => [l.id.toString(), l]));
+    const customerMap = new Map(customers.map((c) => [c.id.toString(), c]));
+
     const now = new Date();
-    return tasks.map((t) => ({
-      ...t,
-      id: t.id.toString(),
-      assignedTo: t.assignedTo?.toString(),
-      createdBy: t.createdBy?.toString(),
-      relatedId: t.relatedId.toString(),
-      isOverdue: t.status !== 'COMPLETED' && t.status !== 'CANCELLED' && t.dueAt < now,
-    }));
+    return tasks.map((t) => {
+      let relatedInfo: any = null;
+      if (t.relatedType === 'LEAD') {
+        const lead = leadMap.get(t.relatedId.toString());
+        if (lead) {
+          relatedInfo = {
+            type: 'LEAD',
+            id: lead.id.toString(),
+            name: `${lead.lastName} ${lead.firstName}`.trim(),
+            company: lead.companyName || null,
+          };
+        }
+      } else if (t.relatedType === 'CUSTOMER') {
+        const cust = customerMap.get(t.relatedId.toString());
+        if (cust) {
+          const name = cust.company?.name || (cust.contact ? `${cust.contact.lastName} ${cust.contact.firstName}`.trim() : cust.customerCode);
+          relatedInfo = {
+            type: 'CUSTOMER',
+            id: cust.id.toString(),
+            name,
+            code: cust.customerCode,
+          };
+        }
+      }
+
+      return {
+        ...t,
+        id: t.id.toString(),
+        assignedTo: t.assignedTo?.toString(),
+        createdBy: t.createdBy?.toString(),
+        relatedId: t.relatedId.toString(),
+        relatedInfo,
+        isOverdue: t.status !== 'COMPLETED' && t.status !== 'CANCELLED' && t.dueAt < now,
+      };
+    });
   }
 
   public static async createTask(data: any) {
@@ -115,7 +164,7 @@ export class TaskService {
           description: data.description || null,
           priority: data.priority || 'MEDIUM',
           status: data.status || 'TODO',
-          assignedTo: data.assignedTo ? BigInt(data.assignedTo) : null,
+          assignedTo: data.assignedTo ? BigInt(data.assignedTo) : (data.userId ? BigInt(data.userId) : null),
           createdBy: data.userId ? BigInt(data.userId) : null,
           dueAt: new Date(data.dueAt),
           relatedType: data.relatedType,
@@ -146,6 +195,36 @@ export class TaskService {
     });
 
     return { ...updated, id: updated.id.toString() };
+  }
+
+  public static async updateTask(id: string | number, data: any) {
+    const taskId = BigInt(id);
+    const existing = await prisma.task.findFirst({ where: { id: taskId } });
+    if (!existing) throw new AppError('Task not found', 404, 'TASK_NOT_FOUND');
+
+    const status = data.status !== undefined ? data.status : existing.status;
+    const completedAt = status === 'COMPLETED' ? (existing.completedAt || new Date()) : null;
+
+    const updated = await prisma.task.update({
+      where: { id: taskId },
+      data: {
+        title: data.title !== undefined ? data.title : existing.title,
+        description: data.description !== undefined ? data.description : existing.description,
+        priority: data.priority !== undefined ? data.priority : existing.priority,
+        status,
+        completedAt,
+        assignedTo: data.assignedTo !== undefined ? (data.assignedTo ? BigInt(data.assignedTo) : null) : existing.assignedTo,
+        dueAt: data.dueAt ? new Date(data.dueAt) : existing.dueAt,
+      },
+    });
+
+    return {
+      ...updated,
+      id: updated.id.toString(),
+      assignedTo: updated.assignedTo?.toString(),
+      createdBy: updated.createdBy?.toString(),
+      relatedId: updated.relatedId.toString(),
+    };
   }
 }
 

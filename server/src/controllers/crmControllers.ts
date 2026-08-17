@@ -464,6 +464,15 @@ export const updateTaskStatus = async (req: AuthenticatedRequest, res: Response,
   }
 };
 
+export const updateTask = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  try {
+    const task = await TaskService.updateTask(req.params.id, req.body);
+    res.json({ success: true, data: task });
+  } catch (err) {
+    next(err);
+  }
+};
+
 export const getCampaigns = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
     const campaigns = await CampaignService.getCampaigns();

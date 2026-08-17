@@ -1,21 +1,32 @@
 import React, { useState, useEffect } from 'react';
-import { Table, Button, Tag, Select, Checkbox, notification } from 'antd';
-import { PlusOutlined, AlertOutlined } from '@ant-design/icons';
+import { useNavigate } from 'react-router-dom';
+import { Table, Button, Tag, Select, Checkbox, Popconfirm, Modal, Form, Input, DatePicker, Tooltip, notification } from 'antd';
+import { PlusOutlined, AlertOutlined, CheckOutlined, EditOutlined, CheckCircleOutlined } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
+import dayjs from 'dayjs';
 import { crmService } from '../../services/crmService';
-import { Task } from '../../types';
+import { Task, User } from '../../types';
 
 export const TaskListPage: React.FC = () => {
+  const navigate = useNavigate();
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<string | undefined>();
   const [overdueOnly, setOverdueOnly] = useState(false);
+  const [editModalVisible, setEditModalVisible] = useState(false);
+  const [editingTask, setEditingTask] = useState<Task | null>(null);
+
+  const [form] = Form.useForm();
   const { t, i18n } = useTranslation();
 
   const fetchTasks = async () => {
     setLoading(true);
     try {
-      const res: any = await crmService.getTasks({ status: statusFilter, isOverdue: overdueOnly });
+      const res: any = await crmService.getTasks({
+        status: statusFilter,
+        isOverdue: overdueOnly ? true : undefined,
+      });
       if (res.success) setTasks(res.data);
     } catch (err) {
       console.error(err);
@@ -24,18 +35,61 @@ export const TaskListPage: React.FC = () => {
     }
   };
 
+  const fetchUsers = async () => {
+    try {
+      const res: any = await crmService.getUsers();
+      if (res.success) setUsers(res.data);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   useEffect(() => {
     fetchTasks();
+    fetchUsers();
   }, [statusFilter, overdueOnly]);
 
-  const handleStatusToggle = async (task: Task) => {
-    const newStatus = task.status === 'COMPLETED' ? 'TODO' : 'COMPLETED';
+  const handleConfirmCompleteTask = async (task: Task) => {
     try {
-      await crmService.updateTaskStatus(task.id, newStatus);
-      notification.success({ message: t('common.success'), description: `Đã cập nhật trạng thái nhiệm vụ!` });
+      await crmService.updateTaskStatus(task.id, 'COMPLETED');
+      notification.success({
+        message: 'Xác nhận hoàn thành thành công',
+        description: `Đã hoàn thành nhiệm vụ: "${task.title}"`,
+      });
       fetchTasks();
     } catch (err: any) {
       notification.error({ message: t('common.error'), description: err.message });
+    }
+  };
+
+  const handleOpenEditModal = (task: Task) => {
+    setEditingTask(task);
+    form.setFieldsValue({
+      title: task.title,
+      assignedTo: task.assignedTo ? task.assignedTo.toString() : undefined,
+      priority: task.priority || 'MEDIUM',
+      status: task.status || 'TODO',
+      dueAt: task.dueAt ? dayjs(task.dueAt) : undefined,
+      description: task.description || '',
+    });
+    setEditModalVisible(true);
+  };
+
+  const handleSaveEditTask = async (values: any) => {
+    if (!editingTask) return;
+    try {
+      await crmService.updateTask(editingTask.id, {
+        ...values,
+        dueAt: values.dueAt ? values.dueAt.toISOString() : undefined,
+      });
+      notification.success({
+        message: 'Cập nhật nhiệm vụ thành công!',
+        description: `Nhiệm vụ "${values.title}" đã được cập nhật.`,
+      });
+      setEditModalVisible(false);
+      fetchTasks();
+    } catch (err: any) {
+      notification.error({ message: 'Cập nhật thất bại', description: err.message });
     }
   };
 
@@ -52,10 +106,37 @@ export const TaskListPage: React.FC = () => {
     {
       title: 'Hoàn thành',
       key: 'done',
-      width: 100,
-      render: (_: any, r: Task) => (
-        <Checkbox checked={r.status === 'COMPLETED'} onChange={() => handleStatusToggle(r)} />
-      ),
+      width: 140,
+      render: (_: any, r: Task) => {
+        if (r.status === 'COMPLETED') {
+          return (
+            <Tag color="green" className="font-semibold flex items-center gap-1 w-fit">
+              <CheckCircleOutlined /> Đã hoàn thành
+            </Tag>
+          );
+        }
+        return (
+          <Popconfirm
+            title="Xác nhận hoàn thành nhiệm vụ?"
+            description={`Bạn có chắc chắn muốn xác nhận hoàn thành công việc "${r.title}"?`}
+            onConfirm={() => handleConfirmCompleteTask(r)}
+            okText="Đồng ý hoàn thành"
+            cancelText="Hủy"
+            okButtonProps={{ type: 'primary', className: 'bg-emerald-600' }}
+          >
+            <Tooltip title="Bấm dấu tích để xác nhận hoàn thành">
+              <Button
+                type="dashed"
+                size="small"
+                icon={<CheckOutlined className="text-emerald-600 font-bold" />}
+                className="border-emerald-400 text-emerald-700 hover:bg-emerald-50 hover:border-emerald-600 font-medium"
+              >
+                Xác nhận
+              </Button>
+            </Tooltip>
+          </Popconfirm>
+        );
+      },
     },
     {
       title: t('tasks.taskName'),
@@ -74,6 +155,38 @@ export const TaskListPage: React.FC = () => {
         </div>
       ),
     },
+    {
+      title: 'Liên quan đến',
+      key: 'related',
+      render: (_: any, r: any) => {
+        if (r.relatedInfo) {
+          const isLead = r.relatedInfo.type === 'LEAD';
+          const link = isLead ? `/leads/${r.relatedInfo.id}` : `/customers/${r.relatedInfo.id}`;
+          return (
+            <Tag
+              color={isLead ? 'blue' : 'purple'}
+              className="cursor-pointer font-medium hover:opacity-80"
+              onClick={() => navigate(link)}
+            >
+              {isLead ? '👤 Lead' : '🏢 Customer'}: {r.relatedInfo.name || `#${r.relatedInfo.id}`}
+            </Tag>
+          );
+        }
+        if (r.relatedType && r.relatedId) {
+          const isLead = r.relatedType === 'LEAD';
+          return (
+            <Tag
+              color={isLead ? 'blue' : 'purple'}
+              className="cursor-pointer"
+              onClick={() => navigate(isLead ? `/leads/${r.relatedId}` : `/customers/${r.relatedId}`)}
+            >
+              {r.relatedType} #{r.relatedId}
+            </Tag>
+          );
+        }
+        return <span className="text-slate-400 text-xs">—</span>;
+      },
+    },
     { title: 'Độ ưu tiên', dataIndex: 'priority', key: 'priority', render: (p: string) => getPriorityTag(p) },
     {
       title: t('tasks.dueDate'),
@@ -90,9 +203,23 @@ export const TaskListPage: React.FC = () => {
       dataIndex: 'status',
       key: 'status',
       render: (s: string) => (
-        <Tag color={s === 'COMPLETED' ? 'green' : 'orange'}>
-          {s === 'COMPLETED' ? t('tasks.status.COMPLETED') : s === 'IN_PROGRESS' ? t('tasks.status.IN_PROGRESS') : t('tasks.status.PENDING')}
+        <Tag color={s === 'COMPLETED' ? 'green' : s === 'IN_PROGRESS' ? 'blue' : s === 'CANCELLED' ? 'default' : 'orange'}>
+          {s === 'COMPLETED' ? t('tasks.status.COMPLETED') : s === 'IN_PROGRESS' ? t('tasks.status.IN_PROGRESS') : s === 'CANCELLED' ? 'Đã hủy' : t('tasks.status.PENDING')}
         </Tag>
+      ),
+    },
+    {
+      title: 'Thao tác',
+      key: 'actions',
+      width: 100,
+      render: (_: any, r: Task) => (
+        <Button
+          size="small"
+          icon={<EditOutlined />}
+          onClick={() => handleOpenEditModal(r)}
+        >
+          Sửa
+        </Button>
       ),
     },
   ];
@@ -111,6 +238,7 @@ export const TaskListPage: React.FC = () => {
           <Select.Option value="TODO">{t('tasks.status.PENDING')}</Select.Option>
           <Select.Option value="IN_PROGRESS">{t('tasks.status.IN_PROGRESS')}</Select.Option>
           <Select.Option value="COMPLETED">{t('tasks.status.COMPLETED')}</Select.Option>
+          <Select.Option value="CANCELLED">Đã hủy</Select.Option>
         </Select>
 
         <Checkbox checked={overdueOnly} onChange={(e) => setOverdueOnly(e.target.checked)}>
@@ -121,6 +249,62 @@ export const TaskListPage: React.FC = () => {
       <div className="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden">
         <Table columns={columns} dataSource={tasks} rowKey="id" loading={loading} pagination={false} />
       </div>
+
+      {/* Edit Task Modal */}
+      <Modal
+        title="Chỉnh sửa Nhiệm vụ / Lịch hẹn"
+        open={editModalVisible}
+        onCancel={() => setEditModalVisible(false)}
+        onOk={() => form.submit()}
+        width={500}
+        okText="Lưu thay đổi"
+        cancelText="Hủy"
+        okButtonProps={{ className: 'bg-indigo-600' }}
+      >
+        <Form form={form} layout="vertical" onFinish={handleSaveEditTask}>
+          <Form.Item name="title" label="Tên nhiệm vụ" rules={[{ required: true, message: 'Nhập tên nhiệm vụ' }]}>
+            <Input placeholder="Ví dụ: Gọi điện chốt hợp đồng" />
+          </Form.Item>
+
+          <Form.Item name="assignedTo" label="Sales phụ trách">
+            <Select placeholder="Chọn nhân viên phụ trách" allowClear>
+              {users.map((u) => (
+                <Select.Option key={u.id} value={u.id}>
+                  👤 {u.lastName} {u.firstName} ({u.email})
+                </Select.Option>
+              ))}
+            </Select>
+          </Form.Item>
+
+          <div className="grid grid-cols-2 gap-3">
+            <Form.Item name="priority" label="Độ ưu tiên">
+              <Select>
+                <Select.Option value="LOW">Thấp (Low)</Select.Option>
+                <Select.Option value="MEDIUM">Trung bình (Medium)</Select.Option>
+                <Select.Option value="HIGH">Cao (High)</Select.Option>
+                <Select.Option value="URGENT">Khẩn cấp (Urgent)</Select.Option>
+              </Select>
+            </Form.Item>
+
+            <Form.Item name="status" label="Trạng thái">
+              <Select>
+                <Select.Option value="TODO">Chưa thực hiện (TODO)</Select.Option>
+                <Select.Option value="IN_PROGRESS">Đang thực hiện</Select.Option>
+                <Select.Option value="COMPLETED">Đã hoàn thành</Select.Option>
+                <Select.Option value="CANCELLED">Đã hủy</Select.Option>
+              </Select>
+            </Form.Item>
+          </div>
+
+          <Form.Item name="dueAt" label="Hạn chót (Ngày & Giờ)" rules={[{ required: true, message: 'Chọn ngày giờ hạn chót' }]}>
+            <DatePicker showTime className="w-full" format="DD/MM/YYYY HH:mm" />
+          </Form.Item>
+
+          <Form.Item name="description" label="Mô tả / Ghi chú công việc">
+            <Input.TextArea rows={3} placeholder="Ghi chú chi tiết công việc..." />
+          </Form.Item>
+        </Form>
+      </Modal>
     </div>
   );
 };

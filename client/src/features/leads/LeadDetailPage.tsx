@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Card, Tag, Button, Select, Tabs, Modal, Form, Input, DatePicker, notification, Spin, Alert, Radio } from 'antd';
-import { ArrowLeftOutlined, SwapOutlined, PlusOutlined, PhoneOutlined, EditOutlined, WarningOutlined, MessageOutlined, SendOutlined } from '@ant-design/icons';
+import { Card, Tag, Button, Select, Tabs, Modal, Form, Input, DatePicker, notification, Spin, Alert, Radio, Popconfirm, Tooltip } from 'antd';
+import { ArrowLeftOutlined, SwapOutlined, PlusOutlined, PhoneOutlined, EditOutlined, WarningOutlined, MessageOutlined, SendOutlined, CheckOutlined, CheckCircleOutlined } from '@ant-design/icons';
 import { crmService } from '../../services/crmService';
 import { Lead, User, Conversation, Customer } from '../../types';
 import { ActivityTimeline } from '../../components/Timeline/ActivityTimeline';
@@ -21,6 +21,7 @@ export const LeadDetailPage: React.FC = () => {
   const [taskModalVisible, setTaskModalVisible] = useState(false);
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [resolveModalVisible, setResolveModalVisible] = useState(false);
+  const [activeTabKey, setActiveTabKey] = useState('conversations');
 
   // New message state
   const [newMessage, setNewMessage] = useState('');
@@ -144,6 +145,7 @@ export const LeadDetailPage: React.FC = () => {
       notification.success({ message: 'Activity Logged' });
       setActivityModalVisible(false);
       activityForm.resetFields();
+      setActiveTabKey('timeline');
       fetchLeadDetails();
     } catch (err: any) {
       notification.error({ message: 'Log Failed', description: err.message });
@@ -162,9 +164,23 @@ export const LeadDetailPage: React.FC = () => {
       notification.success({ message: 'Task Created' });
       setTaskModalVisible(false);
       taskForm.resetFields();
+      setActiveTabKey('tasks');
       fetchLeadDetails();
     } catch (err: any) {
       notification.error({ message: 'Task Creation Failed', description: err.message });
+    }
+  };
+
+  const handleConfirmCompleteTask = async (task: any) => {
+    try {
+      await crmService.updateTaskStatus(task.id, 'COMPLETED');
+      notification.success({
+        message: 'Xác nhận hoàn thành thành công',
+        description: `Đã hoàn thành nhiệm vụ: "${task.title}"`,
+      });
+      fetchLeadDetails();
+    } catch (err: any) {
+      notification.error({ message: 'Thất bại', description: err.message });
     }
   };
 
@@ -354,6 +370,8 @@ export const LeadDetailPage: React.FC = () => {
             }
           >
             <Tabs
+              activeKey={activeTabKey}
+              onChange={(k) => setActiveTabKey(k)}
               items={[
                 {
                   key: 'conversations',
@@ -434,16 +452,49 @@ export const LeadDetailPage: React.FC = () => {
                         lead.tasks.map((t) => (
                           <div key={t.id} className="p-3 border border-slate-100 rounded-lg flex items-center justify-between">
                             <div>
-                              <div className="font-bold text-slate-800 text-sm">{t.title}</div>
-                              <div className="text-xs text-slate-400">
-                                Due: {new Date(t.dueAt).toLocaleString('vi-VN')} | Priority: {t.priority}
+                              <div className="font-bold text-slate-800 text-sm flex items-center gap-2">
+                                <span className={t.status === 'COMPLETED' ? 'line-through text-slate-400' : ''}>{t.title}</span>
+                                {t.assignee && (
+                                  <span className="text-xs font-normal text-indigo-600">
+                                    👤 {t.assignee.lastName} {t.assignee.firstName}
+                                  </span>
+                                )}
+                              </div>
+                              <div className="text-xs text-slate-400 mt-0.5">
+                                Hạn chót: {new Date(t.dueAt).toLocaleString('vi-VN')} | Độ ưu tiên: {t.priority}
                               </div>
                             </div>
-                            <Tag color={t.status === 'COMPLETED' ? 'green' : 'orange'}>{t.status}</Tag>
+                            <div>
+                              {t.status === 'COMPLETED' ? (
+                                <Tag color="green" className="font-semibold">
+                                  <CheckCircleOutlined /> Đã hoàn thành
+                                </Tag>
+                              ) : (
+                                <Popconfirm
+                                  title="Xác nhận hoàn thành nhiệm vụ?"
+                                  description={`Bạn có chắc chắn muốn xác nhận hoàn thành "${t.title}"?`}
+                                  onConfirm={() => handleConfirmCompleteTask(t)}
+                                  okText="Đồng ý"
+                                  cancelText="Hủy"
+                                  okButtonProps={{ type: 'primary', className: 'bg-emerald-600' }}
+                                >
+                                  <Tooltip title="Bấm dấu tích để xác nhận hoàn thành">
+                                    <Button
+                                      type="dashed"
+                                      size="small"
+                                      icon={<CheckOutlined className="text-emerald-600 font-bold" />}
+                                      className="border-emerald-400 text-emerald-700 hover:bg-emerald-50"
+                                    >
+                                      Xác nhận
+                                    </Button>
+                                  </Tooltip>
+                                </Popconfirm>
+                              )}
+                            </div>
                           </div>
                         ))
                       ) : (
-                        <div className="text-slate-400 text-xs text-center py-6">No tasks scheduled</div>
+                        <div className="text-slate-400 text-xs text-center py-6">Chưa có nhiệm vụ nào</div>
                       )}
                     </div>
                   ),
@@ -595,12 +646,22 @@ export const LeadDetailPage: React.FC = () => {
         onCancel={() => setTaskModalVisible(false)}
         onOk={() => taskForm.submit()}
       >
-        <Form form={taskForm} layout="vertical" onFinish={handleCreateTask}>
+        <Form form={taskForm} layout="vertical" onFinish={handleCreateTask} initialValues={{ priority: 'HIGH', assignedTo: lead.ownerId }}>
           <Form.Item name="title" label="Task Title" rules={[{ required: true }]}>
             <Input placeholder="Call back client" />
           </Form.Item>
 
-          <Form.Item name="priority" label="Priority" initialValue="HIGH">
+          <Form.Item name="assignedTo" label="Sale phụ trách / Người thực hiện">
+            <Select placeholder="Chọn nhân viên" allowClear>
+              {users.map((u) => (
+                <Select.Option key={u.id} value={u.id}>
+                  👤 {u.lastName} {u.firstName} ({u.email})
+                </Select.Option>
+              ))}
+            </Select>
+          </Form.Item>
+
+          <Form.Item name="priority" label="Priority">
             <Select>
               <Select.Option value="LOW">LOW</Select.Option>
               <Select.Option value="MEDIUM">MEDIUM</Select.Option>

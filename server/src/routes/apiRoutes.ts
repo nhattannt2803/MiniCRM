@@ -89,6 +89,7 @@ router.get('/activities', crm.getActivities);
 router.post('/activities', crm.createActivity);
 router.get('/tasks', crm.getTasks);
 router.post('/tasks', crm.createTask);
+router.patch('/tasks/:id', crm.updateTask);
 router.patch('/tasks/:id/status', crm.updateTaskStatus);
 
 // Campaigns
