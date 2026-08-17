@@ -44,8 +44,8 @@ export const LeadConvertModal: React.FC<LeadConvertModalProps> = ({
           setContacts(contactList);
           setProducts(productList);
 
-          // 1. Resolve Company Priority (default to EXISTING if customer or matched company exists)
-          let targetCompanyMode: 'EXISTING' | 'CREATE' = 'CREATE';
+          // 1. Resolve Company Priority (default to NONE if individual, EXISTING if linked, CREATE if companyName exists)
+          let targetCompanyMode: 'NONE' | 'EXISTING' | 'CREATE' = 'NONE';
           let targetCompanyId: string | undefined = undefined;
 
           if (lead.companyId) {
@@ -54,14 +54,18 @@ export const LeadConvertModal: React.FC<LeadConvertModalProps> = ({
           } else if (lead.customer?.companyId) {
             targetCompanyMode = 'EXISTING';
             targetCompanyId = String(lead.customer.companyId);
-          } else if (lead.companyName) {
+          } else if (lead.companyName && lead.companyName.trim()) {
             const matchedCo = companyList.find(
               (c: any) => c.name.toLowerCase() === lead.companyName?.trim().toLowerCase()
             );
             if (matchedCo) {
               targetCompanyMode = 'EXISTING';
               targetCompanyId = String(matchedCo.id);
+            } else {
+              targetCompanyMode = 'CREATE';
             }
+          } else {
+            targetCompanyMode = 'NONE';
           }
 
           // 2. Resolve Contact Priority (default to EXISTING if contact or matched email/phone exists)
@@ -94,11 +98,18 @@ export const LeadConvertModal: React.FC<LeadConvertModalProps> = ({
             }
           }
 
-          // 3. Resolve Products & calculate initial deal value from Lead interest/notes
+          // 3. Resolve Products & calculate initial deal value from Lead interested products
+          const leadProducts = (lead as any).products || [];
           const initialSelectedProductIds: string[] = [];
           let calculatedAmount = 0;
 
-          if (lead.notes && productList.length > 0) {
+          if (leadProducts.length > 0) {
+            leadProducts.forEach((p: any) => {
+              initialSelectedProductIds.push(String(p.productId));
+              const price = p.product?.unitPrice ? Number(p.product.unitPrice) : 0;
+              calculatedAmount += price;
+            });
+          } else if (lead.notes && productList.length > 0) {
             const notesLower = lead.notes.toLowerCase();
             productList.forEach((p: any) => {
               if (
@@ -211,6 +222,9 @@ export const LeadConvertModal: React.FC<LeadConvertModalProps> = ({
           </div>
           <Form.Item name="companyMode" className="mb-2">
             <Radio.Group>
+              <Radio value="NONE">
+                <span className="font-medium text-slate-700">👤 Khách cá nhân (Không gán Công ty)</span>
+              </Radio>
               <Radio value="EXISTING">
                 <span className="font-semibold text-emerald-700">✓ Chọn Công ty đã có</span>
               </Radio>

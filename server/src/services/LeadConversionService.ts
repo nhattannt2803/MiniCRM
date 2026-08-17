@@ -161,9 +161,14 @@ export class LeadConversionService {
           },
         });
 
-        // Save products if productIds provided
-        if (dto.productIds && Array.isArray(dto.productIds) && dto.productIds.length > 0) {
-          for (const pid of dto.productIds) {
+        // Save products if productIds provided, or copy from Lead's interested products
+        const finalProductIds =
+          dto.productIds && Array.isArray(dto.productIds) && dto.productIds.length > 0
+            ? dto.productIds
+            : (await tx.leadProduct.findMany({ where: { leadId } })).map((lp) => lp.productId);
+
+        if (finalProductIds.length > 0) {
+          for (const pid of finalProductIds) {
             const prod = await tx.product.findFirst({ where: { id: BigInt(pid) } });
             if (prod) {
               const uPrice = Number(prod.unitPrice);
