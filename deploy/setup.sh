@@ -21,7 +21,7 @@ fi
 # 1. Update system packages
 echo "🔄 Updating system packages..."
 apt update && apt upgrade -y
-apt install -y git curl build-essential software-properties-common ufw
+apt install -y git curl build-essential software-properties-common ufw certbot python3-certbot-nginx
 
 # 2. Install Node.js v20 LTS
 echo "📦 Installing Node.js v20..."
