@@ -16,6 +16,7 @@ import { NotificationService } from '../services/NotificationService';
 import { UserService } from '../services/UserService';
 import { IdentityResolutionService } from '../services/IdentityResolutionService';
 import { ConversationService } from '../services/ConversationService';
+import { SystemSettingService } from '../services/SystemSettingService';
 import { runSeedEngine } from '../services/seedEngine';
 
 // -----------------------------------------------------------------------------
@@ -826,6 +827,28 @@ export const addMessage = async (req: AuthenticatedRequest, res: Response, next:
     next(err);
   }
 };
+
+// -----------------------------------------------------------------------------
+// System Settings Controllers
+// -----------------------------------------------------------------------------
+export const getLeadDuplicateRule = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  try {
+    const rule = await SystemSettingService.getLeadDuplicateRule();
+    res.json({ success: true, data: rule });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const updateLeadDuplicateRule = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  try {
+    const updated = await SystemSettingService.updateLeadDuplicateRule(req.body);
+    res.json({ success: true, data: updated });
+  } catch (err) {
+    next(err);
+  }
+};
+
 
 
 

@@ -158,6 +158,8 @@ export class PipelineService {
     probability?: number;
     isWon?: boolean;
     isLost?: boolean;
+    allowLeadMerge?: boolean;
+    stageCategory?: string;
   }) {
     const pId = BigInt(pipelineId);
     const pipeline = await prisma.pipeline.findUnique({ where: { id: pId } });
@@ -175,6 +177,8 @@ export class PipelineService {
         probability: data.probability ?? 0,
         isWon: data.isWon ?? false,
         isLost: data.isLost ?? false,
+        allowLeadMerge: data.allowLeadMerge ?? true,
+        stageCategory: data.stageCategory ?? 'OPEN',
         isActive: true,
       },
     });
@@ -193,6 +197,8 @@ export class PipelineService {
     probability?: number;
     isWon?: boolean;
     isLost?: boolean;
+    allowLeadMerge?: boolean;
+    stageCategory?: string;
     isActive?: boolean;
   }) {
     const sId = BigInt(stageId);
@@ -207,6 +213,8 @@ export class PipelineService {
         probability: data.probability !== undefined ? data.probability : existing.probability,
         isWon: data.isWon !== undefined ? data.isWon : existing.isWon,
         isLost: data.isLost !== undefined ? data.isLost : existing.isLost,
+        allowLeadMerge: data.allowLeadMerge !== undefined ? data.allowLeadMerge : existing.allowLeadMerge,
+        stageCategory: data.stageCategory !== undefined ? data.stageCategory : existing.stageCategory,
         isActive: data.isActive !== undefined ? data.isActive : existing.isActive,
       },
     });

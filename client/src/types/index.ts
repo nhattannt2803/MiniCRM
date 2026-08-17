@@ -141,6 +141,8 @@ export interface PipelineStage {
   probability: number;
   isWon: boolean;
   isLost: boolean;
+  allowLeadMerge?: boolean;
+  stageCategory?: string;
 }
 
 export interface Pipeline {

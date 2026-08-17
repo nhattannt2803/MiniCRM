@@ -2,6 +2,7 @@ import prisma from '../config/database';
 import { publishOutboxEvent } from '../events/outboxPublisher';
 import { AppError } from '../middleware/errorMiddleware';
 import { IdentityResolutionService } from './IdentityResolutionService';
+import { SystemSettingService } from './SystemSettingService';
 import { parseFbPsidInput, parseZaloUidInput } from '../utils/identityHelper';
 
 export class LeadService {
@@ -151,6 +152,90 @@ export class LeadService {
       assignedCustomerId = BigInt(resolution.matchedCustomerId);
     }
 
+    // 2. Check for active existing lead to evaluate Merge vs Create New Lead
+    let activeExistingLead: any = null;
+    const whereOR: any[] = [];
+    if (data.phone && data.phone.trim()) whereOR.push({ phone: data.phone.trim() });
+    if (data.email && data.email.trim()) whereOR.push({ email: data.email.trim() });
+    if (assignedCustomerId) whereOR.push({ customerId: assignedCustomerId });
+
+    if (whereOR.length > 0) {
+      activeExistingLead = await prisma.lead.findFirst({
+        where: {
+          deletedAt: null,
+          status: { notIn: ['CONVERTED', 'DISQUALIFIED'] },
+          OR: whereOR,
+        },
+        orderBy: { createdAt: 'desc' },
+      });
+    }
+
+    if (activeExistingLead) {
+      const duplicateRule = await SystemSettingService.getLeadDuplicateRule();
+      let shouldMerge = false;
+
+      if (duplicateRule.mode === 'ALWAYS_MERGE') {
+        shouldMerge = true;
+      } else if (duplicateRule.mode === 'ALWAYS_NEW') {
+        shouldMerge = false;
+      } else {
+        const stage = await prisma.pipelineStage.findFirst({
+          where: { code: activeExistingLead.status, isActive: true },
+        });
+
+        if (duplicateRule.mode === 'LEVEL_1_STAGE_FLAG') {
+          shouldMerge = stage ? stage.allowLeadMerge : true;
+        } else if (duplicateRule.mode === 'LEVEL_2_STAGE_CATEGORY') {
+          const allowedCategories = duplicateRule.openStageCategories || ['OPEN'];
+          const stageCat = stage ? stage.stageCategory : 'OPEN';
+          shouldMerge = allowedCategories.includes(stageCat);
+        }
+      }
+
+      if (shouldMerge) {
+        const rawProductIds: (string | number)[] = data.productIds || (data.productId ? [data.productId] : []);
+        if (rawProductIds.length > 0) {
+          for (let i = 0; i < rawProductIds.length; i++) {
+            const pId = BigInt(rawProductIds[i]);
+            const exists = await prisma.leadProduct.findFirst({
+              where: { leadId: activeExistingLead.id, productId: pId },
+            });
+            if (!exists) {
+              const existingCount = await prisma.leadProduct.count({ where: { leadId: activeExistingLead.id } });
+              await prisma.leadProduct.create({
+                data: {
+                  leadId: activeExistingLead.id,
+                  productId: pId,
+                  isPrimary: i === 0 && existingCount === 0,
+                },
+              });
+            }
+          }
+        }
+
+        if (data.notes && data.notes.trim()) {
+          const dateStr = new Date().toLocaleDateString('vi-VN');
+          await prisma.lead.update({
+            where: { id: activeExistingLead.id },
+            data: {
+              notes: activeExistingLead.notes
+                ? `${activeExistingLead.notes}\n[Gộp nhu cầu mới ${dateStr}]: ${data.notes}`
+                : `[Gộp nhu cầu mới ${dateStr}]: ${data.notes}`,
+            },
+          });
+        }
+
+        return {
+          ...activeExistingLead,
+          id: activeExistingLead.id.toString(),
+          customerId: activeExistingLead.customerId?.toString() || null,
+          isMerged: true,
+          mergedToLeadId: activeExistingLead.id.toString(),
+          message: 'Nhu cầu sản phẩm mới đã được gộp vào Lead hiện tại theo cấu hình hệ thống.',
+        };
+      }
+    }
+
     const lead = await prisma.$transaction(async (tx) => {
       // If NEW_CUSTOMER and no customerId provided, auto-create a Customer Profile
       if (!assignedCustomerId && resolutionStatus === 'NEW_CUSTOMER') {
@@ -200,6 +285,21 @@ export class LeadService {
           ownerId: data.ownerId ? BigInt(data.ownerId) : null,
         },
       });
+
+      // Attach interested products
+      const rawProductIds: (string | number)[] = data.productIds || (data.productId ? [data.productId] : []);
+      if (rawProductIds.length > 0) {
+        for (let i = 0; i < rawProductIds.length; i++) {
+          const pId = BigInt(rawProductIds[i]);
+          await tx.leadProduct.create({
+            data: {
+              leadId: created.id,
+              productId: pId,
+              isPrimary: i === 0,
+            },
+          });
+        }
+      }
 
       // If customer assigned (matched or newly created), ensure identities are linked
       if (assignedCustomerId) {

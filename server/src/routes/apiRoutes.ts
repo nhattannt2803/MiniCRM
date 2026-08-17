@@ -134,4 +134,8 @@ router.post('/leads/allocate', crm.allocateLeads);
 // Demo Industry Switcher
 router.post('/demo/switch-industry', crm.switchDemoIndustry);
 
+// System Settings (Lead duplicate rules & config)
+router.get('/settings/lead-duplicate-rules', crm.getLeadDuplicateRule);
+router.put('/settings/lead-duplicate-rules', crm.updateLeadDuplicateRule);
+
 export default router;

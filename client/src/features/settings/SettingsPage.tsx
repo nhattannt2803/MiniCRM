@@ -4,6 +4,7 @@ import { GlobalOutlined, UserOutlined } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '../../stores/authStore';
 import { useSettingsStore } from '../../stores/settingsStore';
+import { LeadDuplicateSettingsCard } from './LeadDuplicateSettingsCard';
 
 const { Title, Text } = Typography;
 
@@ -24,6 +25,9 @@ export const SettingsPage: React.FC = () => {
         <h1 className="text-2xl font-bold text-slate-900 tracking-tight">{t('settings.title')}</h1>
         <p className="text-sm text-slate-500">{t('settings.general')}</p>
       </div>
+
+      {/* Admin Lead Duplicate & Merge Rules Card */}
+      <LeadDuplicateSettingsCard />
 
       {/* Default Entity Type Settings Card */}
       <Card

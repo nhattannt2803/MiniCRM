@@ -351,11 +351,13 @@ export const PipelineManagementModal: React.FC<PipelineManagementModalProps> = (
               <table className="w-full text-left text-xs">
                 <thead className="bg-slate-100 text-slate-700 font-semibold border-b border-slate-200">
                   <tr>
-                    <th className="p-3 w-12 text-center">STT</th>
+                    <th className="p-3 w-10 text-center">STT</th>
                     <th className="p-3">Tên Giai đoạn / Cột</th>
-                    <th className="p-3 w-28 text-center">Tỷ lệ (%)</th>
-                    <th className="p-3 w-36 text-center">Loại trạng thái</th>
-                    <th className="p-3 w-24 text-right">Thao tác</th>
+                    <th className="p-3 w-20 text-center">Tỷ lệ (%)</th>
+                    <th className="p-3 w-28 text-center">Gộp Lead (L1)</th>
+                    <th className="p-3 w-32 text-center">Nhóm Stage (L2)</th>
+                    <th className="p-3 w-28 text-center">Trạng thái</th>
+                    <th className="p-3 w-20 text-right">Thao tác</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-200 bg-white">
@@ -391,10 +393,45 @@ export const PipelineManagementModal: React.FC<PipelineManagementModalProps> = (
                         )}
                       </td>
                       <td className="p-3 text-center">
+                        <Switch
+                          checked={stage.allowLeadMerge ?? true}
+                          onChange={async (val) => {
+                            try {
+                              await crmService.updatePipelineStage(stage.id, { allowLeadMerge: val });
+                              fetchPipelines();
+                            } catch (e: any) {
+                              notification.error({ message: 'Lỗi cập nhật gộp Lead', description: e.message });
+                            }
+                          }}
+                          size="small"
+                          checkedChildren="Gộp"
+                          unCheckedChildren="Tạo Mới"
+                        />
+                      </td>
+                      <td className="p-3 text-center">
+                        <Select
+                          value={stage.stageCategory || 'OPEN'}
+                          onChange={async (val) => {
+                            try {
+                              await crmService.updatePipelineStage(stage.id, { stageCategory: val });
+                              fetchPipelines();
+                            } catch (e: any) {
+                              notification.error({ message: 'Lỗi cập nhật nhóm stage', description: e.message });
+                            }
+                          }}
+                          size="small"
+                          style={{ width: 110 }}
+                        >
+                          <Select.Option value="OPEN">Đầu (Open)</Select.Option>
+                          <Select.Option value="ADVANCED">Muộn (Late)</Select.Option>
+                          <Select.Option value="CLOSED">Đã đóng</Select.Option>
+                        </Select>
+                      </td>
+                      <td className="p-3 text-center">
                         {stage.isWon ? (
-                          <Tag color="success">THÀNH CÔNG (WON)</Tag>
+                          <Tag color="success">THÀNH CÔNG</Tag>
                         ) : stage.isLost ? (
-                          <Tag color="error">THẤT BẠI (LOST)</Tag>
+                          <Tag color="error">THẤT BẠI</Tag>
                         ) : (
                           <Tag color="default">Đang xử lý</Tag>
                         )}

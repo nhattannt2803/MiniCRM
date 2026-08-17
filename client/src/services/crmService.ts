@@ -119,4 +119,8 @@ export const crmService = {
 
   // Demo Industry Switcher
   switchDemoIndustry: (industry: string) => api.post('/demo/switch-industry', { industry }),
+
+  // Lead Duplicate Rules & Settings
+  getLeadDuplicateRule: () => api.get('/settings/lead-duplicate-rules'),
+  updateLeadDuplicateRule: (data: any) => api.put('/settings/lead-duplicate-rules', data),
 };
