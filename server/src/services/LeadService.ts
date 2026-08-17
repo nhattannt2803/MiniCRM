@@ -2,7 +2,7 @@ import prisma from '../config/database';
 import { publishOutboxEvent } from '../events/outboxPublisher';
 import { AppError } from '../middleware/errorMiddleware';
 import { IdentityResolutionService } from './IdentityResolutionService';
-import { parseFbPsidInput } from '../utils/identityHelper';
+import { parseFbPsidInput, parseZaloUidInput } from '../utils/identityHelper';
 
 export class LeadService {
   public static async getLeads(params: {
@@ -225,11 +225,12 @@ export class LeadService {
             create: { customerId: assignedCustomerId, type: 'FB_PSID', identityValue: cleanFb, isVerified: true },
           });
         }
-        if (data.zaloUid && data.zaloUid.trim()) {
+        const cleanZalo = parseZaloUidInput(data.zaloUid);
+        if (cleanZalo) {
           await tx.customerIdentity.upsert({
-            where: { customerId_type_identityValue: { customerId: assignedCustomerId, type: 'ZALO_UID', identityValue: data.zaloUid.trim() } },
+            where: { customerId_type_identityValue: { customerId: assignedCustomerId, type: 'ZALO_UID', identityValue: cleanZalo } },
             update: { status: 'ACTIVE' },
-            create: { customerId: assignedCustomerId, type: 'ZALO_UID', identityValue: data.zaloUid.trim(), isVerified: true },
+            create: { customerId: assignedCustomerId, type: 'ZALO_UID', identityValue: cleanZalo, isVerified: true },
           });
         }
       }

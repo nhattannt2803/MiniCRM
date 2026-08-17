@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { crmService } from '../../services/crmService';
 import { User } from '../../types';
 import { useSettingsStore } from '../../stores/settingsStore';
-import { parseFbPsidInput } from '../../utils/identityHelper';
+import { parseFbPsidInput, parseZaloUidInput } from '../../utils/identityHelper';
 
 interface QuickCreateLeadModalProps {
   visible: boolean;
@@ -49,7 +49,13 @@ export const QuickCreateLeadModal: React.FC<QuickCreateLeadModalProps> = ({
       form.setFieldsValue({ fbPsid: parsedFb });
     }
     const fbPsid = parsedFb || rawFb;
-    const zaloUid = form.getFieldValue('zaloUid');
+
+    const rawZalo = form.getFieldValue('zaloUid');
+    const parsedZalo = parseZaloUidInput(rawZalo);
+    if (parsedZalo && parsedZalo !== rawZalo) {
+      form.setFieldsValue({ zaloUid: parsedZalo });
+    }
+    const zaloUid = parsedZalo || rawZalo;
     const firstName = form.getFieldValue('firstName') || '';
     const lastName = form.getFieldValue('lastName') || '';
 

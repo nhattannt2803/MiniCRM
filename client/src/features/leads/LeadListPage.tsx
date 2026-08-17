@@ -7,7 +7,7 @@ import { crmService } from '../../services/crmService';
 import { Lead, User } from '../../types';
 import { LeadConvertModal } from './LeadConvertModal';
 import { useSettingsStore } from '../../stores/settingsStore';
-import { parseFbPsidInput } from '../../utils/identityHelper';
+import { parseFbPsidInput, parseZaloUidInput } from '../../utils/identityHelper';
 
 export const LeadListPage: React.FC = () => {
   const { defaultEntityType } = useSettingsStore();
@@ -80,7 +80,12 @@ export const LeadListPage: React.FC = () => {
       form.setFieldsValue({ fbPsid: parsedFb });
     }
     const fbPsid = parsedFb || rawFb;
-    const zaloUid = form.getFieldValue('zaloUid');
+    const rawZalo = form.getFieldValue('zaloUid');
+    const parsedZalo = parseZaloUidInput(rawZalo);
+    if (parsedZalo && parsedZalo !== rawZalo) {
+      form.setFieldsValue({ zaloUid: parsedZalo });
+    }
+    const zaloUid = parsedZalo || rawZalo;
     const firstName = form.getFieldValue('firstName') || '';
     const lastName = form.getFieldValue('lastName') || '';
 

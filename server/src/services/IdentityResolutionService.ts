@@ -1,6 +1,6 @@
 import prisma from '../config/database';
 import { AppError } from '../middleware/errorMiddleware';
-import { parseFbPsidInput } from '../utils/identityHelper';
+import { parseFbPsidInput, parseZaloUidInput } from '../utils/identityHelper';
 
 export interface IdentityLookupInput {
   phone?: string | null;
@@ -53,8 +53,9 @@ export class IdentityResolutionService {
       }
     }
 
-    if (zaloUid && zaloUid.trim()) {
-      const cleanZalo = zaloUid.trim();
+    const parsedZalo = parseZaloUidInput(zaloUid);
+    if (parsedZalo) {
+      const cleanZalo = parsedZalo;
       const zaloIdent = await prisma.customerIdentity.findFirst({
         where: { type: 'ZALO_UID', identityValue: cleanZalo },
         include: { customer: { include: { company: true, contact: true } } },

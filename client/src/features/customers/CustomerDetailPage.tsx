@@ -5,7 +5,7 @@ import { ArrowLeftOutlined, EditOutlined, DeleteOutlined, UserOutlined, BankOutl
 import { crmService } from '../../services/crmService';
 import { Customer, User, CustomerIdentity, Lead } from '../../types';
 import { ActivityTimeline } from '../../components/Timeline/ActivityTimeline';
-import { parseFbPsidInput } from '../../utils/identityHelper';
+import { parseFbPsidInput, parseZaloUidInput } from '../../utils/identityHelper';
 
 export const CustomerDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -129,6 +129,8 @@ export const CustomerDetailPage: React.FC = () => {
       let val = values.identityValue;
       if (values.type === 'FB_PSID' && val) {
         val = parseFbPsidInput(val);
+      } else if (values.type === 'ZALO_UID' && val) {
+        val = parseZaloUidInput(val);
       }
       await crmService.addCustomerIdentity(id, values.type, val);
       notification.success({ message: 'Thêm điểm nhận diện thành công!' });
@@ -548,6 +550,11 @@ export const CustomerDetailPage: React.FC = () => {
                 const rawVal = identityForm.getFieldValue('identityValue');
                 if (type === 'FB_PSID' && rawVal) {
                   const parsed = parseFbPsidInput(rawVal);
+                  if (parsed && parsed !== rawVal) {
+                    identityForm.setFieldsValue({ identityValue: parsed });
+                  }
+                } else if (type === 'ZALO_UID' && rawVal) {
+                  const parsed = parseZaloUidInput(rawVal);
                   if (parsed && parsed !== rawVal) {
                     identityForm.setFieldsValue({ identityValue: parsed });
                   }
