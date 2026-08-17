@@ -107,6 +107,8 @@ router.post('/automations', crm.createAutomation);
 router.get('/automations/executions', crm.getAutomationExecutions);
 router.get('/automations/:id', crm.getAutomationById);
 router.patch('/automations/:id/toggle', crm.toggleAutomation);
+router.put('/automations/:id', crm.updateAutomation);
+router.delete('/automations/:id', crm.deleteAutomation);
 
 // Notifications
 router.get('/notifications', crm.getUserNotifications);

@@ -110,6 +110,55 @@ export class AutomationService {
     return { ...updated, id: updated.id.toString() };
   }
 
+  public static async updateAutomation(id: string | number, data: any) {
+    const autoId = BigInt(id);
+    return await prisma.$transaction(async (tx) => {
+      await tx.automation.update({
+        where: { id: autoId },
+        data: {
+          name: data.name,
+          description: data.description || null,
+          isActive: data.isActive !== undefined ? data.isActive : true,
+        },
+      });
+
+      if (data.triggers && data.triggers.length > 0) {
+        await tx.automationTrigger.deleteMany({ where: { automationId: autoId } });
+        await tx.automationTrigger.createMany({
+          data: data.triggers.map((t: any) => ({
+            automationId: autoId,
+            triggerEvent: t.triggerEvent,
+            entityType: t.entityType,
+            config: t.config ? (typeof t.config === 'string' ? t.config : JSON.stringify(t.config)) : null,
+          })),
+        });
+      }
+
+      if (data.actions && data.actions.length > 0) {
+        await tx.automationAction.deleteMany({ where: { automationId: autoId } });
+        await tx.automationAction.createMany({
+          data: data.actions.map((act: any, idx: number) => ({
+            automationId: autoId,
+            actionType: act.actionType,
+            config: typeof act.config === 'string' ? act.config : JSON.stringify(act.config),
+            stepOrder: idx + 1,
+          })),
+        });
+      }
+
+      return this.getAutomationById(id);
+    });
+  }
+
+  public static async deleteAutomation(id: string | number) {
+    const autoId = BigInt(id);
+    await prisma.automation.update({
+      where: { id: autoId },
+      data: { deletedAt: new Date(), isActive: false },
+    });
+    return { success: true };
+  }
+
   public static async getExecutions(params: { page?: number; limit?: number; status?: string }) {
     const page = Math.max(Number(params.page) || 1, 1);
     const limit = Math.min(Math.max(Number(params.limit) || 20, 1), 100);

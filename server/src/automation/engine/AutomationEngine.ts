@@ -13,10 +13,14 @@ export class AutomationEngine {
   ): Promise<any[]> {
     console.log(`[AutomationEngine] Processing Event ${eventType} for ${entityType} #${entityId}`);
 
+    const triggerEventsToMatch = [eventType];
+    if (eventType === 'LEAD_CREATED') triggerEventsToMatch.push('RECORD_CREATED');
+    if (eventType === 'RECORD_CREATED') triggerEventsToMatch.push('LEAD_CREATED');
+
     // 1. Find matching triggers and active automations
     const triggers = await prisma.automationTrigger.findMany({
       where: {
-        triggerEvent: eventType,
+        triggerEvent: { in: triggerEventsToMatch },
         entityType: entityType,
         automation: {
           isActive: true,
@@ -134,6 +138,10 @@ export class AutomationEngine {
             entityId,
             payload
           );
+
+          if (actionResult && actionResult.ownerId) {
+            payload.owner_id = actionResult.ownerId;
+          }
 
           await prisma.automationExecutionLog.create({
             data: {

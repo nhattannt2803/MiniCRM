@@ -90,6 +90,8 @@ export const crmService = {
   getAutomations: () => api.get('/automations'),
   getAutomationById: (id: string) => api.get(`/automations/${id}`),
   createAutomation: (data: any) => api.post('/automations', data),
+  updateAutomation: (id: string, data: any) => api.put(`/automations/${id}`, data),
+  deleteAutomation: (id: string) => api.delete(`/automations/${id}`),
   toggleAutomation: (id: string, isActive: boolean) => api.patch(`/automations/${id}/toggle`, { isActive }),
   getAutomationExecutions: (params?: any) => api.get('/automations/executions', { params }),
 

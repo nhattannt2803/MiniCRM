@@ -47,11 +47,11 @@ export class ActionExecutor {
     entityId: number | bigint,
     eventPayload: Record<string, any>
   ) {
-    const title = config.title || `Follow up on ${entityType} #${entityId}`;
-    const dueHours = config.due_in_hours || 24;
+    const title = config.title || (entityType === 'LEAD' ? 'Tư vấn Lead mới' : `Follow up on ${entityType} #${entityId}`);
+    const dueHours = config.due_in_hours ? Number(config.due_in_hours) : (entityType === 'LEAD' ? 2 : 24);
     const dueAt = new Date(Date.now() + dueHours * 60 * 60 * 1000);
-    const priority = config.priority || 'MEDIUM';
-    const description = config.description || 'Automated task created by Automation Engine';
+    const priority = config.priority || (entityType === 'LEAD' ? 'HIGH' : 'MEDIUM');
+    const description = config.description || `Tự động tạo nhiệm vụ chăm sóc trong ${dueHours} giờ cho ${entityType} #${entityId}`;
 
     // Find owner if assigned to owner
     let assignedTo: bigint | null = null;
@@ -75,7 +75,12 @@ export class ActionExecutor {
       },
     });
 
-    return task;
+    return {
+      ...task,
+      id: task.id.toString(),
+      assignedTo: task.assignedTo?.toString() || null,
+      relatedId: task.relatedId.toString(),
+    };
   }
 
   private static async handleCreateActivity(

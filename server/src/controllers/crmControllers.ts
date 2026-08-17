@@ -556,6 +556,24 @@ export const toggleAutomation = async (req: AuthenticatedRequest, res: Response,
   }
 };
 
+export const updateAutomation = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  try {
+    const automation = await AutomationService.updateAutomation(req.params.id, req.body);
+    res.json({ success: true, data: automation });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const deleteAutomation = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  try {
+    await AutomationService.deleteAutomation(req.params.id);
+    res.json({ success: true, data: { message: 'Automation deleted' } });
+  } catch (err) {
+    next(err);
+  }
+};
+
 export const getAutomationExecutions = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
     const result = await AutomationService.getExecutions(req.query);
