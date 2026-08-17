@@ -89,6 +89,16 @@ export const LeadListPage: React.FC = () => {
     const firstName = form.getFieldValue('firstName') || '';
     const lastName = form.getFieldValue('lastName') || '';
 
+    // Auto select Lead Source based on which identity field was filled first
+    const hasFb = Boolean(fbPsid && fbPsid.trim());
+    const hasZalo = Boolean(zaloUid && zaloUid.trim());
+
+    if (hasFb && !hasZalo) {
+      form.setFieldsValue({ source: 'FACEBOOK' });
+    } else if (hasZalo && !hasFb) {
+      form.setFieldsValue({ source: 'ZALO' });
+    }
+
     if (
       (phone && phone.length >= 6) ||
       (email && email.includes('@')) ||
