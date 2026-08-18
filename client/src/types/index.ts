@@ -63,6 +63,7 @@ export interface Lead {
   ownerId?: string;
   convertedOpportunityId?: string;
   convertedAt?: string;
+  receivedAt?: string;
   createdAt: string;
   updatedAt: string;
   owner?: User;

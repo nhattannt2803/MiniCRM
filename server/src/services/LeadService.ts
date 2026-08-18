@@ -285,6 +285,8 @@ export class LeadService {
         assignedCustomerId = customer.id;
       }
 
+      const receivedAt = data.receivedAt ? new Date(data.receivedAt) : new Date();
+
       const created = await tx.lead.create({
         data: {
           firstName: data.firstName,
@@ -303,6 +305,7 @@ export class LeadService {
           customerId: assignedCustomerId,
           campaignId: data.campaignId ? BigInt(data.campaignId) : null,
           ownerId: data.ownerId ? BigInt(data.ownerId) : null,
+          receivedAt,
         },
       });
 
@@ -399,6 +402,7 @@ export class LeadService {
           customerId: data.customerId !== undefined ? (data.customerId ? BigInt(data.customerId) : null) : existing.customerId,
           notes: data.notes !== undefined ? data.notes : existing.notes,
           ownerId: data.ownerId !== undefined ? (data.ownerId ? BigInt(data.ownerId) : null) : existing.ownerId,
+          receivedAt: data.receivedAt !== undefined ? (data.receivedAt ? new Date(data.receivedAt) : null) : existing.receivedAt,
         },
       });
 

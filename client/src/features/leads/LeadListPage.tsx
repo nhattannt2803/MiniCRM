@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Table, Button, Input, Select, Tag, Drawer, Form, Popconfirm, notification, Alert, Space, Radio } from 'antd';
+import { Table, Button, Input, Select, Tag, Drawer, Form, Popconfirm, notification, Alert, Space, Radio, DatePicker, Tooltip } from 'antd';
 import { PlusOutlined, SearchOutlined, EyeOutlined, EditOutlined, SwapOutlined, DeleteOutlined, WarningOutlined, CheckCircleOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import dayjs from 'dayjs';
 import { crmService } from '../../services/crmService';
 import { Lead, User } from '../../types';
 import { LeadConvertModal } from './LeadConvertModal';
@@ -139,8 +140,14 @@ export const LeadListPage: React.FC = () => {
 
   const handleSaveLead = async (values: any) => {
     try {
+      const payload = {
+        ...values,
+        receivedAt: values.receivedAt ? values.receivedAt.toISOString() : undefined,
+        customerId: identityResult?.status === 'MATCHED' ? identityResult.matchedCustomerId : undefined,
+      };
+
       if (editingLead) {
-        const res: any = await crmService.updateLead(editingLead.id, values);
+        const res: any = await crmService.updateLead(editingLead.id, payload);
         if (res.success) {
           notification.success({ message: t('common.success'), description: t('common.update') });
           setCreateDrawerVisible(false);
@@ -150,10 +157,6 @@ export const LeadListPage: React.FC = () => {
           fetchLeads();
         }
       } else {
-        const payload = {
-          ...values,
-          customerId: identityResult?.status === 'MATCHED' ? identityResult.matchedCustomerId : undefined,
-        };
         const res: any = await crmService.createLead(payload);
         if (res.success) {
           if (res.data.identityResolutionResult?.status === 'POTENTIAL_DUPLICATE') {
@@ -180,6 +183,7 @@ export const LeadListPage: React.FC = () => {
     setIdentityResult(null);
     setEntityType(defaultEntityType);
     form.resetFields();
+    form.setFieldsValue({ receivedAt: dayjs() });
     setCreateDrawerVisible(true);
   };
 
@@ -201,6 +205,7 @@ export const LeadListPage: React.FC = () => {
       ownerId: lead.ownerId,
       notes: lead.notes,
       productIds: currentProductIds,
+      receivedAt: lead.receivedAt ? dayjs(lead.receivedAt) : (lead.createdAt ? dayjs(lead.createdAt) : undefined),
     });
     setCreateDrawerVisible(true);
   };
@@ -317,6 +322,20 @@ export const LeadListPage: React.FC = () => {
       dataIndex: 'rating',
       key: 'rating',
       render: (rating: string) => getRatingTag(rating),
+    },
+    {
+      title: 'Ngày tiếp cận',
+      key: 'receivedAt',
+      render: (_: any, record: Lead) => {
+        const dateVal = record.receivedAt || record.createdAt;
+        return (
+          <Tooltip title={record.receivedAt ? `Ngày tiếp cận thực tế: ${new Date(record.receivedAt).toLocaleString('vi-VN')}\n(Nhập hệ thống: ${new Date(record.createdAt).toLocaleString('vi-VN')})` : `Ngày nhập: ${new Date(record.createdAt).toLocaleString('vi-VN')}`}>
+            <span className="text-xs font-medium text-slate-600">
+              📅 {new Date(dateVal).toLocaleDateString('vi-VN')}
+            </span>
+          </Tooltip>
+        );
+      },
     },
     {
       title: 'Sale phụ trách',
@@ -499,6 +518,10 @@ export const LeadListPage: React.FC = () => {
               className="mb-4"
             />
           )}
+
+          <Form.Item name="receivedAt" label="📅 Ngày tiếp cận / Phát sinh Lead" tooltip="Nếu bạn đang nhập bù danh sách Lead cũ đã tiếp cận trước đó, hãy chọn ngày thực tế phát sinh tại đây. Mặc định là thời gian hiện tại.">
+            <DatePicker showTime format="DD/MM/YYYY HH:mm" className="w-full" placeholder="Chọn ngày giờ tiếp cận..." />
+          </Form.Item>
 
           <div className="grid grid-cols-2 gap-3">
             <Form.Item name="firstName" label={t('leads.form.firstName')} rules={[{ required: true, message: 'Vui lòng nhập họ' }]}>

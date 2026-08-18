@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Drawer, Form, Input, Select, Radio, Button, Alert, notification } from 'antd';
+import { Drawer, Form, Input, Select, Radio, Button, Alert, DatePicker, notification } from 'antd';
 import { useTranslation } from 'react-i18next';
+import dayjs from 'dayjs';
 import { crmService } from '../../services/crmService';
 import { User } from '../../types';
 import { useSettingsStore } from '../../stores/settingsStore';
@@ -32,6 +33,7 @@ export const QuickCreateLeadModal: React.FC<QuickCreateLeadModalProps> = ({
       setEntityType(defaultEntityType);
       setIdentityResult(null);
       form.resetFields();
+      form.setFieldsValue({ receivedAt: dayjs() });
       crmService
         .getUsers()
         .then((res: any) => {
@@ -112,6 +114,7 @@ export const QuickCreateLeadModal: React.FC<QuickCreateLeadModalProps> = ({
     try {
       const payload = {
         ...values,
+        receivedAt: values.receivedAt ? values.receivedAt.toISOString() : undefined,
         customerId: identityResult?.status === 'MATCHED' ? identityResult.matchedCustomerId : undefined,
       };
       const res: any = await crmService.createLead(payload);
@@ -155,6 +158,10 @@ export const QuickCreateLeadModal: React.FC<QuickCreateLeadModalProps> = ({
       }
     >
       <Form form={form} layout="vertical" onFinish={handleSaveLead}>
+        <Form.Item name="receivedAt" label="📅 Ngày tiếp cận" tooltip="Mặc định là thời gian hiện tại.">
+          <DatePicker showTime format="DD/MM/YYYY HH:mm" className="w-full" />
+        </Form.Item>
+
         <div className="mb-4 p-3 bg-slate-50 rounded-lg border border-slate-200">
           <label className="block text-xs font-semibold text-slate-600 mb-2">Loại hình Lead:</label>
           <Radio.Group

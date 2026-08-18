@@ -343,6 +343,17 @@ export const LeadDetailPage: React.FC = () => {
                 </span>
               </div>
               <div>
+                <span className="text-slate-400 font-medium block text-xs">Ngày tiếp cận / Phát sinh Lead</span>
+                <span className="text-slate-800 font-semibold">
+                  📅 {new Date(lead.receivedAt || lead.createdAt).toLocaleString('vi-VN')}
+                </span>
+                {lead.receivedAt && (
+                  <span className="text-slate-400 text-[11px] block mt-0.5">
+                    (Thời điểm nhập hệ thống: {new Date(lead.createdAt).toLocaleString('vi-VN')})
+                  </span>
+                )}
+              </div>
+              <div>
                 <span className="text-slate-400 font-medium block text-xs mb-1">🛒 Sản phẩm quan tâm</span>
                 {(lead as any).products && (lead as any).products.length > 0 ? (
                   <div className="flex flex-wrap gap-1">
