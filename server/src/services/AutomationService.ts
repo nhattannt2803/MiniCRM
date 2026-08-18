@@ -159,6 +159,73 @@ export class AutomationService {
     return { success: true };
   }
 
+  public static async duplicateAutomation(id: string | number, userId?: string | number) {
+    const original = await this.getAutomationById(id);
+    if (!original) throw new AppError('Automation not found', 404, 'AUTOMATION_NOT_FOUND');
+
+    const duplicateData = {
+      name: `${original.name} (Bản sao)`,
+      description: original.description ? `[Bản sao] ${original.description}` : null,
+      isActive: false,
+      triggerType: original.triggerType || 'EVENT_BASED',
+      priority: original.priority || 10,
+      userId: userId || original.createdBy,
+      triggers: original.triggers.map((t: any) => ({
+        triggerEvent: t.triggerEvent,
+        entityType: t.entityType,
+        config: t.config,
+      })),
+      conditions: original.conditions.map((c: any) => ({
+        field: c.field,
+        operator: c.operator,
+        value: c.value,
+        logicOperator: c.logicOperator,
+      })),
+      actions: original.actions.map((act: any) => ({
+        actionType: act.actionType,
+        config: act.config,
+      })),
+    };
+
+    return await this.createAutomation(duplicateData);
+  }
+
+  public static async importAutomation(importData: any, userId?: string | number) {
+    if (!importData || !importData.name || !Array.isArray(importData.triggers)) {
+      throw new AppError('Dữ liệu cấu hình tự động hóa không hợp lệ', 400, 'INVALID_IMPORT_DATA');
+    }
+
+    const newAutomationData = {
+      name: importData.name,
+      description: importData.description || null,
+      isActive: false,
+      triggerType: importData.triggerType || 'EVENT_BASED',
+      priority: importData.priority || 10,
+      userId: userId || null,
+      triggers: importData.triggers.map((t: any) => ({
+        triggerEvent: t.triggerEvent,
+        entityType: t.entityType,
+        config: t.config,
+      })),
+      conditions: Array.isArray(importData.conditions)
+        ? importData.conditions.map((c: any) => ({
+            field: c.field,
+            operator: c.operator,
+            value: c.value,
+            logicOperator: c.logicOperator,
+          }))
+        : [],
+      actions: Array.isArray(importData.actions)
+        ? importData.actions.map((act: any) => ({
+            actionType: act.actionType,
+            config: act.config,
+          }))
+        : [],
+    };
+
+    return await this.createAutomation(newAutomationData);
+  }
+
   public static async getExecutions(params: { page?: number; limit?: number; status?: string }) {
     const page = Math.max(Number(params.page) || 1, 1);
     const limit = Math.min(Math.max(Number(params.limit) || 20, 1), 100);

@@ -111,8 +111,10 @@ router.post('/dashboard/nudge-sales', crm.nudgeSalesRep);
 // Automations
 router.get('/automations', crm.getAutomations);
 router.post('/automations', crm.createAutomation);
+router.post('/automations/import', crm.importAutomation);
 router.get('/automations/executions', crm.getAutomationExecutions);
 router.get('/automations/:id', crm.getAutomationById);
+router.post('/automations/:id/duplicate', crm.duplicateAutomation);
 router.patch('/automations/:id/toggle', crm.toggleAutomation);
 router.put('/automations/:id', crm.updateAutomation);
 router.delete('/automations/:id', crm.deleteAutomation);

@@ -629,6 +629,24 @@ export const deleteAutomation = async (req: AuthenticatedRequest, res: Response,
   }
 };
 
+export const duplicateAutomation = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  try {
+    const automation = await AutomationService.duplicateAutomation(req.params.id, req.user?.userId);
+    res.status(201).json({ success: true, data: automation });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const importAutomation = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  try {
+    const automation = await AutomationService.importAutomation(req.body, req.user?.userId);
+    res.status(201).json({ success: true, data: automation });
+  } catch (err) {
+    next(err);
+  }
+};
+
 export const getAutomationExecutions = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
     const result = await AutomationService.getExecutions(req.query);

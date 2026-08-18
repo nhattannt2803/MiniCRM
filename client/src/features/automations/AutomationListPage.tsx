@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { Table, Button, Switch, Tag, Modal, Form, Input, Select, InputNumber, Popconfirm, notification } from 'antd';
-import { PlusOutlined, HistoryOutlined, RobotOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
+import React, { useState, useEffect, useRef } from 'react';
+import { Table, Button, Switch, Tag, Modal, Form, Input, Select, InputNumber, Popconfirm, Tooltip, notification } from 'antd';
+import { PlusOutlined, HistoryOutlined, RobotOutlined, EditOutlined, DeleteOutlined, CopyOutlined, DownloadOutlined, UploadOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { crmService } from '../../services/crmService';
@@ -11,6 +11,7 @@ export const AutomationListPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [editingAutomation, setEditingAutomation] = useState<any>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [form] = Form.useForm();
   const navigate = useNavigate();
@@ -50,6 +51,82 @@ export const AutomationListPage: React.FC = () => {
     } catch (err: any) {
       notification.error({ message: t('common.error'), description: err.message });
     }
+  };
+
+  const handleDuplicate = async (id: string) => {
+    try {
+      const res: any = await crmService.duplicateAutomation(id);
+      if (res.success) {
+        notification.success({
+          message: 'Sao chép quy trình thành công',
+          description: 'Đã tạo bản sao mới ở trạng thái Tắt (Off). Bạn có thể chỉnh sửa ngay.',
+        });
+        await fetchAutomations();
+        if (res.data) {
+          handleOpenEdit(res.data);
+        }
+      }
+    } catch (err: any) {
+      notification.error({ message: t('common.error'), description: err.message });
+    }
+  };
+
+  const handleExport = (record: any) => {
+    const exportData = {
+      name: record.name,
+      description: record.description,
+      triggerType: record.triggerType || 'EVENT_BASED',
+      priority: record.priority || 10,
+      triggers: (record.triggers || []).map((t: any) => ({
+        triggerEvent: t.triggerEvent,
+        entityType: t.entityType,
+        config: t.config ? (typeof t.config === 'string' ? JSON.parse(t.config) : t.config) : null,
+      })),
+      conditions: (record.conditions || []).map((c: any) => ({
+        field: c.field,
+        operator: c.operator,
+        value: c.value ? (typeof c.value === 'string' ? JSON.parse(c.value) : c.value) : null,
+        logicOperator: c.logicOperator,
+      })),
+      actions: (record.actions || []).map((a: any) => ({
+        actionType: a.actionType,
+        config: a.config ? (typeof a.config === 'string' ? JSON.parse(a.config) : a.config) : null,
+      })),
+    };
+
+    const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(exportData, null, 2));
+    const downloadAnchor = document.createElement('a');
+    downloadAnchor.setAttribute('href', dataStr);
+    downloadAnchor.setAttribute('download', `automation-${record.name.toLowerCase().replace(/[^a-z0-9]/g, '_')}.json`);
+    document.body.appendChild(downloadAnchor);
+    downloadAnchor.click();
+    downloadAnchor.remove();
+    notification.success({ message: 'Đã xuất quy trình ra file JSON!' });
+  };
+
+  const handleImportClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleImportFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      try {
+        const json = JSON.parse(event.target?.result as string);
+        const res: any = await crmService.importAutomation(json);
+        if (res.success) {
+          notification.success({ message: 'Nhập quy trình tự động hóa thành công!' });
+          fetchAutomations();
+        }
+      } catch (err: any) {
+        notification.error({ message: 'Lỗi nhập quy trình', description: err.message || 'File JSON không hợp lệ' });
+      }
+      if (e.target) e.target.value = '';
+    };
+    reader.readAsText(file);
   };
 
   const handleOpenEdit = (record: any) => {
@@ -161,12 +238,22 @@ export const AutomationListPage: React.FC = () => {
     {
       title: 'Thao tác',
       key: 'actions_col',
-      width: 150,
+      width: 220,
       render: (_: any, r: any) => (
-        <div className="flex items-center gap-2">
-          <Button size="small" icon={<EditOutlined />} onClick={() => handleOpenEdit(r)}>
-            Sửa
-          </Button>
+        <div className="flex items-center gap-1.5">
+          <Tooltip title="Chỉnh sửa quy trình">
+            <Button size="small" icon={<EditOutlined />} onClick={() => handleOpenEdit(r)}>
+              Sửa
+            </Button>
+          </Tooltip>
+          <Tooltip title="Sao chép thành quy trình mới để chỉnh sửa nhanh">
+            <Button size="small" icon={<CopyOutlined />} onClick={() => handleDuplicate(r.id)}>
+              Sao chép
+            </Button>
+          </Tooltip>
+          <Tooltip title="Xuất file JSON quy trình">
+            <Button size="small" icon={<DownloadOutlined />} onClick={() => handleExport(r)} />
+          </Tooltip>
           <Popconfirm title="Xóa quy trình này?" onConfirm={() => handleDelete(r.id)} okText="Xóa" cancelText="Hủy">
             <Button size="small" danger icon={<DeleteOutlined />} />
           </Popconfirm>
@@ -177,6 +264,9 @@ export const AutomationListPage: React.FC = () => {
 
   return (
     <div className="space-y-4">
+      {/* Hidden file input for import JSON */}
+      <input type="file" ref={fileInputRef} onChange={handleImportFile} accept=".json" style={{ display: 'none' }} />
+
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 tracking-tight">{t('automations.title')}</h1>
@@ -184,14 +274,15 @@ export const AutomationListPage: React.FC = () => {
         </div>
 
         <div className="flex gap-2">
+          <Button icon={<UploadOutlined />} onClick={handleImportClick}>
+            Nhập JSON
+          </Button>
           <Button icon={<HistoryOutlined />} onClick={() => navigate('/automations/executions')}>
             {t('automations.executionHistory')}
           </Button>
           <Button
             type="primary"
             icon={<PlusOutlined />}
-            size="large"
-            className="bg-indigo-600 font-semibold rounded-lg"
             onClick={() => navigate('/automations/create')}
           >
             {t('automations.addAutomation')}
