@@ -258,6 +258,18 @@ export const MainLayout: React.FC = () => {
           />
 
           <div className="flex items-center gap-4">
+            {/* Super Admin Quick Link */}
+            {user?.isSuperAdmin && (
+              <Button
+                type="primary"
+                icon={<SafetyCertificateOutlined />}
+                onClick={() => navigate('/system/users')}
+                className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-bold text-xs rounded-full h-8 px-3 border-none shadow-xs"
+              >
+                System Admin
+              </Button>
+            )}
+
             {/* Multi-Tenant Business Switcher Widget */}
             {businesses && businesses.length > 0 && (
               <div className="flex items-center gap-2 bg-emerald-50/80 border border-emerald-200 rounded-full px-3 py-1 shadow-2xs">

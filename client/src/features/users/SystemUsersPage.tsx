@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Card, Table, Tag, Switch, Typography, Button, Input, Space, message, Badge } from 'antd';
-import { UserOutlined, SearchOutlined, ReloadOutlined, ShopOutlined, SafetyCertificateOutlined } from '@ant-design/icons';
+import { Card, Table, Tag, Switch, Typography, Button, Input, Space, message, Badge, Tooltip } from 'antd';
+import { UserOutlined, SearchOutlined, ReloadOutlined, ShopOutlined, SafetyCertificateOutlined, CrownOutlined } from '@ant-design/icons';
 import { crmService } from '../../services/crmService';
 
 const { Title, Text } = Typography;
@@ -32,13 +32,27 @@ export const SystemUsersPage: React.FC = () => {
     try {
       const res: any = await crmService.toggleGlobalUserStatus(userId, !currentStatus);
       if (res.success) {
-        message.success(`Đã ${!currentStatus ? 'kích hoạt' : 'vô hiệu hóa'} tài khoản người dùng thành công`);
+        message.success(`Đã ${!currentStatus ? 'kích hoạt' : 'vô hiệu hóa'} tài khoản thành công`);
         setUsers((prev) =>
           prev.map((u) => (u.id === userId ? { ...u, isActive: !currentStatus } : u))
         );
       }
     } catch (err: any) {
       message.error(err?.message || 'Thao tác cập nhật trạng thái thất bại');
+    }
+  };
+
+  const handleToggleSuperAdmin = async (userId: string, currentStatus: boolean) => {
+    try {
+      const res: any = await crmService.toggleSuperAdminStatus(userId, !currentStatus);
+      if (res.success) {
+        message.success(`Đã ${!currentStatus ? 'gán quyền Super Admin' : 'gỡ quyền Super Admin'} thành công`);
+        setUsers((prev) =>
+          prev.map((u) => (u.id === userId ? { ...u, isSuperAdmin: !currentStatus } : u))
+        );
+      }
+    } catch (err: any) {
+      message.error(err?.message || 'Thao tác cập nhật quyền Super Admin thất bại');
     }
   };
 
@@ -53,16 +67,23 @@ export const SystemUsersPage: React.FC = () => {
 
   const columns = [
     {
-      title: 'Người Dùng',
+      title: 'Tài Khoản Người Dùng',
       key: 'name',
       render: (_: any, record: any) => (
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-full bg-indigo-100 text-indigo-700 font-bold flex items-center justify-center text-sm">
-            {record.firstName ? record.firstName[0] : 'U'}
+          <div className={`w-10 h-10 rounded-full font-bold flex items-center justify-center text-sm shadow-xs ${
+            record.isSuperAdmin ? 'bg-purple-600 text-white' : 'bg-indigo-100 text-indigo-700'
+          }`}>
+            {record.isSuperAdmin ? <CrownOutlined /> : (record.firstName ? record.firstName[0] : 'U')}
           </div>
           <div>
-            <div className="font-semibold text-slate-900 text-sm">
+            <div className="font-bold text-slate-900 text-sm flex items-center gap-2">
               {record.lastName} {record.firstName}
+              {record.isSuperAdmin && (
+                <Tag color="purple" className="font-bold text-[10px] uppercase border-none px-2 rounded-full">
+                  Super Admin
+                </Tag>
+              )}
             </div>
             <div className="text-xs text-slate-500">{record.email}</div>
           </div>
@@ -76,11 +97,11 @@ export const SystemUsersPage: React.FC = () => {
       render: (phone: string) => phone || <span className="text-slate-400 italic">Chưa cập nhật</span>,
     },
     {
-      title: 'Doanh Nghiệp (Biz)',
+      title: 'Doanh Nghiệp Đang Tham Gia',
       key: 'memberships',
       render: (_: any, record: any) => {
         if (!record.memberships || record.memberships.length === 0) {
-          return <Tag color="orange">Chưa tham gia Biz nào</Tag>;
+          return <Tag color="orange">Chưa thuộc Biz nào</Tag>;
         }
         return (
           <div className="flex flex-wrap gap-1">
@@ -94,13 +115,20 @@ export const SystemUsersPage: React.FC = () => {
       },
     },
     {
-      title: 'Ngày Đăng Ký',
-      dataIndex: 'createdAt',
-      key: 'createdAt',
-      render: (date: string) => (
-        <span className="text-xs text-slate-600">
-          {new Date(date).toLocaleDateString('vi-VN')} {new Date(date).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
-        </span>
+      title: 'Super User (Toàn Hệ Thống)',
+      key: 'isSuperAdmin',
+      render: (_: any, record: any) => (
+        <Tooltip title={record.isSuperAdmin ? 'Tài khoản có quyền Super Admin toàn hệ thống' : 'Bật để nâng cấp thành Super Admin'}>
+          <Space>
+            <Switch
+              checked={!!record.isSuperAdmin}
+              onChange={() => handleToggleSuperAdmin(record.id, !!record.isSuperAdmin)}
+              checkedChildren="Super User"
+              unCheckedChildren="Standard"
+              className={record.isSuperAdmin ? 'bg-purple-600' : 'bg-slate-300'}
+            />
+          </Space>
+        </Tooltip>
       ),
     },
     {
@@ -115,26 +143,31 @@ export const SystemUsersPage: React.FC = () => {
             unCheckedChildren="Đã khóa"
             className={record.isActive ? 'bg-emerald-600' : 'bg-slate-300'}
           />
-          {record.isActive ? (
-            <Badge status="success" text={<span className="text-xs font-semibold text-emerald-700">Active</span>} />
-          ) : (
-            <Badge status="error" text={<span className="text-xs font-semibold text-rose-600">Disabled</span>} />
-          )}
         </Space>
+      ),
+    },
+    {
+      title: 'Ngày Đăng Ký',
+      dataIndex: 'createdAt',
+      key: 'createdAt',
+      render: (date: string) => (
+        <span className="text-xs text-slate-500">
+          {new Date(date).toLocaleDateString('vi-VN')} {new Date(date).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
+        </span>
       ),
     },
   ];
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex justify-between items-center bg-white p-6 rounded-2xl border border-slate-200 shadow-xs">
+    <div className="space-y-6">
+      <div className="flex justify-between items-center bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
         <div>
-          <Title level={3} className="!mb-1 text-slate-900 font-extrabold flex items-center gap-2">
-            <SafetyCertificateOutlined className="text-indigo-600" />
-            Quản Lý Tài Khoản Toàn Hệ Thống
+          <Title level={3} className="!mb-1 text-slate-900 font-black flex items-center gap-2">
+            <SafetyCertificateOutlined className="text-purple-600" />
+            Quản Lý Tài Khoản Toàn Hệ Thống (System Users)
           </Title>
           <Text type="secondary" className="text-sm">
-            Quản lý và cấp/khóa quyền hoạt động cho tất cả người dùng thuộc các Doanh nghiệp (Multi-Biz Platform Admin)
+            Quản lý tài khoản người dùng, phân quyền Super Admin toàn SaaS và cấp/khóa tài khoản độc lập giữa các Doanh nghiệp.
           </Text>
         </div>
 
@@ -142,23 +175,23 @@ export const SystemUsersPage: React.FC = () => {
           icon={<ReloadOutlined />}
           onClick={fetchUsers}
           loading={loading}
-          className="rounded-xl font-semibold border-slate-300"
+          className="rounded-xl font-semibold border-slate-300 h-10 px-4"
         >
           Làm mới
         </Button>
       </div>
 
-      <Card className="rounded-2xl border border-slate-200 shadow-xs">
-        <div className="flex justify-between items-center mb-4">
+      <Card className="rounded-2xl border border-slate-200 shadow-sm p-2">
+        <div className="flex justify-between items-center mb-4 px-2 pt-2">
           <Input
             prefix={<SearchOutlined className="text-slate-400" />}
             placeholder="Tìm theo Tên, Email hoặc Số điện thoại..."
             value={searchText}
             onChange={(e) => setSearchText(e.target.value)}
-            className="w-80 rounded-xl text-sm"
+            className="w-96 rounded-xl text-sm h-10"
           />
-          <Text className="text-xs font-semibold text-slate-500">
-            Tổng cộng: <strong className="text-slate-900">{filteredUsers.length}</strong> tài khoản
+          <Text className="text-xs font-semibold text-slate-600">
+            Tổng cộng: <strong className="text-indigo-600 text-sm">{filteredUsers.length}</strong> tài khoản hệ thống
           </Text>
         </div>
 

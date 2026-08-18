@@ -6,6 +6,7 @@ import en_US from 'antd/locale/en_US';
 import { useTranslation } from 'react-i18next';
 import { useAuthStore } from './stores/authStore';
 import { MainLayout } from './layouts/MainLayout';
+import { SystemLayout } from './layouts/SystemLayout';
 import { LoginPage } from './features/auth/LoginPage';
 import { RegisterPage } from './features/auth/RegisterPage';
 import { NoBusinessPage } from './features/auth/NoBusinessPage';
@@ -40,7 +41,7 @@ import { AutomationExecutionPage } from './features/automations/AutomationExecut
 import { SettingsPage } from './features/settings/SettingsPage';
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { isAuthenticated, isLoading, businesses } = useAuthStore();
+  const { isAuthenticated, isLoading, businesses, user } = useAuthStore();
   const location = useLocation();
 
   if (isLoading) {
@@ -51,7 +52,12 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
     return <Navigate to="/login" replace />;
   }
 
-  // If user has no business memberships and is trying to access standard CRM routes, redirect to /no-business
+  // Super Admins can access /system/* routes even without belonging to any Business
+  if (user?.isSuperAdmin && location.pathname.startsWith('/system')) {
+    return <>{children}</>;
+  }
+
+  // If standard user has 0 business memberships and is trying to access CRM routes, redirect to /no-business
   if (businesses.length === 0 && location.pathname !== '/no-business') {
     return <Navigate to="/no-business" replace />;
   }
@@ -96,6 +102,19 @@ export const App: React.FC = () => {
             }
           />
 
+          {/* Standalone System Administration Console */}
+          <Route
+            path="/system"
+            element={
+              <ProtectedRoute>
+                <SystemLayout />
+              </ProtectedRoute>
+            }
+          >
+            <Route index element={<Navigate to="/system/users" replace />} />
+            <Route path="users" element={<SystemUsersPage />} />
+          </Route>
+
           {/* Standard Main Layout CRM Routes */}
           <Route
             path="/"
@@ -116,7 +135,6 @@ export const App: React.FC = () => {
             <Route path="leads/:id" element={<LeadDetailPage />} />
             <Route path="staff" element={<StaffListPage />} />
             <Route path="users" element={<UsersListPage />} />
-            <Route path="system/users" element={<SystemUsersPage />} />
             <Route path="teams" element={<TeamsListPage />} />
             <Route path="roles" element={<RolesPermissionsPage />} />
             <Route path="companies" element={<CompanyListPage />} />

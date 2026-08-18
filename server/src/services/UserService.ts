@@ -222,6 +222,7 @@ export class UserService {
       lastName: u.lastName,
       phone: u.phone,
       isActive: u.isActive,
+      isSuperAdmin: u.isSuperAdmin,
       createdAt: u.createdAt,
       memberships: u.memberships.map((m) => ({
         bizId: m.business.id.toString(),
@@ -232,6 +233,15 @@ export class UserService {
         isActive: m.isActive,
       })),
     }));
+  }
+
+  public static async toggleSuperAdminStatus(userId: string, isSuperAdmin: boolean) {
+    const user = await prisma.user.update({
+      where: { id: BigInt(userId) },
+      data: { isSuperAdmin },
+    });
+
+    return { id: user.id.toString(), isSuperAdmin: user.isSuperAdmin };
   }
 
   public static async allocateLeads(bizId: bigint, leadIds: (string | number)[], ownerId: string | number) {

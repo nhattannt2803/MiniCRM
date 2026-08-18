@@ -99,6 +99,7 @@ model User {
   lastName          String                   @map("last_name") @db.VarChar(100)
   phone             String?                  @db.VarChar(30)
   isActive          Boolean                  @default(true) @map("is_active")
+  isSuperAdmin      Boolean                  @default(false) @map("is_super_admin")
   createdAt         DateTime                 @default(now()) @map("created_at") @db.DateTime(3)
   updatedAt         DateTime                 @default(now()) @updatedAt @map("updated_at") @db.DateTime(3)
   deletedAt         DateTime?                @map("deleted_at") @db.DateTime(3)

@@ -28,6 +28,7 @@ export interface User {
   firstName: string;
   lastName: string;
   phone?: string;
+  isSuperAdmin?: boolean;
   roles?: string[];
   memberships?: BusinessMembership[];
 }

@@ -16,6 +16,10 @@ export class AuthService {
       throw new AppError('Email đã được đăng ký trên hệ thống', 400, 'EMAIL_EXISTS');
     }
 
+    // Check if this is the very first user in the database -> auto make Super Admin
+    const userCount = await prisma.user.count();
+    const isSuperAdmin = userCount === 0;
+
     const passwordHash = await hashPassword(data.password);
     const user = await prisma.user.create({
       data: {
@@ -25,6 +29,7 @@ export class AuthService {
         lastName: data.lastName,
         phone: data.phone || null,
         isActive: true,
+        isSuperAdmin,
       },
     });
 
@@ -41,6 +46,7 @@ export class AuthService {
         firstName: user.firstName,
         lastName: user.lastName,
         phone: user.phone,
+        isSuperAdmin: user.isSuperAdmin,
       },
       businesses: [],
       activeBiz: null,
@@ -114,6 +120,7 @@ export class AuthService {
         firstName: user.firstName,
         lastName: user.lastName,
         phone: user.phone,
+        isSuperAdmin: user.isSuperAdmin,
       },
       businesses,
       activeBiz,
@@ -145,6 +152,7 @@ export class AuthService {
       firstName: user.firstName,
       lastName: user.lastName,
       phone: user.phone,
+      isSuperAdmin: user.isSuperAdmin,
       memberships: user.memberships.map((m) => ({
         bizId: m.business.id.toString(),
         bizName: m.business.name,

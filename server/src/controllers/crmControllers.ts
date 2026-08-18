@@ -784,6 +784,15 @@ export const getAllSystemUsers = async (req: AuthenticatedRequest, res: Response
   }
 };
 
+export const toggleSuperAdminStatus = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  try {
+    const result = await UserService.toggleSuperAdminStatus(req.params.id, req.body.isSuperAdmin);
+    res.json({ success: true, data: result });
+  } catch (err) {
+    next(err);
+  }
+};
+
 export const getUsers = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
     const users = await UserService.getUsers(req.bizId!);

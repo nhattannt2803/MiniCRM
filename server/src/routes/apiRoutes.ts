@@ -22,6 +22,7 @@ router.get('/auth/me', crm.getMe);
 // System-wide User Management (across all Bizs, before tenantGuard)
 router.get('/system/all-users', crm.getAllSystemUsers);
 router.patch('/users/:id/toggle-status', crm.toggleUserStatus);
+router.patch('/users/:id/toggle-superadmin', crm.toggleSuperAdminStatus);
 
 // Business management (after authenticate, before tenantGuard)
 router.get('/businesses', crm.getMyBusinesses);

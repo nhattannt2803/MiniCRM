@@ -117,6 +117,7 @@ export const crmService = {
   // System-wide User Management
   getAllSystemUsers: () => api.get('/system/all-users'),
   toggleGlobalUserStatus: (id: string, isActive: boolean) => api.patch(`/users/${id}/toggle-status`, { isActive }),
+  toggleSuperAdminStatus: (id: string, isSuperAdmin: boolean) => api.patch(`/users/${id}/toggle-superadmin`, { isSuperAdmin }),
 
   // User & Org Management
   getUsers: () => api.get('/users'),
