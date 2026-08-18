@@ -133,10 +133,12 @@ export const OpportunityKanbanPage: React.FC = () => {
           <Select
             value={selectedPipelineId}
             onChange={(val) => setSelectedPipelineId(val)}
-            className="w-56"
+            className="w-64"
           >
             {pipelines.map((p) => (
-              <Select.Option key={p.id} value={p.id}>{p.name}</Select.Option>
+              <Select.Option key={p.id} value={p.id}>
+                {p.name} {p.isDefault ? '⭐ (Mặc định)' : ''}
+              </Select.Option>
             ))}
           </Select>
 

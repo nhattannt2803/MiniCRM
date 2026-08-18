@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Modal, Button, Input, InputNumber, Switch, Tag, Space, Popconfirm, notification, Card, Select } from 'antd';
-import { PlusOutlined, DeleteOutlined, EditOutlined, SettingOutlined, CarOutlined, HomeOutlined, RocketOutlined } from '@ant-design/icons';
+import { PlusOutlined, DeleteOutlined, EditOutlined, SettingOutlined, CarOutlined, HomeOutlined, RocketOutlined, StarOutlined, StarFilled } from '@ant-design/icons';
 import { crmService } from '../../services/crmService';
 import { Pipeline, PipelineStage } from '../../types';
 
@@ -74,12 +74,12 @@ export const PipelineManagementModal: React.FC<PipelineManagementModalProps> = (
   const [editingStageId, setEditingStageId] = useState<string | null>(null);
   const [stageNameInput, setStageNameInput] = useState('');
   const [stageProbInput, setStageProbInput] = useState(0);
+  const [stageStatusInput, setStageStatusInput] = useState<'IN_PROGRESS' | 'WON' | 'LOST'>('IN_PROGRESS');
 
   // New stage form state
   const [newStageName, setNewStageName] = useState('');
   const [newStageProb, setNewStageProb] = useState(50);
-  const [newStageIsWon, setNewStageIsWon] = useState(false);
-  const [newStageIsLost, setNewStageIsLost] = useState(false);
+  const [newStageStatus, setNewStageStatus] = useState<'IN_PROGRESS' | 'WON' | 'LOST'>('IN_PROGRESS');
 
   const fetchPipelines = async () => {
     setLoading(true);
@@ -105,6 +105,23 @@ export const PipelineManagementModal: React.FC<PipelineManagementModalProps> = (
   }, [open]);
 
   const currentPipeline = pipelines.find((p) => p.id === activePipelineId);
+
+  const handleSetDefaultPipeline = async () => {
+    if (!activePipelineId) return;
+    try {
+      const res: any = await crmService.updatePipeline(activePipelineId, { isDefault: true });
+      if (res.success) {
+        notification.success({
+          message: 'Đã đặt làm quy trình mặc định',
+          description: `Quy trình "${currentPipeline?.name}" sẽ được tự động mở ra khi truy cập trang Kanban.`,
+        });
+        await fetchPipelines();
+        onPipelinesUpdated(activePipelineId);
+      }
+    } catch (err: any) {
+      notification.error({ message: 'Lỗi đặt quy trình mặc định', description: err.message });
+    }
+  };
 
   const handleCreatePipeline = async () => {
     if (!newPipelineName.trim()) {
@@ -164,16 +181,15 @@ export const PipelineManagementModal: React.FC<PipelineManagementModalProps> = (
       const res: any = await crmService.addPipelineStage(activePipelineId, {
         name: newStageName,
         probability: newStageProb,
-        isWon: newStageIsWon,
-        isLost: newStageIsLost,
+        isWon: newStageStatus === 'WON',
+        isLost: newStageStatus === 'LOST',
       });
 
       if (res.success) {
         notification.success({ message: 'Đã thêm giai đoạn mới!' });
         setNewStageName('');
         setNewStageProb(50);
-        setNewStageIsWon(false);
-        setNewStageIsLost(false);
+        setNewStageStatus('IN_PROGRESS');
         await fetchPipelines();
         onPipelinesUpdated(activePipelineId);
       }
@@ -187,6 +203,8 @@ export const PipelineManagementModal: React.FC<PipelineManagementModalProps> = (
       const res: any = await crmService.updatePipelineStage(stageId, {
         name: stageNameInput,
         probability: stageProbInput,
+        isWon: stageStatusInput === 'WON',
+        isLost: stageStatusInput === 'LOST',
       });
 
       if (res.success) {
@@ -241,14 +259,29 @@ export const PipelineManagementModal: React.FC<PipelineManagementModalProps> = (
                 setActivePipelineId(val);
                 setIsCreatingNew(false);
               }}
-              style={{ width: 260 }}
+              style={{ width: 240 }}
             >
               {pipelines.map((p) => (
                 <Select.Option key={p.id} value={p.id}>
-                  {p.name} {p.isDefault ? '(Mặc định)' : ''}
+                  {p.name} {p.isDefault ? '⭐ (Mặc định)' : ''}
                 </Select.Option>
               ))}
             </Select>
+
+            {currentPipeline?.isDefault ? (
+              <Tag color="gold" icon={<StarFilled />} className="px-2 py-1 flex items-center gap-1 font-medium">
+                Mặc định
+              </Tag>
+            ) : (
+              <Button
+                size="small"
+                icon={<StarOutlined />}
+                onClick={handleSetDefaultPipeline}
+                className="text-amber-600 border-amber-300 hover:text-amber-700 hover:border-amber-400 bg-amber-50"
+              >
+                Đặt làm Mặc định
+              </Button>
+            )}
           </div>
 
           <Button
@@ -428,13 +461,36 @@ export const PipelineManagementModal: React.FC<PipelineManagementModalProps> = (
                         </Select>
                       </td>
                       <td className="p-3 text-center">
-                        {stage.isWon ? (
-                          <Tag color="success">THÀNH CÔNG</Tag>
-                        ) : stage.isLost ? (
-                          <Tag color="error">THẤT BẠI</Tag>
-                        ) : (
-                          <Tag color="default">Đang xử lý</Tag>
-                        )}
+                        <Select
+                          value={editingStageId === stage.id ? stageStatusInput : (stage.isWon ? 'WON' : stage.isLost ? 'LOST' : 'IN_PROGRESS')}
+                          onChange={async (val) => {
+                            if (editingStageId === stage.id) {
+                              setStageStatusInput(val);
+                            } else {
+                              try {
+                                await crmService.updatePipelineStage(stage.id, {
+                                  isWon: val === 'WON',
+                                  isLost: val === 'LOST',
+                                });
+                                fetchPipelines();
+                              } catch (e: any) {
+                                notification.error({ message: 'Lỗi cập nhật trạng thái', description: e.message });
+                              }
+                            }
+                          }}
+                          size="small"
+                          style={{ width: 125 }}
+                        >
+                          <Select.Option value="IN_PROGRESS">
+                            <Tag color="default" className="m-0">Đang xử lý</Tag>
+                          </Select.Option>
+                          <Select.Option value="WON">
+                            <Tag color="success" className="m-0">THÀNH CÔNG</Tag>
+                          </Select.Option>
+                          <Select.Option value="LOST">
+                            <Tag color="error" className="m-0">THẤT BẠI</Tag>
+                          </Select.Option>
+                        </Select>
                       </td>
                       <td className="p-3 text-right space-x-1">
                         {editingStageId === stage.id ? (
@@ -450,6 +506,7 @@ export const PipelineManagementModal: React.FC<PipelineManagementModalProps> = (
                               setEditingStageId(stage.id);
                               setStageNameInput(stage.name);
                               setStageProbInput(stage.probability);
+                              setStageStatusInput(stage.isWon ? 'WON' : stage.isLost ? 'LOST' : 'IN_PROGRESS');
                             }}
                           />
                         )}
@@ -492,16 +549,16 @@ export const PipelineManagementModal: React.FC<PipelineManagementModalProps> = (
                   />
                   <span className="text-xs text-slate-500">%</span>
                 </div>
-                <Switch
-                  checkedChildren="Chốt (Won)"
-                  unCheckedChildren="Tự do"
-                  checked={newStageIsWon}
-                  onChange={(val) => {
-                    setNewStageIsWon(val);
-                    if (val) setNewStageIsLost(false);
-                  }}
+                <Select
+                  value={newStageStatus}
+                  onChange={(val) => setNewStageStatus(val)}
                   size="small"
-                />
+                  style={{ width: 140 }}
+                >
+                  <Select.Option value="IN_PROGRESS">Đang xử lý</Select.Option>
+                  <Select.Option value="WON">Thành công (Won)</Select.Option>
+                  <Select.Option value="LOST">Thất bại (Lost)</Select.Option>
+                </Select>
                 <Button type="primary" size="small" onClick={handleAddStage} className="bg-indigo-600">
                   Thêm cột
                 </Button>
