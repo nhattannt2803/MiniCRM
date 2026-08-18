@@ -55,6 +55,24 @@ export const getMe = async (req: AuthenticatedRequest, res: Response, next: Next
 // -----------------------------------------------------------------------------
 // Business (Tenant) Controller
 // -----------------------------------------------------------------------------
+export const getAllSystemBusinesses = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  try {
+    const businesses = await BusinessService.getAllBusinesses();
+    res.json({ success: true, data: businesses });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const toggleBusinessStatus = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  try {
+    const result = await BusinessService.toggleBusinessStatus(req.params.id, req.body.status);
+    res.json({ success: true, data: result });
+  } catch (err) {
+    next(err);
+  }
+};
+
 export const getMyBusinesses = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
     const businesses = await BusinessService.getMyBusinesses(req.user!.userId);

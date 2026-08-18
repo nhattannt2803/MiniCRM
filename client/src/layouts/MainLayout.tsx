@@ -30,7 +30,7 @@ import {
   ThunderboltOutlined,
   ShopOutlined,
 } from '@ant-design/icons';
-import { useNavigate, useLocation, Outlet } from 'react-router-dom';
+import { useNavigate, useLocation, useParams, Outlet } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '../stores/authStore';
 import { crmService } from '../services/crmService';
@@ -52,12 +52,34 @@ export const MainLayout: React.FC = () => {
   );
 
   const { t, i18n } = useTranslation();
-  const { user, logout, businesses, activeBiz, switchBiz } = useAuthStore();
+  const { user, logout, businesses, activeBiz, switchBiz, switchBizBySlug } = useAuthStore();
   const navigate = useNavigate();
   const location = useLocation();
+  const { bizSlug } = useParams<{ bizSlug: string }>();
 
-  const handleSwitchBiz = (bizId: string) => {
-    switchBiz(bizId);
+  // Ensure activeBiz matches bizSlug in URL
+  useEffect(() => {
+    if (bizSlug) {
+      const found = switchBizBySlug(bizSlug);
+      if (!found && businesses.length > 0 && activeBiz) {
+        navigate(`/${activeBiz.slug}/dashboard`, { replace: true });
+      }
+    }
+  }, [bizSlug, businesses, activeBiz]);
+
+  const currentBizSlug = bizSlug || activeBiz?.slug || (businesses[0] ? businesses[0].slug : 'default');
+
+  const handleSwitchBiz = (newBizId: string) => {
+    const match = businesses.find((b) => b.id === newBizId);
+    if (match) {
+      switchBiz(newBizId);
+      const parts = location.pathname.split('/').filter(Boolean);
+      let subPath = 'dashboard';
+      if (parts.length > 1) {
+        subPath = parts.slice(1).join('/');
+      }
+      navigate(`/${match.slug}/${subPath}`);
+    }
   };
 
   const handleSwitchDemo = async (value: string) => {
@@ -124,44 +146,44 @@ export const MainLayout: React.FC = () => {
       icon: <PieChartOutlined />,
       label: t('nav.overview'),
       children: [
-        { key: '/overview', icon: <UserOutlined />, label: t('nav.overview') },
-        { key: '/overview/team', icon: <TeamOutlined />, label: t('nav.teamOverview') },
-        { key: '/overview/manager', icon: <ClusterOutlined />, label: t('nav.managerOverview') },
+        { key: `/${currentBizSlug}/overview`, icon: <UserOutlined />, label: t('nav.overview') },
+        { key: `/${currentBizSlug}/overview/team`, icon: <TeamOutlined />, label: t('nav.teamOverview') },
+        { key: `/${currentBizSlug}/overview/manager`, icon: <ClusterOutlined />, label: t('nav.managerOverview') },
       ],
     },
-    { key: '/dashboard', icon: <DashboardOutlined />, label: t('nav.dashboard') },
+    { key: `/${currentBizSlug}/dashboard`, icon: <DashboardOutlined />, label: t('nav.dashboard') },
     {
       key: 'leads-group',
       icon: <UsergroupAddOutlined />,
       label: t('nav.leadManagement'),
       children: [
-        { key: '/leads/my', icon: <UserOutlined />, label: t('nav.myLeads') },
-        { key: '/leads/allocation', icon: <ShareAltOutlined />, label: t('nav.leadAllocation') },
-        { key: '/leads', icon: <TeamOutlined />, label: t('nav.allLeads') },
+        { key: `/${currentBizSlug}/leads/my`, icon: <UserOutlined />, label: t('nav.myLeads') },
+        { key: `/${currentBizSlug}/leads/allocation`, icon: <ShareAltOutlined />, label: t('nav.leadAllocation') },
+        { key: `/${currentBizSlug}/leads`, icon: <TeamOutlined />, label: t('nav.allLeads') },
       ],
     },
-    { key: '/companies', icon: <BankOutlined />, label: t('nav.companies') },
-    { key: '/contacts', icon: <ContactsOutlined />, label: t('nav.contacts') },
-    { key: '/customers', icon: <SolutionOutlined />, label: t('nav.customers') },
-    { key: '/opportunities', icon: <DollarOutlined />, label: t('nav.opportunities') },
-    { key: '/products', icon: <AppstoreOutlined />, label: t('nav.products') },
-    { key: '/quotes', icon: <FileTextOutlined />, label: t('nav.quotes') },
-    { key: '/tasks', icon: <CheckSquareOutlined />, label: t('nav.tasks') },
-    { key: '/activities', icon: <ClockCircleOutlined />, label: t('nav.activities') },
-    { key: '/automations', icon: <RobotOutlined />, label: t('nav.automations') },
+    { key: `/${currentBizSlug}/companies`, icon: <BankOutlined />, label: t('nav.companies') },
+    { key: `/${currentBizSlug}/contacts`, icon: <ContactsOutlined />, label: t('nav.contacts') },
+    { key: `/${currentBizSlug}/customers`, icon: <SolutionOutlined />, label: t('nav.customers') },
+    { key: `/${currentBizSlug}/opportunities`, icon: <DollarOutlined />, label: t('nav.opportunities') },
+    { key: `/${currentBizSlug}/products`, icon: <AppstoreOutlined />, label: t('nav.products') },
+    { key: `/${currentBizSlug}/quotes`, icon: <FileTextOutlined />, label: t('nav.quotes') },
+    { key: `/${currentBizSlug}/tasks`, icon: <CheckSquareOutlined />, label: t('nav.tasks') },
+    { key: `/${currentBizSlug}/activities`, icon: <ClockCircleOutlined />, label: t('nav.activities') },
+    { key: `/${currentBizSlug}/automations`, icon: <RobotOutlined />, label: t('nav.automations') },
     {
       key: 'system-group',
       icon: <SafetyCertificateOutlined />,
       label: t('nav.systemManagement'),
       children: [
-        { key: '/staff', icon: <IdcardOutlined />, label: t('nav.staff') },
-        { key: '/users', icon: <UserSwitchOutlined />, label: t('nav.users') },
+        { key: `/${currentBizSlug}/staff`, icon: <IdcardOutlined />, label: t('nav.staff') },
+        { key: `/${currentBizSlug}/users`, icon: <UserSwitchOutlined />, label: t('nav.users') },
         { key: '/system/users', icon: <SafetyCertificateOutlined />, label: 'Tài Khoản Hệ Thống' },
-        { key: '/teams', icon: <ClusterOutlined />, label: t('nav.teams') },
-        { key: '/roles', icon: <LockOutlined />, label: t('nav.roles') },
+        { key: `/${currentBizSlug}/teams`, icon: <ClusterOutlined />, label: t('nav.teams') },
+        { key: `/${currentBizSlug}/roles`, icon: <LockOutlined />, label: t('nav.roles') },
       ],
     },
-    { key: '/settings', icon: <SettingOutlined />, label: t('nav.settings') },
+    { key: `/${currentBizSlug}/settings`, icon: <SettingOutlined />, label: t('nav.settings') },
   ];
 
   const notificationContent = (
@@ -284,7 +306,7 @@ export const MainLayout: React.FC = () => {
                   className="font-bold text-emerald-900 text-xs"
                   options={businesses.map((b: any) => ({
                     value: b.id,
-                    label: `${b.name} (${b.roleName || b.roleCode || 'Member'})`,
+                    label: `${b.name} (/${b.slug})`,
                   }))}
                 />
               </div>

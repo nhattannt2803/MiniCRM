@@ -3,6 +3,45 @@ import { AppError } from '../middleware/errorMiddleware';
 
 export class BusinessService {
   /**
+   * Lấy danh sách tất cả Biz toàn hệ thống (Super Admin Only)
+   */
+  public static async getAllBusinesses() {
+    const businesses = await prisma.business.findMany({
+      orderBy: { createdAt: 'desc' },
+      include: {
+        _count: { select: { members: true } },
+        members: {
+          where: { isDefault: true },
+          include: {
+            user: { select: { id: true, email: true, firstName: true, lastName: true } },
+          },
+        },
+      },
+    });
+
+    return businesses.map((b) => ({
+      id: b.id.toString(),
+      name: b.name,
+      slug: b.slug,
+      logo: b.logo,
+      taxCode: b.taxCode,
+      email: b.email,
+      phone: b.phone,
+      status: b.status,
+      plan: b.plan,
+      createdAt: b.createdAt,
+      memberCount: b._count.members,
+      owner: b.members[0]
+        ? {
+            id: b.members[0].user.id.toString(),
+            email: b.members[0].user.email,
+            name: `${b.members[0].user.lastName} ${b.members[0].user.firstName}`.trim(),
+          }
+        : null,
+    }));
+  }
+
+  /**
    * Lấy danh sách Biz mà user tham gia
    */
   public static async getMyBusinesses(userId: number | bigint) {
@@ -33,22 +72,46 @@ export class BusinessService {
   }
 
   /**
-   * Tạo Business mới (user trở thành ADMIN)
+   * Tạo Business mới
    */
-  public static async createBusiness(userId: number | bigint, data: {
-    name: string;
-    slug: string;
-    taxCode?: string;
-    email?: string;
-    phone?: string;
-    address?: string;
-  }) {
-    const uId = BigInt(userId);
+  public static async createBusiness(
+    userId: number | bigint,
+    data: {
+      name: string;
+      slug?: string;
+      taxCode?: string;
+      email?: string;
+      phone?: string;
+      address?: string;
+      ownerEmail?: string;
+      plan?: string;
+    }
+  ) {
+    // Generate slug if absent
+    const slug = (data.slug || data.name)
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/(^-|-$)/g, '');
+
+    if (!slug) {
+      throw new AppError('Mã doanh nghiệp (slug) không hợp lệ', 400, 'INVALID_SLUG');
+    }
 
     // Check slug unique
-    const existing = await prisma.business.findUnique({ where: { slug: data.slug } });
+    const existing = await prisma.business.findUnique({ where: { slug } });
     if (existing) {
-      throw new AppError('Mã doanh nghiệp (slug) đã tồn tại', 400, 'SLUG_EXISTS');
+      throw new AppError(`Mã doanh nghiệp (slug) "${slug}" đã tồn tại`, 400, 'SLUG_EXISTS');
+    }
+
+    // Resolve owner user ID
+    let ownerUserId = BigInt(userId);
+    if (data.ownerEmail && data.ownerEmail.trim()) {
+      const targetUser = await prisma.user.findUnique({ where: { email: data.ownerEmail.trim() } });
+      if (!targetUser) {
+        throw new AppError(`Không tìm thấy tài khoản với email "${data.ownerEmail}"`, 404, 'OWNER_NOT_FOUND');
+      }
+      ownerUserId = targetUser.id;
     }
 
     const result = await prisma.$transaction(async (tx) => {
@@ -56,13 +119,13 @@ export class BusinessService {
       const biz = await tx.business.create({
         data: {
           name: data.name,
-          slug: data.slug,
+          slug,
           taxCode: data.taxCode || null,
           email: data.email || null,
           phone: data.phone || null,
           address: data.address || null,
           status: 'ACTIVE',
-          plan: 'FREE',
+          plan: data.plan || 'ENTERPRISE',
         },
       });
 
@@ -80,17 +143,11 @@ export class BusinessService {
         data: { bizId: biz.id, name: 'Telemarketing', code: 'TELEMARKETING', description: 'Nhân viên Telesale' },
       });
 
-      // 3. Add creator as ADMIN member (default Biz)
-      // First unset any existing default
-      await tx.businessMember.updateMany({
-        where: { userId: uId, isDefault: true },
-        data: { isDefault: false },
-      });
-
+      // 3. Add owner as ADMIN member
       await tx.businessMember.create({
         data: {
           businessId: biz.id,
-          userId: uId,
+          userId: ownerUserId,
           roleId: adminRole.id,
           isDefault: true,
           isActive: true,
@@ -144,16 +201,31 @@ export class BusinessService {
   }
 
   /**
+   * Bật/Tắt trạng thái hoạt động của Business (Super Admin)
+   */
+  public static async toggleBusinessStatus(bizId: string | number, status: string) {
+    const biz = await prisma.business.update({
+      where: { id: BigInt(bizId) },
+      data: { status },
+    });
+
+    return { id: biz.id.toString(), status: biz.status };
+  }
+
+  /**
    * Cập nhật thông tin Business
    */
-  public static async updateBusiness(bizId: bigint, data: {
-    name?: string;
-    logo?: string;
-    taxCode?: string;
-    email?: string;
-    phone?: string;
-    address?: string;
-  }) {
+  public static async updateBusiness(
+    bizId: bigint,
+    data: {
+      name?: string;
+      logo?: string;
+      taxCode?: string;
+      email?: string;
+      phone?: string;
+      address?: string;
+    }
+  ) {
     const biz = await prisma.business.update({
       where: { id: bizId },
       data: {
@@ -206,15 +278,17 @@ export class BusinessService {
   }
 
   /**
-   * Mời thành viên vào Biz (tạo hoặc gán user hiện có)
+   * Mời thành viên vào Biz
    */
-  public static async inviteMember(bizId: bigint, data: {
-    email: string;
-    roleCode: string;
-    firstName?: string;
-    lastName?: string;
-  }) {
-    // Find role in this Biz
+  public static async inviteMember(
+    bizId: bigint,
+    data: {
+      email: string;
+      roleCode: string;
+      firstName?: string;
+      lastName?: string;
+    }
+  ) {
     const role = await prisma.role.findFirst({
       where: { bizId: bizId, code: data.roleCode },
     });
@@ -222,15 +296,12 @@ export class BusinessService {
       throw new AppError(`Role "${data.roleCode}" không tồn tại trong doanh nghiệp này`, 400, 'ROLE_NOT_FOUND');
     }
 
-    // Find or create user
     let user = await prisma.user.findUnique({ where: { email: data.email } });
 
     if (!user) {
-      // Import will create user later — for now just throw
       throw new AppError('User với email này chưa tồn tại. Vui lòng tạo tài khoản trước.', 404, 'USER_NOT_FOUND');
     }
 
-    // Check if already member
     const existing = await prisma.businessMember.findUnique({
       where: { businessId_userId: { businessId: bizId, userId: user.id } },
     });
@@ -271,7 +342,6 @@ export class BusinessService {
     const uId = BigInt(userId);
     const bId = BigInt(newBizId);
 
-    // Verify membership
     const membership = await prisma.businessMember.findUnique({
       where: { businessId_userId: { businessId: bId, userId: uId } },
     });
@@ -279,7 +349,6 @@ export class BusinessService {
       throw new AppError('Bạn không phải thành viên của doanh nghiệp này', 403, 'NOT_A_MEMBER');
     }
 
-    // Unset all defaults, then set new default
     await prisma.$transaction([
       prisma.businessMember.updateMany({
         where: { userId: uId, isDefault: true },

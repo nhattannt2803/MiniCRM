@@ -21,6 +21,7 @@ import { LeadAllocationPage } from './features/leads/LeadAllocationPage';
 import { StaffListPage } from './features/staff/StaffListPage';
 import { UsersListPage } from './features/users/UsersListPage';
 import { SystemUsersPage } from './features/users/SystemUsersPage';
+import { SystemBusinessesPage } from './features/businesses/SystemBusinessesPage';
 import { TeamsListPage } from './features/teams/TeamsListPage';
 import { RolesPermissionsPage } from './features/roles/RolesPermissionsPage';
 import { CompanyListPage } from './features/companies/CompanyListPage';
@@ -63,6 +64,17 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
   }
 
   return <>{children}</>;
+};
+
+const RootRedirect: React.FC = () => {
+  const { activeBiz, businesses } = useAuthStore();
+  const slug = activeBiz?.slug || (businesses[0] ? businesses[0].slug : null);
+
+  if (!slug) {
+    return <Navigate to="/no-business" replace />;
+  }
+
+  return <Navigate to={`/${slug}/dashboard`} replace />;
 };
 
 export const App: React.FC = () => {
@@ -113,18 +125,22 @@ export const App: React.FC = () => {
           >
             <Route index element={<Navigate to="/system/users" replace />} />
             <Route path="users" element={<SystemUsersPage />} />
+            <Route path="businesses" element={<SystemBusinessesPage />} />
           </Route>
 
-          {/* Standard Main Layout CRM Routes */}
+          {/* Root Redirect to active business slug */}
+          <Route path="/" element={<ProtectedRoute><RootRedirect /></ProtectedRoute>} />
+
+          {/* Multi-Tenant CRM Routes Prefixed with /:bizSlug */}
           <Route
-            path="/"
+            path="/:bizSlug"
             element={
               <ProtectedRoute>
                 <MainLayout />
               </ProtectedRoute>
             }
           >
-            <Route index element={<Navigate to="/dashboard" replace />} />
+            <Route index element={<Navigate to="dashboard" replace />} />
             <Route path="overview" element={<OverviewPage />} />
             <Route path="overview/team" element={<TeamLeaderOverviewPage />} />
             <Route path="overview/manager" element={<SaleManagerOverviewPage />} />
@@ -155,7 +171,7 @@ export const App: React.FC = () => {
             <Route path="settings" element={<SettingsPage />} />
           </Route>
 
-          <Route path="*" element={<Navigate to="/dashboard" replace />} />
+          <Route path="*" element={<ProtectedRoute><RootRedirect /></ProtectedRoute>} />
         </Routes>
       </BrowserRouter>
     </ConfigProvider>

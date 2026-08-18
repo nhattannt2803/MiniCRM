@@ -114,10 +114,13 @@ export const crmService = {
   // Auth Register
   register: (data: any) => api.post('/auth/register', data),
 
-  // System-wide User Management
+  // System-wide Management (Super Admin)
   getAllSystemUsers: () => api.get('/system/all-users'),
   toggleGlobalUserStatus: (id: string, isActive: boolean) => api.patch(`/users/${id}/toggle-status`, { isActive }),
   toggleSuperAdminStatus: (id: string, isSuperAdmin: boolean) => api.patch(`/users/${id}/toggle-superadmin`, { isSuperAdmin }),
+  getAllSystemBusinesses: () => api.get('/system/all-businesses'),
+  createSystemBusiness: (data: any) => api.post('/system/businesses', data),
+  toggleSystemBusinessStatus: (id: string, status: string) => api.patch(`/system/businesses/${id}/status`, { status }),
 
   // User & Org Management
   getUsers: () => api.get('/users'),

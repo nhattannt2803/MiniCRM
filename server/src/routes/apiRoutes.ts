@@ -19,10 +19,14 @@ router.use(authenticate);
 // Auth Me (before tenantGuard — returns all memberships)
 router.get('/auth/me', crm.getMe);
 
-// System-wide User Management (across all Bizs, before tenantGuard)
+// System-wide Management (across all Bizs, before tenantGuard)
 router.get('/system/all-users', crm.getAllSystemUsers);
 router.patch('/users/:id/toggle-status', crm.toggleUserStatus);
 router.patch('/users/:id/toggle-superadmin', crm.toggleSuperAdminStatus);
+
+router.get('/system/all-businesses', crm.getAllSystemBusinesses);
+router.post('/system/businesses', crm.createBusiness);
+router.patch('/system/businesses/:id/status', crm.toggleBusinessStatus);
 
 // Business management (after authenticate, before tenantGuard)
 router.get('/businesses', crm.getMyBusinesses);

@@ -23,6 +23,7 @@ interface AuthState {
   logout: () => void;
   fetchMe: () => Promise<void>;
   switchBiz: (bizId: string) => Promise<void>;
+  switchBizBySlug: (slug: string) => boolean;
 }
 
 export const useAuthStore = create<AuthState>((set, get) => ({
@@ -139,7 +140,27 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       } catch (e) {
         console.warn('Could not update default biz on server', e);
       }
-      window.location.reload();
     }
+  },
+
+  switchBizBySlug: (slug: string) => {
+    const { businesses, activeBiz } = get();
+    if (activeBiz?.slug === slug) return true;
+    const match = businesses.find((b: any) => b.slug === slug);
+    if (match) {
+      localStorage.setItem('activeBizId', match.id);
+      set({
+        activeBiz: {
+          id: match.id,
+          name: match.name,
+          slug: match.slug,
+          logo: match.logo,
+          role: (match as any).roleCode || 'SALES',
+          roleName: (match as any).roleName,
+        },
+      });
+      return true;
+    }
+    return false;
   },
 }));

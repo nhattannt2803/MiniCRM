@@ -59,6 +59,19 @@ export const SystemLayout: React.FC = () => {
             >
               Quản Lý Tất Cả Users
             </Button>
+
+            <Button
+              type={location.pathname === '/system/businesses' ? 'primary' : 'text'}
+              icon={<ShopOutlined />}
+              onClick={() => navigate('/system/businesses')}
+              className={`rounded-xl text-xs font-semibold h-9 ${
+                location.pathname === '/system/businesses'
+                  ? 'bg-emerald-600 text-white'
+                  : 'text-slate-300 hover:text-white hover:bg-slate-800'
+              }`}
+            >
+              Quản Lý Doanh Nghiệp
+            </Button>
           </div>
         </div>
 

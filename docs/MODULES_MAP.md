@@ -11,58 +11,51 @@ server/src/
 ├── app.ts                    # Khởi tạo Express App, CORS, Helmet, Global Error Handler
 ├── server.ts                 # Entry point khởi chạy HTTP Server (Port 5000) & khởi tạo Workers
 │
+├── middleware/               # Middleware xử lý Auth Guard, Multi-Tenant Guard, Error Handling
+│   ├── authMiddleware.ts     # JWT Authentication & Authorization check
+│   ├── tenantMiddleware.ts   # Multi-Tenant Guard (Extract X-Biz-Id header & attach req.bizId)
+│   ├── errorMiddleware.ts    # Centralized AppError Handling
+│   └── rateLimitMiddleware.ts # Rate limiting cho API & Auth routes
+│
 ├── controllers/              # Layer 1: Controller (Validate & HTTP Response handling)
-│   ├── AuthController.ts     # Đăng nhập, đăng ký, lấy thông tin me
-│   ├── LeadController.ts     # CRUD Leads, chuyển đổi atomic Lead ➔ Opportunity
-│   ├── OpportunityController.ts # CRUD Deals, chuyển stage Kanban
-│   ├── CompanyController.ts  # CRUD Công ty
-│   ├── ContactController.ts  # CRUD Người liên hệ
-│   ├── CustomerController.ts # Quản lý Hồ sơ Khách hàng (Derived Customers)
-│   ├── AutomationController.ts # Quản lý quy trình tự động hóa & Execution audit logs
-│   ├── TaskController.ts     # CRUD Công việc & lọc Task quá hạn
-│   ├── ActivityController.ts # Nhật ký tương tác Polymorphic (Call, Email, Meeting)
-│   └── DashboardController.ts# Thống kê KPIs, Phễu bán hàng (Funnel), Pipeline
+│   └── crmControllers.ts     # Endpoint handlers cho tất cả các miền nghiệp vụ CRM & SaaS
 │
-├── services/                 # Layer 2: Business Logic & Transaction Boundaries
-│   ├── AuthService.ts        # Logic xác thực JWT, mã hóa password bcrypt
-│   ├── LeadService.ts        # Business logic Lead & Atomic Transaction Conversion
+├── services/                 # Layer 2: Business Logic & Transaction Boundaries (biz_id Scoped)
+│   ├── BusinessService.ts    # Quản lý Doanh nghiệp (Tạo Biz, gán Admin chủ sở hữu, toggle ACTIVE/INACTIVE)
+│   ├── AuthService.ts        # Logic đăng ký tài khoản nhanh, đăng nhập, lấy thông tin me
+│   ├── UserService.ts        # Logic quản lý tài khoản nhân viên & Super Admin hệ thống
+│   ├── LeadService.ts        # Business logic Lead & Identity resolution
+│   ├── LeadConversionService.ts # Chuyển đổi Lead ➔ Opportunity trong atomic transaction
 │   ├── OpportunityService.ts # Business logic Deal & ghi vết Stage History
-│   ├── AutomationService.ts  # Quản lý cấu hình Workflow Rules & Execution Logs
-│   ├── TaskService.ts        # Logic tạo/cập nhật task & kiểm tra overdue
-│   ├── ActivityService.ts    # Logic nhật ký hoạt động polymorphic
-│   ├── DashboardService.ts   # Thống kê KPI & Aggregation Queries
-│   └── seedEngine.ts         # Khởi tạo seed data 6 Automation Rules ban đầu
+│   ├── PipelineService.ts    # Quản lý Pipeline, Stage & Danh mục sản phẩm
+│   ├── QuoteService.ts       # Báo giá & Chi tiết báo giá
+│   ├── CompanyService.ts     # CRUD Công ty
+│   ├── ContactService.ts     # CRUD Người liên hệ
+│   ├── CustomerService.ts    # Quản lý Hồ sơ Khách hàng (Derived Customers)
+│   ├── IdentityResolutionService.ts # Xử lý trùng lặp nhận dạng khách hàng
+│   ├── ConversationService.ts # Hội thoại & Tin nhắn tư vấn đa kênh
+│   ├── ActivityService.ts    # Nhật ký tương tác Polymorphic & Công việc (Tasks, Campaigns)
+│   ├── DashboardService.ts   # Thống kê KPIs, Phễu bán hàng (Funnel), Pipeline
+│   ├── SystemSettingService.ts # Cấu hình quy tắc trùng lặp lead theo tenant
+│   └── seedEngine.ts         # Engine nạp dữ liệu mẫu Multi-Biz cho các ngành demo
 │
-├── repositories/             # Layer 3: Direct Database Access via Prisma ORM
-│   ├── LeadRepository.ts
-│   ├── OpportunityRepository.ts
-│   ├── CompanyRepository.ts
-│   ├── ContactRepository.ts
-│   ├── AutomationRepository.ts
-│   ├── TaskRepository.ts
-│   └── ActivityRepository.ts
-│
-├── automation/               # Core Metadata-Driven Automation Engine
+├── automation/               # Core Event-Driven Automation Engine
 │   ├── engine/
-│   │   ├── AutomationEngine.ts   # Router chính nhận event & khớp rules
+│   │   ├── AutomationEngine.ts   # Router chính nhận event & khớp rules theo biz_id
 │   │   ├── ConditionEvaluator.ts # Bộ đánh giá cây điều kiện AND/OR
 │   │   ├── ActionExecutor.ts     # Thực thi các hành động (CREATE_TASK, WEBHOOK...)
 │   │   └── IdempotencyGuard.ts   # Chống lặp execution via SHA256 hash
 │   ├── workers/
 │   │   ├── outboxWorker.ts       # Worker đọc bảng outbox_events đẩy vào BullMQ
 │   │   └── automationWorker.ts   # BullMQ Consumer gọi AutomationEngine
-│   ├── triggers/                 # Các định nghĩa Event Triggers
-│   ├── conditions/               # Các toán tử so sánh (=, !=, >, <, CONTAINS)
+│   ├── triggers/                 # Định nghĩa Event Triggers
+│   ├── conditions/               # Toán tử so sánh (=, !=, >, <, CONTAINS)
 │   └── actions/                  # Cấu hình Action Types
 │
-├── events/                   # Event Types & Payload definitions
-├── jobs/                     # Scheduled Jobs (Cron check Overdue Tasks, Stale Deals)
-├── middleware/               # Auth Guard (JWT), Error Handler, Role Permission Guard
-├── models/                   # TypeScript DTO Types & Interface definitions
+├── events/                   # Outbox event publisher (`outboxPublisher.ts`)
 ├── queues/                   # BullMQ Queue instance (`automationQueue.ts`)
 ├── routes/                   # Router đính kèm các Controller endpoints (`apiRoutes.ts`)
-├── utils/                    # JWT helpers, Password hashers, Logger
-└── validators/               # Zod validation schemas cho DTOs
+└── utils/                    # JWT helpers, Password hashers, Logger
 ```
 
 ---
@@ -72,12 +65,14 @@ server/src/
 ```text
 client/src/
 ├── main.tsx                  # Entry point React 18 render
-├── App.tsx                   # React Router configuration & Global Providers
+├── App.tsx                   # React Router configuration, /:bizSlug/* dynamic routes & Guards
 ├── index.css                 # Tailwind CSS directives & Custom CSS
 │
 ├── features/                 # Modules giao diện phân theo miền nghiệp vụ
-│   ├── auth/                 # Form đăng nhập, Đổi mật khẩu
-│   ├── leads/                # Danh sách Lead, Modal chuyển đổi Lead, Lead Detail
+│   ├── auth/                 # Form đăng nhập (LoginPage), Đăng ký (RegisterPage), Chờ Biz (NoBusinessPage)
+│   ├── users/                # Quản lý nhân viên (UsersListPage), System Users Admin (SystemUsersPage)
+│   ├── businesses/           # Quản lý Doanh nghiệp hệ thống cho Super Admin (SystemBusinessesPage)
+│   ├── leads/                # Danh sách Lead, Modal chuyển đổi Lead, Lead Detail, Cấp phát Lead
 │   ├── opportunities/        # Bảng kéo thả Kanban Board, Table View, Stage Progress
 │   ├── companies/            # Danh sách & Detail Công ty
 │   ├── contacts/             # Danh sách & Detail Người liên hệ
@@ -85,25 +80,25 @@ client/src/
 │   ├── automations/          # Workflow Builder kéo thả, Xem nhật ký Execution Logs
 │   ├── tasks/                # Danh sách Task, Bộ lọc Task Overdue
 │   ├── activities/           # Timeline nhật ký cuộc gọi, email, họp
+│   ├── overview/             # Trang tổng quan cho Sale, Leader và Manager
 │   └── dashboard/            # BI Analytics, Funnel Chart (Recharts), KPI Cards
 │
 ├── stores/                   # Quản lý State toàn cục bằng Zustand
-│   ├── authStore.ts          # State user đăng nhập & Token JWT
+│   ├── authStore.ts          # State user đăng nhập, danh sách Businesses, activeBiz, switchBizBySlug
 │   ├── kanbanStore.ts        # State bảng Kanban & Optimistic Stage Dragging
-│   ├── leadStore.ts          # State bộ lọc & danh sách Leads
-│   └── automationStore.ts    # State cấu hình Workflow Builder
+│   └── leadStore.ts          # State bộ lọc & danh sách Leads
 │
 ├── services/                 # Call REST APIs tới Backend (Axios Client)
-│   ├── api.ts                # Axios instance cấu hình BaseURL & Interceptors (JWT)
-│   ├── leadService.ts        # API wrapper cho Lead endpoints
-│   ├── opportunityService.ts # API wrapper cho Opportunity & Stage endpoints
-│   ├── automationService.ts # API wrapper cho Automation endpoints
-│   └── dashboardService.ts  # API wrapper cho Dashboard stats
+│   ├── api.ts                # Axios instance đính kèm X-Biz-Id header & JWT Bearer token
+│   └── crmService.ts         # API wrappers cho toàn bộ endpoints
 │
-├── layouts/                  # AppLayout (Sidebar, Top Navigation Bar, Breadcrumb)
+├── layouts/                  
+│   ├── MainLayout.tsx        # Layout CRM chính đính kèm /:bizSlug/ prefix (Sidebar, Business Switcher)
+│   └── SystemLayout.tsx      # Standalone Layout Quản trị Super Admin hệ thống (/system/users, /system/businesses)
+│
 ├── components/               # UI Components tái sử dụng (DataTable, Tag, Modal...)
-├── types/                    # Interfaces & TypeScript Types chung
-└── utils/                    # Currency formatters, Date formatters (dayjs)
+├── types/                    # Interfaces & TypeScript Types chung (`index.ts`)
+└── utils/                    # Currency formatters, Date formatters
 ```
 
 ---
@@ -111,10 +106,13 @@ client/src/
 ## 3. Map Quy Trình Tìm Kiếm Khi Cần Sửa Code
 
 - **Sửa API / Thêm Endpoint:**  
-  `routes/apiRoutes.ts` ➔ `controllers/<Feature>Controller.ts` ➔ `validators/<Feature>Validator.ts` ➔ `services/<Feature>Service.ts`
+  `routes/apiRoutes.ts` ➔ `controllers/crmControllers.ts` ➔ `services/<Feature>Service.ts`
 
-- **Sửa Giao Diện UI / Form:**  
-  `client/src/features/<feature>/` ➔ `client/src/stores/<feature>Store.ts` ➔ `client/src/services/<feature>Service.ts`
+- **Sửa Dynamic Tenant Slug URL Routing:**  
+  `client/src/App.tsx` ➔ `client/src/layouts/MainLayout.tsx` ➔ `client/src/stores/authStore.ts`
 
-- **Sửa Automation Engine / Thêm Action mới:**  
+- **Sửa Super Admin Quản Lý Doanh Nghiệp:**  
+  `client/src/features/businesses/SystemBusinessesPage.tsx` ➔ `server/src/services/BusinessService.ts`
+
+- **Sửa Automation Engine:**  
   `server/src/automation/engine/ActionExecutor.ts` ➔ `server/src/automation/engine/AutomationEngine.ts`
