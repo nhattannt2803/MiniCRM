@@ -113,6 +113,7 @@ export const crmService = {
   getUsers: () => api.get('/users'),
   createUser: (data: any) => api.post('/users', data),
   toggleUserStatus: (id: string, isActive: boolean) => api.patch(`/users/${id}/toggle-status`, { isActive }),
+  changeUserPassword: (id: string, newPassword: string) => api.patch(`/users/${id}/password`, { newPassword }),
   getStaff: () => api.get('/staff'),
   getTeams: () => api.get('/teams'),
   getRoles: () => api.get('/roles'),

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Table, Card, Button, Input, Tag, Space, Avatar, Modal, Form, Select, message, Statistic, Progress } from 'antd';
+import { Table, Card, Button, Input, Tag, Space, Avatar, Modal, Form, Select, message, Statistic, Progress, Tooltip } from 'antd';
 import {
   IdcardOutlined,
   SearchOutlined,
@@ -10,6 +10,8 @@ import {
   CloseCircleOutlined,
   TrophyOutlined,
   ReloadOutlined,
+  KeyOutlined,
+  LockOutlined,
 } from '@ant-design/icons';
 import { crmService } from '../../services/crmService';
 
@@ -22,6 +24,12 @@ export const StaffListPage: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [form] = Form.useForm();
   const [submitting, setSubmitting] = useState(false);
+
+  // Password reset state
+  const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
+  const [selectedStaff, setSelectedStaff] = useState<any>(null);
+  const [passwordForm] = Form.useForm();
+  const [passwordSubmitting, setPasswordSubmitting] = useState(false);
 
   const fetchStaff = async () => {
     setLoading(true);
@@ -58,6 +66,38 @@ export const StaffListPage: React.FC = () => {
       message.error(err?.message || 'Không thể tạo nhân viên mới');
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const openPasswordModal = (member: any) => {
+    setSelectedStaff(member);
+    passwordForm.resetFields();
+    setIsPasswordModalOpen(true);
+  };
+
+  const generateRandomPassword = () => {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%^&*';
+    let pass = 'CRM@';
+    for (let i = 0; i < 8; i++) {
+      pass += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    passwordForm.setFieldsValue({ newPassword: pass });
+  };
+
+  const handleResetPassword = async (values: any) => {
+    if (!selectedStaff) return;
+    setPasswordSubmitting(true);
+    try {
+      const res: any = await crmService.changeUserPassword(selectedStaff.id, values.newPassword);
+      if (res.success) {
+        message.success(`Đã đổi mật khẩu thành công cho nhân viên ${selectedStaff.firstName} ${selectedStaff.lastName}`);
+        setIsPasswordModalOpen(false);
+        passwordForm.resetFields();
+      }
+    } catch (err: any) {
+      message.error(err?.response?.data?.error?.message || err?.message || 'Không thể đổi mật khẩu nhân viên');
+    } finally {
+      setPasswordSubmitting(false);
     }
   };
 
@@ -140,6 +180,22 @@ export const StaffListPage: React.FC = () => {
         ) : (
           <Tag color="error" icon={<CloseCircleOutlined />}>Tạm khóa</Tag>
         ),
+    },
+    {
+      title: 'Thao tác',
+      key: 'action',
+      render: (_: any, r: any) => (
+        <Tooltip title="Đổi mật khẩu tài khoản">
+          <Button
+            size="small"
+            icon={<KeyOutlined />}
+            onClick={() => openPasswordModal(r)}
+            className="text-amber-600 border-amber-300 hover:text-amber-700 hover:border-amber-400 bg-amber-50/40 font-medium text-xs rounded-md"
+          >
+            Đổi MK
+          </Button>
+        </Tooltip>
+      ),
     },
   ];
 
@@ -262,6 +318,69 @@ export const StaffListPage: React.FC = () => {
           </div>
         </Form>
       </Modal>
+
+      {/* Admin Reset Password Modal */}
+      <Modal
+        title={
+          <div className="flex items-center gap-2 text-slate-800">
+            <KeyOutlined className="text-amber-500" />
+            <span>Đổi Mật Khẩu Cho Nhân Viên</span>
+          </div>
+        }
+        open={isPasswordModalOpen}
+        onCancel={() => setIsPasswordModalOpen(false)}
+        footer={null}
+        destroyOnClose
+      >
+        {selectedStaff && (
+          <div className="p-3 my-3 bg-slate-50 border border-slate-200 rounded-lg text-xs space-y-1">
+            <div><span className="font-semibold text-slate-600">Nhân viên:</span> <strong className="text-slate-900">{selectedStaff.firstName} {selectedStaff.lastName}</strong></div>
+            <div><span className="font-semibold text-slate-600">Email:</span> <span className="text-indigo-600 font-mono">{selectedStaff.email}</span></div>
+            <div><span className="font-semibold text-slate-600">Phòng ban:</span> <span className="text-slate-700">{selectedStaff.department}</span></div>
+          </div>
+        )}
+
+        <Form form={passwordForm} layout="vertical" onFinish={handleResetPassword}>
+          <Form.Item
+            name="newPassword"
+            label="Mật khẩu mới"
+            rules={[
+              { required: true, message: 'Vui lòng nhập mật khẩu mới' },
+              { min: 6, message: 'Mật khẩu phải có ít nhất 6 ký tự' },
+            ]}
+          >
+            <Input.Password
+              prefix={<LockOutlined className="text-slate-400" />}
+              placeholder="Nhập mật khẩu mới (tối thiểu 6 ký tự)"
+            />
+          </Form.Item>
+
+          <div className="mb-4">
+            <Button
+              type="dashed"
+              size="small"
+              icon={<ReloadOutlined />}
+              onClick={generateRandomPassword}
+              className="text-xs text-indigo-600 border-indigo-300 hover:text-indigo-700"
+            >
+              Tạo mật khẩu ngẫu nhiên
+            </Button>
+          </div>
+
+          <div className="flex justify-end gap-2 mt-6">
+            <Button onClick={() => setIsPasswordModalOpen(false)}>Hủy</Button>
+            <Button
+              type="primary"
+              htmlType="submit"
+              loading={passwordSubmitting}
+              className="bg-amber-600 hover:bg-amber-700 border-amber-600"
+            >
+              Cập nhật mật khẩu
+            </Button>
+          </div>
+        </Form>
+      </Modal>
     </div>
   );
 };
+

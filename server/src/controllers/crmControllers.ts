@@ -711,6 +711,21 @@ export const toggleUserStatus = async (req: AuthenticatedRequest, res: Response,
   }
 };
 
+export const changeUserPassword = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  try {
+    const { newPassword } = req.body;
+    const result = await UserService.changeUserPassword(req.params.id, newPassword);
+    res.json({
+      success: true,
+      message: 'Đổi mật khẩu tài khoản thành công',
+      data: result,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+
 export const getStaff = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
     const staff = await UserService.getStaff();

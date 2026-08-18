@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { authenticate } from '../middleware/authMiddleware';
+import { authenticate, authorize } from '../middleware/authMiddleware';
 import { apiLimiter, authLimiter } from '../middleware/rateLimitMiddleware';
 import * as crm from '../controllers/crmControllers';
 
@@ -126,6 +126,7 @@ router.post('/notifications/mark-all-read', crm.markAllNotificationsRead);
 router.get('/users', crm.getUsers);
 router.post('/users', crm.createUser);
 router.patch('/users/:id/toggle-status', crm.toggleUserStatus);
+router.patch('/users/:id/password', authorize(['ADMIN']), crm.changeUserPassword);
 router.get('/staff', crm.getStaff);
 router.get('/teams', crm.getTeams);
 router.get('/roles', crm.getRoles);

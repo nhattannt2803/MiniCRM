@@ -94,6 +94,35 @@ export class UserService {
     return { id: user.id.toString(), isActive: user.isActive };
   }
 
+  public static async changeUserPassword(userId: string, newPassword: string) {
+    if (!newPassword || newPassword.trim().length < 6) {
+      throw new AppError('Mật khẩu mới phải có ít nhất 6 ký tự', 400, 'INVALID_PASSWORD');
+    }
+
+    const existingUser = await prisma.user.findUnique({
+      where: { id: BigInt(userId) },
+    });
+
+    if (!existingUser || existingUser.deletedAt) {
+      throw new AppError('Không tìm thấy tài khoản người dùng', 404, 'USER_NOT_FOUND');
+    }
+
+    const passwordHash = await hashPassword(newPassword.trim());
+
+    const user = await prisma.user.update({
+      where: { id: BigInt(userId) },
+      data: { passwordHash },
+    });
+
+    return {
+      id: user.id.toString(),
+      email: user.email,
+      firstName: user.firstName,
+      lastName: user.lastName,
+    };
+  }
+
+
   public static async getStaff() {
     const users = await this.getUsers();
     // Return staff metrics suitable for management directory

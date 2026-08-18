@@ -86,7 +86,7 @@ export const LoginPage: React.FC = () => {
 
         <div className="mt-6 pt-6 border-t border-slate-100 text-center">
           <div className="text-xs font-semibold text-slate-400 mb-3 uppercase tracking-wider">
-            Tài khoản dùng thử (Mật khẩu: password123)
+
           </div>
           <div className="flex flex-wrap justify-center gap-2">
             <Tag
