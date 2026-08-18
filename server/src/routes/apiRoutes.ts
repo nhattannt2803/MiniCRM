@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { authenticate, authorize } from '../middleware/authMiddleware';
+import { tenantGuard } from '../middleware/tenantMiddleware';
 import { apiLimiter, authLimiter } from '../middleware/rateLimitMiddleware';
 import * as crm from '../controllers/crmControllers';
 
@@ -14,8 +15,22 @@ router.post('/auth/login', authLimiter, crm.login);
 // Protected routes middleware
 router.use(authenticate);
 
-// Auth Me
+// Auth Me (before tenantGuard — returns all memberships)
 router.get('/auth/me', crm.getMe);
+
+// Business management (after authenticate, before tenantGuard)
+router.get('/businesses', crm.getMyBusinesses);
+router.post('/businesses', crm.createBusiness);
+router.patch('/businesses/switch', crm.switchActiveBiz);
+
+// Tenant guard — all routes below require active Biz context
+router.use(tenantGuard);
+
+// Business settings (requires active Biz)
+router.patch('/businesses/current', crm.updateBusiness);
+router.get('/businesses/current/members', crm.getBizMembers);
+router.post('/businesses/current/members', crm.inviteMember);
+router.delete('/businesses/current/members/:userId', crm.removeMember);
 
 // Leads
 router.get('/leads', crm.getLeads);
@@ -56,7 +71,6 @@ router.get('/conversations', crm.getConversations);
 router.post('/conversations', crm.createConversation);
 router.get('/conversations/:id', crm.getConversationById);
 router.post('/conversations/:id/messages', crm.addMessage);
-
 
 
 

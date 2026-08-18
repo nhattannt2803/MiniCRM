@@ -25,9 +25,9 @@ export interface IdentityResolutionResult {
 
 export class IdentityResolutionService {
   /**
-   * Resolve incoming identity against existing customer identities and contacts
+   * Resolve incoming identity against existing customer identities and contacts within a Biz
    */
-  public static async resolveIdentity(input: IdentityLookupInput): Promise<IdentityResolutionResult> {
+  public static async resolveIdentity(bizId: bigint, input: IdentityLookupInput): Promise<IdentityResolutionResult> {
     const { phone, email, fbPsid, zaloUid, webVisitorId, name } = input;
 
     // 1. Check direct Identity Table match (Exact match on FB PSID / Zalo UID / Web Visitor)
@@ -35,7 +35,7 @@ export class IdentityResolutionService {
     if (parsedFb) {
       const cleanFb = parsedFb;
       const fbIdent = await prisma.customerIdentity.findFirst({
-        where: { type: 'FB_PSID', identityValue: cleanFb },
+        where: { type: 'FB_PSID', identityValue: cleanFb, customer: { bizId } },
         include: { customer: { include: { company: true, contact: true } } },
       });
       if (fbIdent && fbIdent.customer && !fbIdent.customer.deletedAt) {
@@ -57,7 +57,7 @@ export class IdentityResolutionService {
     if (parsedZalo) {
       const cleanZalo = parsedZalo;
       const zaloIdent = await prisma.customerIdentity.findFirst({
-        where: { type: 'ZALO_UID', identityValue: cleanZalo },
+        where: { type: 'ZALO_UID', identityValue: cleanZalo, customer: { bizId } },
         include: { customer: { include: { company: true, contact: true } } },
       });
       if (zaloIdent && zaloIdent.customer && !zaloIdent.customer.deletedAt) {
@@ -78,7 +78,7 @@ export class IdentityResolutionService {
     if (webVisitorId && webVisitorId.trim()) {
       const cleanWeb = webVisitorId.trim();
       const webIdent = await prisma.customerIdentity.findFirst({
-        where: { type: 'WEB_VISITOR', identityValue: cleanWeb },
+        where: { type: 'WEB_VISITOR', identityValue: cleanWeb, customer: { bizId } },
         include: { customer: { include: { company: true, contact: true } } },
       });
       if (webIdent && webIdent.customer && !webIdent.customer.deletedAt) {
@@ -96,27 +96,25 @@ export class IdentityResolutionService {
       }
     }
 
-    // 2. Check Phone in CustomerIdentities & Contacts
+    // 2. Check Phone in CustomerIdentities & Contacts within biz
     if (phone && phone.trim()) {
       const cleanPhone = phone.trim();
 
-      // Check CustomerIdentity table for Phone
       const phoneIdent = await prisma.customerIdentity.findFirst({
-        where: { type: 'PHONE', identityValue: cleanPhone },
+        where: { type: 'PHONE', identityValue: cleanPhone, customer: { bizId } },
         include: { customer: { include: { company: true, contact: true } } },
       });
 
       let foundCustomer: any = phoneIdent?.customer || null;
 
-      // If not in CustomerIdentity, check contacts
       if (!foundCustomer) {
         const contactMatch = await prisma.contact.findFirst({
-          where: { phone: cleanPhone, deletedAt: null },
-          include: { customers: { where: { deletedAt: null } } },
+          where: { bizId, phone: cleanPhone, deletedAt: null },
+          include: { customers: { where: { bizId, deletedAt: null } } },
         });
         if (contactMatch && contactMatch.customers.length > 0) {
           foundCustomer = await prisma.customer.findFirst({
-            where: { id: contactMatch.customers[0].id, deletedAt: null },
+            where: { id: contactMatch.customers[0].id, bizId, deletedAt: null },
             include: { company: true, contact: true },
           });
         }
@@ -125,7 +123,6 @@ export class IdentityResolutionService {
       if (foundCustomer && !foundCustomer.deletedAt) {
         const customerName = this.getCustomerName(foundCustomer);
 
-        // Verify if name matches or differs
         if (name && name.trim()) {
           const isNameSimilar = this.compareNames(name, customerName);
           if (!isNameSimilar) {
@@ -152,12 +149,12 @@ export class IdentityResolutionService {
       }
     }
 
-    // 3. Check Email
+    // 3. Check Email within biz
     if (email && email.trim()) {
       const cleanEmail = email.trim().toLowerCase();
 
       const emailIdent = await prisma.customerIdentity.findFirst({
-        where: { type: 'EMAIL', identityValue: cleanEmail },
+        where: { type: 'EMAIL', identityValue: cleanEmail, customer: { bizId } },
         include: { customer: { include: { company: true, contact: true } } },
       });
 
@@ -165,12 +162,12 @@ export class IdentityResolutionService {
 
       if (!foundCustomer) {
         const contactMatch = await prisma.contact.findFirst({
-          where: { email: cleanEmail, deletedAt: null },
-          include: { customers: { where: { deletedAt: null } } },
+          where: { bizId, email: cleanEmail, deletedAt: null },
+          include: { customers: { where: { bizId, deletedAt: null } } },
         });
         if (contactMatch && contactMatch.customers.length > 0) {
           foundCustomer = await prisma.customer.findFirst({
-            where: { id: contactMatch.customers[0].id, deletedAt: null },
+            where: { id: contactMatch.customers[0].id, bizId, deletedAt: null },
             include: { company: true, contact: true },
           });
         }
@@ -200,9 +197,9 @@ export class IdentityResolutionService {
   /**
    * Add identity to existing Customer
    */
-  public static async addIdentityToCustomer(customerId: string | number, type: string, identityValue: string) {
+  public static async addIdentityToCustomer(bizId: bigint, customerId: string | number, type: string, identityValue: string) {
     const custId = BigInt(customerId);
-    const customer = await prisma.customer.findFirst({ where: { id: custId, deletedAt: null } });
+    const customer = await prisma.customer.findFirst({ where: { id: custId, bizId, deletedAt: null } });
     if (!customer) throw new AppError('Customer not found', 404, 'CUSTOMER_NOT_FOUND');
 
     const cleanValue = identityValue.trim();
@@ -227,8 +224,11 @@ export class IdentityResolutionService {
   /**
    * Get all identities of a customer
    */
-  public static async getCustomerIdentities(customerId: string | number) {
+  public static async getCustomerIdentities(bizId: bigint, customerId: string | number) {
     const custId = BigInt(customerId);
+    const customer = await prisma.customer.findFirst({ where: { id: custId, bizId, deletedAt: null } });
+    if (!customer) throw new AppError('Customer not found', 404, 'CUSTOMER_NOT_FOUND');
+
     const identities = await prisma.customerIdentity.findMany({
       where: { customerId: custId },
       orderBy: { createdAt: 'desc' },
@@ -244,12 +244,13 @@ export class IdentityResolutionService {
    * Resolve a Lead with POTENTIAL_DUPLICATE status
    */
   public static async resolveDuplicateLead(
+    bizId: bigint,
     leadId: string | number,
     action: 'ATTACH_TO_EXISTING' | 'CREATE_SEPARATE_CUSTOMER',
     targetCustomerId?: string | number
   ) {
     const lId = BigInt(leadId);
-    const lead = await prisma.lead.findFirst({ where: { id: lId, deletedAt: null } });
+    const lead = await prisma.lead.findFirst({ where: { id: lId, bizId, deletedAt: null } });
     if (!lead) throw new AppError('Lead not found', 404, 'LEAD_NOT_FOUND');
 
     if (action === 'ATTACH_TO_EXISTING') {
@@ -267,7 +268,6 @@ export class IdentityResolutionService {
           },
         });
 
-        // Add phone & email identities to customer if present on lead
         if (lead.phone && lead.phone.trim()) {
           await tx.customerIdentity.upsert({
             where: { customerId_type_identityValue: { customerId: custId, type: 'PHONE', identityValue: lead.phone.trim() } },
@@ -288,6 +288,7 @@ export class IdentityResolutionService {
       await prisma.$transaction(async (tx) => {
         const contact = await tx.contact.create({
           data: {
+            bizId,
             firstName: lead.firstName,
             lastName: lead.lastName,
             email: lead.email || null,
@@ -299,6 +300,7 @@ export class IdentityResolutionService {
 
         const customer = await tx.customer.create({
           data: {
+            bizId,
             customerCode: `CUST-${Date.now().toString().slice(-6)}`,
             entityType: 'CONTACT',
             contactId: contact.id,

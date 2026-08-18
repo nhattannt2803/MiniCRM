@@ -1,16 +1,16 @@
 import prisma from '../config/database';
 
 export class NotificationService {
-  public static async getUserNotifications(userId: string | number) {
+  public static async getUserNotifications(bizId: bigint, userId: string | number) {
     const uId = BigInt(userId);
     const [notifications, unreadCount] = await Promise.all([
       prisma.notification.findMany({
-        where: { userId: uId },
+        where: { bizId, userId: uId },
         take: 50,
         orderBy: { createdAt: 'desc' },
       }),
       prisma.notification.count({
-        where: { userId: uId, readAt: null },
+        where: { bizId, userId: uId, readAt: null },
       }),
     ]);
 
@@ -34,10 +34,10 @@ export class NotificationService {
     return { success: true };
   }
 
-  public static async markAllAsRead(userId: string | number) {
+  public static async markAllAsRead(bizId: bigint, userId: string | number) {
     const uId = BigInt(userId);
     await prisma.notification.updateMany({
-      where: { userId: uId, readAt: null },
+      where: { bizId, userId: uId, readAt: null },
       data: { readAt: new Date() },
     });
     return { success: true };

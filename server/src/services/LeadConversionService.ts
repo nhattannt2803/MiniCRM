@@ -25,11 +25,11 @@ export interface ConvertLeadDTO {
 }
 
 export class LeadConversionService {
-  public static async convertLead(dto: ConvertLeadDTO) {
+  public static async convertLead(bizId: bigint, dto: ConvertLeadDTO) {
     const leadId = BigInt(dto.leadId);
 
     const lead = await prisma.lead.findFirst({
-      where: { id: leadId, deletedAt: null },
+      where: { id: leadId, bizId, deletedAt: null },
     });
 
     if (!lead) {
@@ -51,6 +51,7 @@ export class LeadConversionService {
         // Check duplicate by name or tax code
         let existingCo = await tx.company.findFirst({
           where: {
+            bizId,
             deletedAt: null,
             OR: [
               { name: companyName },
@@ -64,6 +65,7 @@ export class LeadConversionService {
         } else {
           const newCo = await tx.company.create({
             data: {
+              bizId,
               name: companyName,
               taxCode: dto.taxCode || null,
               email: lead.email || null,
@@ -87,7 +89,7 @@ export class LeadConversionService {
         const email = dto.newContactEmail || lead.email;
         // Check duplicate by email
         let existingContact = email
-          ? await tx.contact.findFirst({ where: { email, deletedAt: null } })
+          ? await tx.contact.findFirst({ where: { bizId, email, deletedAt: null } })
           : null;
 
         if (existingContact) {
@@ -95,6 +97,7 @@ export class LeadConversionService {
         } else {
           const newCt = await tx.contact.create({
             data: {
+              bizId,
               companyId,
               firstName: dto.newContactFirstName || lead.firstName,
               lastName: dto.newContactLastName || lead.lastName,
@@ -122,7 +125,7 @@ export class LeadConversionService {
           stageId = BigInt(dto.stageId);
         } else {
           const defaultPipeline = await tx.pipeline.findFirst({
-            where: { isDefault: true },
+            where: { bizId, isDefault: true },
             include: { stages: { orderBy: { orderNo: 'asc' } } },
           });
           if (!defaultPipeline || defaultPipeline.stages.length === 0) {
@@ -137,6 +140,7 @@ export class LeadConversionService {
 
         const opp = await tx.opportunity.create({
           data: {
+            bizId,
             name: oppName,
             companyId,
             contactId,
@@ -169,7 +173,7 @@ export class LeadConversionService {
 
         if (finalProductIds.length > 0) {
           for (const pid of finalProductIds) {
-            const prod = await tx.product.findFirst({ where: { id: BigInt(pid) } });
+            const prod = await tx.product.findFirst({ where: { id: BigInt(pid), bizId } });
             if (prod) {
               const uPrice = Number(prod.unitPrice);
               await tx.opportunityProduct.create({
@@ -186,7 +190,7 @@ export class LeadConversionService {
         }
 
         // Publish Event
-        await publishOutboxEvent(tx, 'OPPORTUNITY_CREATED', 'OPPORTUNITY', opp.id, {
+        await publishOutboxEvent(tx, bizId, 'OPPORTUNITY_CREATED', 'OPPORTUNITY', opp.id, {
           id: opp.id.toString(),
           name: opp.name,
           amount: opp.amount,
@@ -208,7 +212,7 @@ export class LeadConversionService {
       });
 
       // Publish Outbox Event for status CONVERTED
-      await publishOutboxEvent(tx, 'STATUS_CHANGED', 'LEAD', leadId, {
+      await publishOutboxEvent(tx, bizId, 'STATUS_CHANGED', 'LEAD', leadId, {
         id: leadId.toString(),
         status: 'CONVERTED',
         owner_id: lead.ownerId?.toString(),

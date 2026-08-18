@@ -2,9 +2,9 @@ import prisma from '../config/database';
 import { AppError } from '../middleware/errorMiddleware';
 
 export class AutomationService {
-  public static async getAutomations() {
+  public static async getAutomations(bizId: bigint) {
     const automations = await prisma.automation.findMany({
-      where: { deletedAt: null },
+      where: { bizId, deletedAt: null },
       orderBy: { priority: 'asc' },
       include: {
         triggers: true,
@@ -25,10 +25,10 @@ export class AutomationService {
     }));
   }
 
-  public static async getAutomationById(id: string | number) {
+  public static async getAutomationById(bizId: bigint, id: string | number) {
     const autoId = BigInt(id);
     const automation = await prisma.automation.findFirst({
-      where: { id: autoId, deletedAt: null },
+      where: { id: autoId, bizId, deletedAt: null },
       include: {
         triggers: true,
         conditions: { orderBy: { orderNo: 'asc' } },
@@ -59,10 +59,11 @@ export class AutomationService {
     };
   }
 
-  public static async createAutomation(data: any) {
+  public static async createAutomation(bizId: bigint, data: any) {
     return await prisma.$transaction(async (tx) => {
       const created = await tx.automation.create({
         data: {
+          bizId,
           name: data.name,
           description: data.description || null,
           isActive: data.isActive !== undefined ? data.isActive : true,
@@ -101,8 +102,11 @@ export class AutomationService {
     });
   }
 
-  public static async toggleAutomation(id: string | number, isActive: boolean) {
+  public static async toggleAutomation(bizId: bigint, id: string | number, isActive: boolean) {
     const autoId = BigInt(id);
+    const existing = await prisma.automation.findFirst({ where: { id: autoId, bizId } });
+    if (!existing) throw new AppError('Automation not found', 404, 'AUTOMATION_NOT_FOUND');
+
     const updated = await prisma.automation.update({
       where: { id: autoId },
       data: { isActive },
@@ -110,8 +114,11 @@ export class AutomationService {
     return { ...updated, id: updated.id.toString() };
   }
 
-  public static async updateAutomation(id: string | number, data: any) {
+  public static async updateAutomation(bizId: bigint, id: string | number, data: any) {
     const autoId = BigInt(id);
+    const existing = await prisma.automation.findFirst({ where: { id: autoId, bizId } });
+    if (!existing) throw new AppError('Automation not found', 404, 'AUTOMATION_NOT_FOUND');
+
     return await prisma.$transaction(async (tx) => {
       await tx.automation.update({
         where: { id: autoId },
@@ -146,12 +153,15 @@ export class AutomationService {
         });
       }
 
-      return this.getAutomationById(id);
+      return this.getAutomationById(bizId, id);
     });
   }
 
-  public static async deleteAutomation(id: string | number) {
+  public static async deleteAutomation(bizId: bigint, id: string | number) {
     const autoId = BigInt(id);
+    const existing = await prisma.automation.findFirst({ where: { id: autoId, bizId } });
+    if (!existing) throw new AppError('Automation not found', 404, 'AUTOMATION_NOT_FOUND');
+
     await prisma.automation.update({
       where: { id: autoId },
       data: { deletedAt: new Date(), isActive: false },
@@ -159,8 +169,8 @@ export class AutomationService {
     return { success: true };
   }
 
-  public static async duplicateAutomation(id: string | number, userId?: string | number) {
-    const original = await this.getAutomationById(id);
+  public static async duplicateAutomation(bizId: bigint, id: string | number, userId?: string | number) {
+    const original = await this.getAutomationById(bizId, id);
     if (!original) throw new AppError('Automation not found', 404, 'AUTOMATION_NOT_FOUND');
 
     const duplicateData = {
@@ -187,10 +197,10 @@ export class AutomationService {
       })),
     };
 
-    return await this.createAutomation(duplicateData);
+    return await this.createAutomation(bizId, duplicateData);
   }
 
-  public static async importAutomation(importData: any, userId?: string | number) {
+  public static async importAutomation(bizId: bigint, importData: any, userId?: string | number) {
     if (!importData || !importData.name || !Array.isArray(importData.triggers)) {
       throw new AppError('Dữ liệu cấu hình tự động hóa không hợp lệ', 400, 'INVALID_IMPORT_DATA');
     }
@@ -223,15 +233,15 @@ export class AutomationService {
         : [],
     };
 
-    return await this.createAutomation(newAutomationData);
+    return await this.createAutomation(bizId, newAutomationData);
   }
 
-  public static async getExecutions(params: { page?: number; limit?: number; status?: string }) {
+  public static async getExecutions(bizId: bigint, params: { page?: number; limit?: number; status?: string }) {
     const page = Math.max(Number(params.page) || 1, 1);
     const limit = Math.min(Math.max(Number(params.limit) || 20, 1), 100);
     const skip = (page - 1) * limit;
 
-    const where: any = {};
+    const where: any = { automation: { bizId } };
     if (params.status) where.status = params.status;
 
     const [total, executions] = await Promise.all([

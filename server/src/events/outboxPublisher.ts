@@ -20,6 +20,7 @@ export type EntityType = 'LEAD' | 'COMPANY' | 'CONTACT' | 'CUSTOMER' | 'OPPORTUN
 
 export async function publishOutboxEvent(
   tx: Prisma.TransactionClient | PrismaClient,
+  bizId: bigint,
   eventType: EventType,
   entityType: EntityType,
   entityId: number | bigint,
@@ -29,11 +30,12 @@ export async function publishOutboxEvent(
   
   const outboxEvent = await tx.outboxEvent.create({
     data: {
+      bizId: BigInt(bizId),
       eventId,
       eventType,
       entityType,
       entityId: BigInt(entityId),
-      payload: JSON.stringify(payload),
+      payload: JSON.stringify({ ...payload, bizId: bizId.toString() }),
       status: 'PENDING',
     },
   });

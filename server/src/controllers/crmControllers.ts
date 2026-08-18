@@ -1,6 +1,7 @@
 import { Response, NextFunction } from 'express';
 import { AuthenticatedRequest } from '../middleware/authMiddleware';
 import { AuthService } from '../services/AuthService';
+import { BusinessService } from '../services/BusinessService';
 import { LeadService } from '../services/LeadService';
 import { LeadConversionService } from '../services/LeadConversionService';
 import { CompanyService } from '../services/CompanyService';
@@ -42,11 +43,78 @@ export const getMe = async (req: AuthenticatedRequest, res: Response, next: Next
 };
 
 // -----------------------------------------------------------------------------
+// Business (Tenant) Controller
+// -----------------------------------------------------------------------------
+export const getMyBusinesses = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  try {
+    const businesses = await BusinessService.getMyBusinesses(req.user!.userId);
+    res.json({ success: true, data: businesses });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const createBusiness = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  try {
+    const business = await BusinessService.createBusiness(req.user!.userId, req.body);
+    res.status(201).json({ success: true, data: business });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const updateBusiness = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  try {
+    const business = await BusinessService.updateBusiness(req.bizId!, req.body);
+    res.json({ success: true, data: business });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const getBizMembers = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  try {
+    const members = await BusinessService.getBizMembers(req.bizId!);
+    res.json({ success: true, data: members });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const inviteMember = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  try {
+    const member = await BusinessService.inviteMember(req.bizId!, req.body);
+    res.status(201).json({ success: true, data: member });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const removeMember = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  try {
+    const result = await BusinessService.removeMember(req.bizId!, req.params.userId);
+    res.json({ success: true, data: result });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const switchActiveBiz = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  try {
+    const { bizId } = req.body;
+    const result = await BusinessService.switchDefaultBiz(req.user!.userId, bizId);
+    res.json({ success: true, data: result });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// -----------------------------------------------------------------------------
 // Lead Controller
 // -----------------------------------------------------------------------------
 export const getLeads = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
-    const result = await LeadService.getLeads(req.query);
+    const result = await LeadService.getLeads(req.bizId!, req.query);
     res.json({ success: true, data: result.data, meta: result.meta });
   } catch (err) {
     next(err);
@@ -55,7 +123,7 @@ export const getLeads = async (req: AuthenticatedRequest, res: Response, next: N
 
 export const getLeadById = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
-    const lead = await LeadService.getLeadById(req.params.id);
+    const lead = await LeadService.getLeadById(req.bizId!, req.params.id);
     res.json({ success: true, data: lead });
   } catch (err) {
     next(err);
@@ -64,7 +132,7 @@ export const getLeadById = async (req: AuthenticatedRequest, res: Response, next
 
 export const createLead = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
-    const lead = await LeadService.createLead({ ...req.body, ownerId: req.body.ownerId || req.user?.userId });
+    const lead = await LeadService.createLead(req.bizId!, { ...req.body, ownerId: req.body.ownerId || req.user?.userId });
     res.status(201).json({ success: true, data: lead });
   } catch (err) {
     next(err);
@@ -73,7 +141,7 @@ export const createLead = async (req: AuthenticatedRequest, res: Response, next:
 
 export const updateLead = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
-    const lead = await LeadService.updateLead(req.params.id, req.body);
+    const lead = await LeadService.updateLead(req.bizId!, req.params.id, req.body);
     res.json({ success: true, data: lead });
   } catch (err) {
     next(err);
@@ -82,7 +150,7 @@ export const updateLead = async (req: AuthenticatedRequest, res: Response, next:
 
 export const convertLead = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
-    const result = await LeadConversionService.convertLead({ ...req.body, leadId: req.params.id });
+    const result = await LeadConversionService.convertLead(req.bizId!, { ...req.body, leadId: req.params.id });
     res.json({ success: true, data: result });
   } catch (err) {
     next(err);
@@ -91,7 +159,7 @@ export const convertLead = async (req: AuthenticatedRequest, res: Response, next
 
 export const deleteLead = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
-    await LeadService.deleteLead(req.params.id);
+    await LeadService.deleteLead(req.bizId!, req.params.id);
     res.json({ success: true, data: { message: 'Lead soft-deleted' } });
   } catch (err) {
     next(err);
@@ -103,7 +171,7 @@ export const deleteLead = async (req: AuthenticatedRequest, res: Response, next:
 // -----------------------------------------------------------------------------
 export const getCompanies = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
-    const result = await CompanyService.getCompanies(req.query);
+    const result = await CompanyService.getCompanies(req.bizId!, req.query);
     res.json({ success: true, data: result.data, meta: result.meta });
   } catch (err) {
     next(err);
@@ -112,7 +180,7 @@ export const getCompanies = async (req: AuthenticatedRequest, res: Response, nex
 
 export const getCompanyById = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
-    const company = await CompanyService.getCompanyById(req.params.id);
+    const company = await CompanyService.getCompanyById(req.bizId!, req.params.id);
     res.json({ success: true, data: company });
   } catch (err) {
     next(err);
@@ -121,7 +189,7 @@ export const getCompanyById = async (req: AuthenticatedRequest, res: Response, n
 
 export const createCompany = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
-    const company = await CompanyService.createCompany({ ...req.body, ownerId: req.body.ownerId || req.user?.userId });
+    const company = await CompanyService.createCompany(req.bizId!, { ...req.body, ownerId: req.body.ownerId || req.user?.userId });
     res.status(201).json({ success: true, data: company });
   } catch (err) {
     next(err);
@@ -130,7 +198,7 @@ export const createCompany = async (req: AuthenticatedRequest, res: Response, ne
 
 export const updateCompany = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
-    const company = await CompanyService.updateCompany(req.params.id, req.body);
+    const company = await CompanyService.updateCompany(req.bizId!, req.params.id, req.body);
     res.json({ success: true, data: company });
   } catch (err) {
     next(err);
@@ -139,7 +207,7 @@ export const updateCompany = async (req: AuthenticatedRequest, res: Response, ne
 
 export const addCompanyContact = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
-    const contact = await CompanyService.addContact(req.params.id, req.body);
+    const contact = await CompanyService.addContact(req.bizId!, req.params.id, req.body);
     res.status(201).json({ success: true, data: contact });
   } catch (err) {
     next(err);
@@ -148,7 +216,7 @@ export const addCompanyContact = async (req: AuthenticatedRequest, res: Response
 
 export const setPrimaryCompanyContact = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
-    const contact = await CompanyService.setPrimaryContact(req.params.id, req.params.contactId);
+    const contact = await CompanyService.setPrimaryContact(req.bizId!, req.params.id, req.params.contactId);
     res.json({ success: true, data: contact });
   } catch (err) {
     next(err);
@@ -160,7 +228,7 @@ export const setPrimaryCompanyContact = async (req: AuthenticatedRequest, res: R
 // -----------------------------------------------------------------------------
 export const getContacts = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
-    const result = await ContactService.getContacts(req.query);
+    const result = await ContactService.getContacts(req.bizId!, req.query);
     res.json({ success: true, data: result.data, meta: result.meta });
   } catch (err) {
     next(err);
@@ -169,7 +237,7 @@ export const getContacts = async (req: AuthenticatedRequest, res: Response, next
 
 export const getContactById = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
-    const contact = await ContactService.getContactById(req.params.id);
+    const contact = await ContactService.getContactById(req.bizId!, req.params.id);
     res.json({ success: true, data: contact });
   } catch (err) {
     next(err);
@@ -178,7 +246,7 @@ export const getContactById = async (req: AuthenticatedRequest, res: Response, n
 
 export const createContact = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
-    const contact = await ContactService.createContact({ ...req.body, ownerId: req.body.ownerId || req.user?.userId });
+    const contact = await ContactService.createContact(req.bizId!, { ...req.body, ownerId: req.body.ownerId || req.user?.userId });
     res.status(201).json({ success: true, data: contact });
   } catch (err) {
     next(err);
@@ -187,7 +255,7 @@ export const createContact = async (req: AuthenticatedRequest, res: Response, ne
 
 export const updateContact = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
-    const contact = await ContactService.updateContact(req.params.id, req.body);
+    const contact = await ContactService.updateContact(req.bizId!, req.params.id, req.body);
     res.json({ success: true, data: contact });
   } catch (err) {
     next(err);
@@ -199,7 +267,7 @@ export const updateContact = async (req: AuthenticatedRequest, res: Response, ne
 // -----------------------------------------------------------------------------
 export const getCustomers = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
-    const result = await CustomerService.getCustomers(req.query);
+    const result = await CustomerService.getCustomers(req.bizId!, req.query);
     res.json({ success: true, data: result.data, meta: result.meta });
   } catch (err) {
     next(err);
@@ -208,7 +276,7 @@ export const getCustomers = async (req: AuthenticatedRequest, res: Response, nex
 
 export const getCustomerById = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
-    const customer = await CustomerService.getCustomerById(req.params.id);
+    const customer = await CustomerService.getCustomerById(req.bizId!, req.params.id);
     res.json({ success: true, data: customer });
   } catch (err) {
     next(err);
@@ -217,7 +285,7 @@ export const getCustomerById = async (req: AuthenticatedRequest, res: Response, 
 
 export const createCustomer = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
-    const customer = await CustomerService.createCustomer({
+    const customer = await CustomerService.createCustomer(req.bizId!, {
       ...req.body,
       ownerId: req.body.ownerId || req.user?.userId,
     });
@@ -227,10 +295,9 @@ export const createCustomer = async (req: AuthenticatedRequest, res: Response, n
   }
 };
 
-
 export const updateCustomer = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
-    const customer = await CustomerService.updateCustomer(req.params.id, req.body);
+    const customer = await CustomerService.updateCustomer(req.bizId!, req.params.id, req.body);
     res.json({ success: true, data: customer });
   } catch (err) {
     next(err);
@@ -239,21 +306,19 @@ export const updateCustomer = async (req: AuthenticatedRequest, res: Response, n
 
 export const deleteCustomer = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
-    const result = await CustomerService.deleteCustomer(req.params.id);
+    const result = await CustomerService.deleteCustomer(req.bizId!, req.params.id);
     res.json({ success: true, data: result });
   } catch (err) {
     next(err);
   }
 };
 
-
-
 // -----------------------------------------------------------------------------
 // Opportunity Controller
 // -----------------------------------------------------------------------------
 export const getOpportunities = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
-    const result = await OpportunityService.getOpportunities(req.query);
+    const result = await OpportunityService.getOpportunities(req.bizId!, req.query);
     res.json({ success: true, data: result.data, meta: result.meta });
   } catch (err) {
     next(err);
@@ -262,7 +327,7 @@ export const getOpportunities = async (req: AuthenticatedRequest, res: Response,
 
 export const getKanbanBoard = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
-    const board = await OpportunityService.getKanbanBoard(req.query.pipelineId as string);
+    const board = await OpportunityService.getKanbanBoard(req.bizId!, req.query.pipelineId as string);
     res.json({ success: true, data: board });
   } catch (err) {
     next(err);
@@ -271,7 +336,7 @@ export const getKanbanBoard = async (req: AuthenticatedRequest, res: Response, n
 
 export const getOpportunityById = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
-    const opp = await OpportunityService.getOpportunityById(req.params.id);
+    const opp = await OpportunityService.getOpportunityById(req.bizId!, req.params.id);
     res.json({ success: true, data: opp });
   } catch (err) {
     next(err);
@@ -280,7 +345,7 @@ export const getOpportunityById = async (req: AuthenticatedRequest, res: Respons
 
 export const createOpportunity = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
-    const opp = await OpportunityService.createOpportunity({
+    const opp = await OpportunityService.createOpportunity(req.bizId!, {
       ...req.body,
       userId: req.user?.userId,
       ownerId: req.body.ownerId || req.user?.userId,
@@ -294,7 +359,7 @@ export const createOpportunity = async (req: AuthenticatedRequest, res: Response
 export const updateOpportunityStage = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
     const { stageId } = req.body;
-    const opp = await OpportunityService.updateStage(req.params.id, stageId, req.user?.userId);
+    const opp = await OpportunityService.updateStage(req.bizId!, req.params.id, stageId, req.user?.userId);
     res.json({ success: true, data: opp });
   } catch (err) {
     next(err);
@@ -303,7 +368,7 @@ export const updateOpportunityStage = async (req: AuthenticatedRequest, res: Res
 
 export const updateOpportunity = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
-    const opp = await OpportunityService.updateOpportunity(req.params.id, req.body);
+    const opp = await OpportunityService.updateOpportunity(req.bizId!, req.params.id, req.body);
     res.json({ success: true, data: opp });
   } catch (err) {
     next(err);
@@ -313,7 +378,7 @@ export const updateOpportunity = async (req: AuthenticatedRequest, res: Response
 export const addOpportunityProduct = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
     const { productId, quantity, unitPrice } = req.body;
-    const op = await OpportunityService.addProduct(req.params.id, productId, quantity, unitPrice);
+    const op = await OpportunityService.addProduct(req.bizId!, req.params.id, productId, quantity, unitPrice);
     res.status(201).json({ success: true, data: op });
   } catch (err) {
     next(err);
@@ -325,7 +390,7 @@ export const addOpportunityProduct = async (req: AuthenticatedRequest, res: Resp
 // -----------------------------------------------------------------------------
 export const getPipelines = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
-    const pipelines = await PipelineService.getPipelines();
+    const pipelines = await PipelineService.getPipelines(req.bizId!);
     res.json({ success: true, data: pipelines });
   } catch (err) {
     next(err);
@@ -334,7 +399,7 @@ export const getPipelines = async (req: AuthenticatedRequest, res: Response, nex
 
 export const createPipeline = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
-    const pipeline = await PipelineService.createPipeline(req.body);
+    const pipeline = await PipelineService.createPipeline(req.bizId!, req.body);
     res.status(201).json({ success: true, data: pipeline });
   } catch (err) {
     next(err);
@@ -343,7 +408,7 @@ export const createPipeline = async (req: AuthenticatedRequest, res: Response, n
 
 export const updatePipeline = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
-    const pipeline = await PipelineService.updatePipeline(req.params.id, req.body);
+    const pipeline = await PipelineService.updatePipeline(req.bizId!, req.params.id, req.body);
     res.json({ success: true, data: pipeline });
   } catch (err) {
     next(err);
@@ -352,7 +417,7 @@ export const updatePipeline = async (req: AuthenticatedRequest, res: Response, n
 
 export const deletePipeline = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
-    const result = await PipelineService.deletePipeline(req.params.id);
+    const result = await PipelineService.deletePipeline(req.bizId!, req.params.id);
     res.json({ success: true, data: result });
   } catch (err) {
     next(err);
@@ -361,7 +426,7 @@ export const deletePipeline = async (req: AuthenticatedRequest, res: Response, n
 
 export const addPipelineStage = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
-    const stage = await PipelineService.addStage(req.params.id, req.body);
+    const stage = await PipelineService.addStage(req.bizId!, req.params.id, req.body);
     res.status(201).json({ success: true, data: stage });
   } catch (err) {
     next(err);
@@ -370,7 +435,7 @@ export const addPipelineStage = async (req: AuthenticatedRequest, res: Response,
 
 export const updatePipelineStage = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
-    const stage = await PipelineService.updateStage(req.params.stageId, req.body);
+    const stage = await PipelineService.updateStage(req.bizId!, req.params.stageId, req.body);
     res.json({ success: true, data: stage });
   } catch (err) {
     next(err);
@@ -379,7 +444,7 @@ export const updatePipelineStage = async (req: AuthenticatedRequest, res: Respon
 
 export const deletePipelineStage = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
-    const result = await PipelineService.deleteStage(req.params.stageId);
+    const result = await PipelineService.deleteStage(req.bizId!, req.params.stageId);
     res.json({ success: true, data: result });
   } catch (err) {
     next(err);
@@ -388,7 +453,7 @@ export const deletePipelineStage = async (req: AuthenticatedRequest, res: Respon
 
 export const getProducts = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
-    const products = await ProductService.getProducts(req.query);
+    const products = await ProductService.getProducts(req.bizId!, req.query);
     res.json({ success: true, data: products });
   } catch (err) {
     next(err);
@@ -397,7 +462,7 @@ export const getProducts = async (req: AuthenticatedRequest, res: Response, next
 
 export const createProduct = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
-    const product = await ProductService.createProduct(req.body);
+    const product = await ProductService.createProduct(req.bizId!, req.body);
     res.status(201).json({ success: true, data: product });
   } catch (err) {
     next(err);
@@ -406,7 +471,7 @@ export const createProduct = async (req: AuthenticatedRequest, res: Response, ne
 
 export const getProductById = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
-    const product = await ProductService.getProductById(req.params.id);
+    const product = await ProductService.getProductById(req.bizId!, req.params.id);
     res.json({ success: true, data: product });
   } catch (err) {
     next(err);
@@ -415,7 +480,7 @@ export const getProductById = async (req: AuthenticatedRequest, res: Response, n
 
 export const updateProduct = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
-    const product = await ProductService.updateProduct(req.params.id, req.body);
+    const product = await ProductService.updateProduct(req.bizId!, req.params.id, req.body);
     res.json({ success: true, data: product });
   } catch (err) {
     next(err);
@@ -424,20 +489,19 @@ export const updateProduct = async (req: AuthenticatedRequest, res: Response, ne
 
 export const deleteProduct = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
-    const result = await ProductService.deleteProduct(req.params.id);
+    const result = await ProductService.deleteProduct(req.bizId!, req.params.id);
     res.json({ success: true, data: result });
   } catch (err) {
     next(err);
   }
 };
 
-
 // -----------------------------------------------------------------------------
 // Quote Controller
 // -----------------------------------------------------------------------------
 export const getQuotes = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
-    const quotes = await QuoteService.getQuotes(req.query);
+    const quotes = await QuoteService.getQuotes(req.bizId!, req.query);
     res.json({ success: true, data: quotes });
   } catch (err) {
     next(err);
@@ -446,7 +510,7 @@ export const getQuotes = async (req: AuthenticatedRequest, res: Response, next: 
 
 export const getQuoteById = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
-    const quote = await QuoteService.getQuoteById(req.params.id);
+    const quote = await QuoteService.getQuoteById(req.bizId!, req.params.id);
     res.json({ success: true, data: quote });
   } catch (err) {
     next(err);
@@ -455,7 +519,7 @@ export const getQuoteById = async (req: AuthenticatedRequest, res: Response, nex
 
 export const createQuote = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
-    const quote = await QuoteService.createQuote({ ...req.body, userId: req.user?.userId });
+    const quote = await QuoteService.createQuote(req.bizId!, { ...req.body, userId: req.user?.userId });
     res.status(201).json({ success: true, data: quote });
   } catch (err) {
     next(err);
@@ -464,7 +528,7 @@ export const createQuote = async (req: AuthenticatedRequest, res: Response, next
 
 export const updateQuoteStatus = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
-    const quote = await QuoteService.updateQuoteStatus(req.params.id, req.body.status);
+    const quote = await QuoteService.updateQuoteStatus(req.bizId!, req.params.id, req.body.status);
     res.json({ success: true, data: quote });
   } catch (err) {
     next(err);
@@ -476,7 +540,7 @@ export const updateQuoteStatus = async (req: AuthenticatedRequest, res: Response
 // -----------------------------------------------------------------------------
 export const getActivities = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
-    const activities = await ActivityService.getActivities(req.query);
+    const activities = await ActivityService.getActivities(req.bizId!, req.query);
     res.json({ success: true, data: activities });
   } catch (err) {
     next(err);
@@ -485,7 +549,7 @@ export const getActivities = async (req: AuthenticatedRequest, res: Response, ne
 
 export const createActivity = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
-    const activity = await ActivityService.createActivity({ ...req.body, userId: req.user?.userId });
+    const activity = await ActivityService.createActivity(req.bizId!, { ...req.body, userId: req.user?.userId });
     res.status(201).json({ success: true, data: activity });
   } catch (err) {
     next(err);
@@ -494,7 +558,7 @@ export const createActivity = async (req: AuthenticatedRequest, res: Response, n
 
 export const getTasks = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
-    const tasks = await TaskService.getTasks(req.query);
+    const tasks = await TaskService.getTasks(req.bizId!, req.query);
     res.json({ success: true, data: tasks });
   } catch (err) {
     next(err);
@@ -503,7 +567,7 @@ export const getTasks = async (req: AuthenticatedRequest, res: Response, next: N
 
 export const createTask = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
-    const task = await TaskService.createTask({ ...req.body, userId: req.user?.userId });
+    const task = await TaskService.createTask(req.bizId!, { ...req.body, userId: req.user?.userId });
     res.status(201).json({ success: true, data: task });
   } catch (err) {
     next(err);
@@ -512,7 +576,7 @@ export const createTask = async (req: AuthenticatedRequest, res: Response, next:
 
 export const updateTaskStatus = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
-    const task = await TaskService.updateTaskStatus(req.params.id, req.body.status);
+    const task = await TaskService.updateTaskStatus(req.bizId!, req.params.id, req.body.status);
     res.json({ success: true, data: task });
   } catch (err) {
     next(err);
@@ -521,7 +585,7 @@ export const updateTaskStatus = async (req: AuthenticatedRequest, res: Response,
 
 export const updateTask = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
-    const task = await TaskService.updateTask(req.params.id, req.body);
+    const task = await TaskService.updateTask(req.bizId!, req.params.id, req.body);
     res.json({ success: true, data: task });
   } catch (err) {
     next(err);
@@ -530,7 +594,7 @@ export const updateTask = async (req: AuthenticatedRequest, res: Response, next:
 
 export const getCampaigns = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
-    const campaigns = await CampaignService.getCampaigns();
+    const campaigns = await CampaignService.getCampaigns(req.bizId!);
     res.json({ success: true, data: campaigns });
   } catch (err) {
     next(err);
@@ -542,7 +606,7 @@ export const getCampaigns = async (req: AuthenticatedRequest, res: Response, nex
 // -----------------------------------------------------------------------------
 export const getDashboardStats = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
-    const stats = await DashboardService.getDashboardStats();
+    const stats = await DashboardService.getDashboardStats(req.bizId!);
     res.json({ success: true, data: stats });
   } catch (err) {
     next(err);
@@ -551,7 +615,7 @@ export const getDashboardStats = async (req: AuthenticatedRequest, res: Response
 
 export const getLeaderDashboardStats = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
-    const stats = await DashboardService.getLeaderDashboardStats();
+    const stats = await DashboardService.getLeaderDashboardStats(req.bizId!);
     res.json({ success: true, data: stats });
   } catch (err) {
     next(err);
@@ -564,20 +628,19 @@ export const nudgeSalesRep = async (req: AuthenticatedRequest, res: Response, ne
     if (!userId) {
       return res.status(400).json({ success: false, error: 'userId is required' });
     }
-    const result = await DashboardService.nudgeSalesRep(userId, message);
+    const result = await DashboardService.nudgeSalesRep(req.bizId!, userId, message);
     res.json({ success: true, data: result });
   } catch (err) {
     next(err);
   }
 };
 
-
 // -----------------------------------------------------------------------------
 // Automation Controller
 // -----------------------------------------------------------------------------
 export const getAutomations = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
-    const automations = await AutomationService.getAutomations();
+    const automations = await AutomationService.getAutomations(req.bizId!);
     res.json({ success: true, data: automations });
   } catch (err) {
     next(err);
@@ -586,7 +649,7 @@ export const getAutomations = async (req: AuthenticatedRequest, res: Response, n
 
 export const getAutomationById = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
-    const automation = await AutomationService.getAutomationById(req.params.id);
+    const automation = await AutomationService.getAutomationById(req.bizId!, req.params.id);
     res.json({ success: true, data: automation });
   } catch (err) {
     next(err);
@@ -595,7 +658,7 @@ export const getAutomationById = async (req: AuthenticatedRequest, res: Response
 
 export const createAutomation = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
-    const automation = await AutomationService.createAutomation({ ...req.body, userId: req.user?.userId });
+    const automation = await AutomationService.createAutomation(req.bizId!, { ...req.body, userId: req.user?.userId });
     res.status(201).json({ success: true, data: automation });
   } catch (err) {
     next(err);
@@ -604,7 +667,7 @@ export const createAutomation = async (req: AuthenticatedRequest, res: Response,
 
 export const toggleAutomation = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
-    const automation = await AutomationService.toggleAutomation(req.params.id, req.body.isActive);
+    const automation = await AutomationService.toggleAutomation(req.bizId!, req.params.id, req.body.isActive);
     res.json({ success: true, data: automation });
   } catch (err) {
     next(err);
@@ -613,7 +676,7 @@ export const toggleAutomation = async (req: AuthenticatedRequest, res: Response,
 
 export const updateAutomation = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
-    const automation = await AutomationService.updateAutomation(req.params.id, req.body);
+    const automation = await AutomationService.updateAutomation(req.bizId!, req.params.id, req.body);
     res.json({ success: true, data: automation });
   } catch (err) {
     next(err);
@@ -622,7 +685,7 @@ export const updateAutomation = async (req: AuthenticatedRequest, res: Response,
 
 export const deleteAutomation = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
-    await AutomationService.deleteAutomation(req.params.id);
+    await AutomationService.deleteAutomation(req.bizId!, req.params.id);
     res.json({ success: true, data: { message: 'Automation deleted' } });
   } catch (err) {
     next(err);
@@ -631,7 +694,7 @@ export const deleteAutomation = async (req: AuthenticatedRequest, res: Response,
 
 export const duplicateAutomation = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
-    const automation = await AutomationService.duplicateAutomation(req.params.id, req.user?.userId);
+    const automation = await AutomationService.duplicateAutomation(req.bizId!, req.params.id, req.user?.userId);
     res.status(201).json({ success: true, data: automation });
   } catch (err) {
     next(err);
@@ -640,7 +703,7 @@ export const duplicateAutomation = async (req: AuthenticatedRequest, res: Respon
 
 export const importAutomation = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
-    const automation = await AutomationService.importAutomation(req.body, req.user?.userId);
+    const automation = await AutomationService.importAutomation(req.bizId!, req.body, req.user?.userId);
     res.status(201).json({ success: true, data: automation });
   } catch (err) {
     next(err);
@@ -649,7 +712,7 @@ export const importAutomation = async (req: AuthenticatedRequest, res: Response,
 
 export const getAutomationExecutions = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
-    const result = await AutomationService.getExecutions(req.query);
+    const result = await AutomationService.getExecutions(req.bizId!, req.query);
     res.json({ success: true, data: result.data, meta: result.meta });
   } catch (err) {
     next(err);
@@ -661,7 +724,7 @@ export const getAutomationExecutions = async (req: AuthenticatedRequest, res: Re
 // -----------------------------------------------------------------------------
 export const getUserNotifications = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
-    const result = await NotificationService.getUserNotifications(req.user!.userId);
+    const result = await NotificationService.getUserNotifications(req.bizId!, req.user!.userId);
     res.json({ success: true, data: result });
   } catch (err) {
     next(err);
@@ -679,7 +742,7 @@ export const markNotificationRead = async (req: AuthenticatedRequest, res: Respo
 
 export const markAllNotificationsRead = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
-    await NotificationService.markAllAsRead(req.user!.userId);
+    await NotificationService.markAllAsRead(req.bizId!, req.user!.userId);
     res.json({ success: true, data: { message: 'All notifications marked as read' } });
   } catch (err) {
     next(err);
@@ -692,7 +755,7 @@ export const markAllNotificationsRead = async (req: AuthenticatedRequest, res: R
 export const switchDemoIndustry = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
     const { industry } = req.body;
-    const result = await runSeedEngine(industry || 'xedien');
+    const result = await runSeedEngine(req.bizId!, industry || 'xedien');
     res.json({ success: true, data: result });
   } catch (err) {
     next(err);
@@ -704,7 +767,7 @@ export const switchDemoIndustry = async (req: AuthenticatedRequest, res: Respons
 // -----------------------------------------------------------------------------
 export const getUsers = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
-    const users = await UserService.getUsers();
+    const users = await UserService.getUsers(req.bizId!);
     res.json({ success: true, data: users });
   } catch (err) {
     next(err);
@@ -713,7 +776,7 @@ export const getUsers = async (req: AuthenticatedRequest, res: Response, next: N
 
 export const createUser = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
-    const user = await UserService.createUser(req.body);
+    const user = await UserService.createUser(req.bizId!, req.body);
     res.status(201).json({ success: true, data: user });
   } catch (err) {
     next(err);
@@ -743,10 +806,9 @@ export const changeUserPassword = async (req: AuthenticatedRequest, res: Respons
   }
 };
 
-
 export const getStaff = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
-    const staff = await UserService.getStaff();
+    const staff = await UserService.getStaff(req.bizId!);
     res.json({ success: true, data: staff });
   } catch (err) {
     next(err);
@@ -755,7 +817,7 @@ export const getStaff = async (req: AuthenticatedRequest, res: Response, next: N
 
 export const getTeams = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
-    const teams = await UserService.getTeams();
+    const teams = await UserService.getTeams(req.bizId!);
     res.json({ success: true, data: teams });
   } catch (err) {
     next(err);
@@ -764,7 +826,7 @@ export const getTeams = async (req: AuthenticatedRequest, res: Response, next: N
 
 export const getRoles = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
-    const roles = await UserService.getRoles();
+    const roles = await UserService.getRoles(req.bizId!);
     res.json({ success: true, data: roles });
   } catch (err) {
     next(err);
@@ -774,7 +836,7 @@ export const getRoles = async (req: AuthenticatedRequest, res: Response, next: N
 export const allocateLeads = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
     const { leadIds, ownerId } = req.body;
-    const result = await UserService.allocateLeads(leadIds, ownerId);
+    const result = await UserService.allocateLeads(req.bizId!, leadIds, ownerId);
     res.json({ success: true, data: result });
   } catch (err) {
     next(err);
@@ -786,7 +848,7 @@ export const allocateLeads = async (req: AuthenticatedRequest, res: Response, ne
 // -----------------------------------------------------------------------------
 export const checkIdentity = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
-    const result = await IdentityResolutionService.resolveIdentity(req.body);
+    const result = await IdentityResolutionService.resolveIdentity(req.bizId!, req.body);
     res.json({ success: true, data: result });
   } catch (err) {
     next(err);
@@ -796,7 +858,7 @@ export const checkIdentity = async (req: AuthenticatedRequest, res: Response, ne
 export const resolveLeadIdentity = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
     const { action, targetCustomerId } = req.body;
-    const result = await IdentityResolutionService.resolveDuplicateLead(req.params.id, action, targetCustomerId);
+    const result = await IdentityResolutionService.resolveDuplicateLead(req.bizId!, req.params.id, action, targetCustomerId);
     res.json({ success: true, data: result });
   } catch (err) {
     next(err);
@@ -805,7 +867,7 @@ export const resolveLeadIdentity = async (req: AuthenticatedRequest, res: Respon
 
 export const getCustomerIdentities = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
-    const identities = await IdentityResolutionService.getCustomerIdentities(req.params.id);
+    const identities = await IdentityResolutionService.getCustomerIdentities(req.bizId!, req.params.id);
     res.json({ success: true, data: identities });
   } catch (err) {
     next(err);
@@ -815,7 +877,7 @@ export const getCustomerIdentities = async (req: AuthenticatedRequest, res: Resp
 export const addCustomerIdentity = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
     const { type, identityValue } = req.body;
-    const identity = await IdentityResolutionService.addIdentityToCustomer(req.params.id, type, identityValue);
+    const identity = await IdentityResolutionService.addIdentityToCustomer(req.bizId!, req.params.id, type, identityValue);
     res.status(201).json({ success: true, data: identity });
   } catch (err) {
     next(err);
@@ -827,7 +889,7 @@ export const addCustomerIdentity = async (req: AuthenticatedRequest, res: Respon
 // -----------------------------------------------------------------------------
 export const getConversations = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
-    const convs = await ConversationService.getConversations(req.query);
+    const convs = await ConversationService.getConversations(req.bizId!, req.query);
     res.json({ success: true, data: convs.data, meta: convs.meta });
   } catch (err) {
     next(err);
@@ -836,7 +898,7 @@ export const getConversations = async (req: AuthenticatedRequest, res: Response,
 
 export const getConversationById = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
-    const conv = await ConversationService.getConversationById(req.params.id);
+    const conv = await ConversationService.getConversationById(req.bizId!, req.params.id);
     res.json({ success: true, data: conv });
   } catch (err) {
     next(err);
@@ -845,7 +907,7 @@ export const getConversationById = async (req: AuthenticatedRequest, res: Respon
 
 export const createConversation = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
-    const conv = await ConversationService.createConversation(req.body);
+    const conv = await ConversationService.createConversation(req.bizId!, req.body);
     res.status(201).json({ success: true, data: conv });
   } catch (err) {
     next(err);
@@ -854,7 +916,7 @@ export const createConversation = async (req: AuthenticatedRequest, res: Respons
 
 export const addMessage = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
-    const msg = await ConversationService.addMessage(req.params.id, req.body);
+    const msg = await ConversationService.addMessage(req.bizId!, req.params.id, req.body);
     res.status(201).json({ success: true, data: msg });
   } catch (err) {
     next(err);
@@ -866,7 +928,7 @@ export const addMessage = async (req: AuthenticatedRequest, res: Response, next:
 // -----------------------------------------------------------------------------
 export const getLeadDuplicateRule = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
-    const rule = await SystemSettingService.getLeadDuplicateRule();
+    const rule = await SystemSettingService.getLeadDuplicateRule(req.bizId!);
     res.json({ success: true, data: rule });
   } catch (err) {
     next(err);
@@ -875,13 +937,9 @@ export const getLeadDuplicateRule = async (req: AuthenticatedRequest, res: Respo
 
 export const updateLeadDuplicateRule = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
-    const updated = await SystemSettingService.updateLeadDuplicateRule(req.body);
+    const updated = await SystemSettingService.updateLeadDuplicateRule(req.bizId!, req.body);
     res.json({ success: true, data: updated });
   } catch (err) {
     next(err);
   }
 };
-
-
-
-

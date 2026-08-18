@@ -3,7 +3,7 @@ import { publishOutboxEvent } from '../events/outboxPublisher';
 import { AppError } from '../middleware/errorMiddleware';
 
 export class OpportunityService {
-  public static async getOpportunities(params: {
+  public static async getOpportunities(bizId: bigint, params: {
     page?: number;
     limit?: number;
     search?: string;
@@ -16,7 +16,7 @@ export class OpportunityService {
     const limit = Math.min(Math.max(Number(params.limit) || 10, 1), 100);
     const skip = (page - 1) * limit;
 
-    const where: any = { deletedAt: null };
+    const where: any = { bizId, deletedAt: null };
     if (params.pipelineId) where.pipelineId = BigInt(params.pipelineId);
     if (params.stageId) where.stageId = BigInt(params.stageId);
     if (params.status) where.status = params.status;
@@ -60,12 +60,12 @@ export class OpportunityService {
     };
   }
 
-  public static async getKanbanBoard(pipelineId?: string | number) {
+  public static async getKanbanBoard(bizId: bigint, pipelineId?: string | number) {
     let pId: bigint;
     if (pipelineId) {
       pId = BigInt(pipelineId);
     } else {
-      const defaultPipeline = await prisma.pipeline.findFirst({ where: { isDefault: true } });
+      const defaultPipeline = await prisma.pipeline.findFirst({ where: { bizId, isDefault: true } });
       if (!defaultPipeline) throw new AppError('No default pipeline found', 404, 'PIPELINE_NOT_FOUND');
       pId = defaultPipeline.id;
     }
@@ -76,7 +76,7 @@ export class OpportunityService {
     });
 
     const opps = await prisma.opportunity.findMany({
-      where: { pipelineId: pId, deletedAt: null },
+      where: { bizId, pipelineId: pId, deletedAt: null },
       orderBy: { createdAt: 'desc' },
       include: {
         company: { select: { id: true, name: true } },
@@ -112,10 +112,10 @@ export class OpportunityService {
     return { pipelineId: pId.toString(), columns };
   }
 
-  public static async getOpportunityById(id: string | number) {
+  public static async getOpportunityById(bizId: bigint, id: string | number) {
     const oppId = BigInt(id);
     const opp = await prisma.opportunity.findFirst({
-      where: { id: oppId, deletedAt: null },
+      where: { id: oppId, bizId, deletedAt: null },
       include: {
         stage: true,
         pipeline: true,
@@ -139,12 +139,12 @@ export class OpportunityService {
 
     const [activities, tasks] = await Promise.all([
       prisma.activity.findMany({
-        where: { relatedType: 'OPPORTUNITY', relatedId: oppId },
+        where: { bizId, relatedType: 'OPPORTUNITY', relatedId: oppId },
         orderBy: { createdAt: 'desc' },
         include: { owner: { select: { firstName: true, lastName: true } } },
       }),
       prisma.task.findMany({
-        where: { relatedType: 'OPPORTUNITY', relatedId: oppId },
+        where: { bizId, relatedType: 'OPPORTUNITY', relatedId: oppId },
         orderBy: { dueAt: 'asc' },
         include: { assignee: { select: { firstName: true, lastName: true } } },
       }),
@@ -175,7 +175,7 @@ export class OpportunityService {
     };
   }
 
-  public static async createOpportunity(data: any) {
+  public static async createOpportunity(bizId: bigint, data: any) {
     return await prisma.$transaction(async (tx) => {
       const pipelineId = BigInt(data.pipelineId);
       const stageId = BigInt(data.stageId);
@@ -196,6 +196,7 @@ export class OpportunityService {
 
       const opp = await tx.opportunity.create({
         data: {
+          bizId,
           name: data.name,
           companyId: data.companyId ? BigInt(data.companyId) : null,
           contactId: data.contactId ? BigInt(data.contactId) : null,
@@ -225,7 +226,7 @@ export class OpportunityService {
       });
 
       // Publish event
-      await publishOutboxEvent(tx, 'OPPORTUNITY_CREATED', 'OPPORTUNITY', opp.id, {
+      await publishOutboxEvent(tx, bizId, 'OPPORTUNITY_CREATED', 'OPPORTUNITY', opp.id, {
         id: opp.id.toString(),
         name: opp.name,
         amount: opp.amount,
@@ -239,12 +240,12 @@ export class OpportunityService {
     });
   }
 
-  public static async updateStage(id: string | number, newStageId: string | number, userId?: string | number) {
+  public static async updateStage(bizId: bigint, id: string | number, newStageId: string | number, userId?: string | number) {
     const oppId = BigInt(id);
     const targetStageId = BigInt(newStageId);
 
     return await prisma.$transaction(async (tx) => {
-      const opp = await tx.opportunity.findFirst({ where: { id: oppId, deletedAt: null } });
+      const opp = await tx.opportunity.findFirst({ where: { id: oppId, bizId, deletedAt: null } });
       if (!opp) throw new AppError('Opportunity not found', 404, 'OPPORTUNITY_NOT_FOUND');
 
       if (opp.stageId === targetStageId) return { ...opp, id: opp.id.toString() };
@@ -302,7 +303,7 @@ export class OpportunityService {
       if (status === 'WON') eventType = 'OPPORTUNITY_WON';
       if (status === 'LOST') eventType = 'OPPORTUNITY_LOST';
 
-      await publishOutboxEvent(tx, eventType, 'OPPORTUNITY', oppId, {
+      await publishOutboxEvent(tx, bizId, eventType, 'OPPORTUNITY', oppId, {
         id: oppId.toString(),
         name: updated.name,
         amount: updated.amount,
@@ -317,8 +318,11 @@ export class OpportunityService {
     });
   }
 
-  public static async updateOpportunity(id: string | number, data: any) {
+  public static async updateOpportunity(bizId: bigint, id: string | number, data: any) {
     const oppId = BigInt(id);
+    const existing = await prisma.opportunity.findFirst({ where: { id: oppId, bizId, deletedAt: null } });
+    if (!existing) throw new AppError('Opportunity not found', 404, 'OPPORTUNITY_NOT_FOUND');
+
     const updated = await prisma.opportunity.update({
       where: { id: oppId },
       data: {
@@ -334,9 +338,12 @@ export class OpportunityService {
     return { ...updated, id: updated.id.toString() };
   }
 
-  public static async addProduct(oppId: string | number, productId: string | number, quantity: number, unitPrice: number) {
+  public static async addProduct(bizId: bigint, oppId: string | number, productId: string | number, quantity: number, unitPrice: number) {
     const opportunityId = BigInt(oppId);
     const prodId = BigInt(productId);
+
+    const opp = await prisma.opportunity.findFirst({ where: { id: opportunityId, bizId, deletedAt: null } });
+    if (!opp) throw new AppError('Opportunity not found', 404, 'OPPORTUNITY_NOT_FOUND');
 
     const totalPrice = quantity * unitPrice;
 

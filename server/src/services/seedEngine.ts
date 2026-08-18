@@ -5,8 +5,35 @@ import path from 'path';
 
 const prisma = new PrismaClient();
 
-export async function runSeedEngine(industryKey: string = 'xedien') {
+export async function runSeedEngine(bizIdInput?: bigint | string, industryKeyParam: string = 'xedien') {
+  let bizId: bigint | null = null;
+  let industryKey = industryKeyParam;
+
+  if (typeof bizIdInput === 'string' && isNaN(Number(bizIdInput))) {
+    // bizIdInput is actually industryKey!
+    industryKey = bizIdInput;
+  } else if (bizIdInput) {
+    bizId = BigInt(bizIdInput);
+  }
+
   console.log(`🌱 [SeedEngine] Starting database seed for industry: "${industryKey}"...`);
+
+  // Resolve Business
+  if (!bizId) {
+    // Find or create default Business
+    let defaultBiz = await prisma.business.findFirst({ where: { slug: 'default-biz' } });
+    if (!defaultBiz) {
+      defaultBiz = await prisma.business.create({
+        data: {
+          name: 'Doanh Nghiệp Mặc Định',
+          slug: 'default-biz',
+          status: 'ACTIVE',
+          plan: 'ENTERPRISE',
+        },
+      });
+    }
+    bizId = defaultBiz.id;
+  }
 
   // 1. Resolve dataset file path
   let datasetPath = path.join(process.cwd(), 'prisma', 'datasets', `${industryKey}.json`);
@@ -20,101 +47,86 @@ export async function runSeedEngine(industryKey: string = 'xedien') {
 
   console.log(`📦 Loaded Dataset: ${dataset.industryName} (${dataset.industryCode})`);
 
-  // 2. Clean old operational sample data
-  console.log('🧹 Clearing old sample data...');
-  await prisma.activity.deleteMany({});
-  await prisma.task.deleteMany({});
-  await prisma.quoteItem.deleteMany({});
-  await prisma.quote.deleteMany({});
-  await prisma.opportunityProduct.deleteMany({});
-  await prisma.opportunityStageHistory.deleteMany({});
-  await prisma.opportunity.deleteMany({});
-  await prisma.lead.deleteMany({});
-  await prisma.customer.deleteMany({});
-  await prisma.contact.deleteMany({});
-  await prisma.company.deleteMany({});
-  await prisma.campaign.deleteMany({});
-  await prisma.product.deleteMany({});
-  await prisma.automationExecutionLog.deleteMany({});
-  await prisma.automationAction.deleteMany({});
-  await prisma.automationTrigger.deleteMany({});
-  await prisma.automation.deleteMany({});
-  await prisma.notification.deleteMany({});
-  await prisma.auditLog.deleteMany({});
+  // 2. Clean old operational sample data for this Biz
+  console.log(`🧹 Clearing old sample data for Business #${bizId}...`);
+  await prisma.activity.deleteMany({ where: { bizId } });
+  await prisma.task.deleteMany({ where: { bizId } });
+  await prisma.quoteItem.deleteMany({ where: { quote: { bizId } } });
+  await prisma.quote.deleteMany({ where: { bizId } });
+  await prisma.opportunityProduct.deleteMany({ where: { opportunity: { bizId } } });
+  await prisma.opportunityStageHistory.deleteMany({ where: { opportunity: { bizId } } });
+  await prisma.opportunity.deleteMany({ where: { bizId } });
+  await prisma.leadProduct.deleteMany({ where: { lead: { bizId } } });
+  await prisma.lead.deleteMany({ where: { bizId } });
+  await prisma.customerIdentity.deleteMany({ where: { customer: { bizId } } });
+  await prisma.customer.deleteMany({ where: { bizId } });
+  await prisma.contact.deleteMany({ where: { bizId } });
+  await prisma.company.deleteMany({ where: { bizId } });
+  await prisma.campaign.deleteMany({ where: { bizId } });
+  await prisma.product.deleteMany({ where: { bizId } });
+  await prisma.automationExecutionLog.deleteMany({ where: { execution: { automation: { bizId } } } });
+  await prisma.automationExecution.deleteMany({ where: { automation: { bizId } } });
+  await prisma.automationAction.deleteMany({ where: { automation: { bizId } } });
+  await prisma.automationCondition.deleteMany({ where: { automation: { bizId } } });
+  await prisma.automationTrigger.deleteMany({ where: { automation: { bizId } } });
+  await prisma.automation.deleteMany({ where: { bizId } });
+  await prisma.notification.deleteMany({ where: { bizId } });
+  await prisma.auditLog.deleteMany({ where: { bizId } });
 
-  // 3. System Roles
+  // 3. System Roles for this Biz
   const adminRole = await prisma.role.upsert({
-    where: { code: 'ADMIN' },
+    where: { bizId_code: { bizId, code: 'ADMIN' } },
     update: {},
-    create: { name: 'Administrator', code: 'ADMIN', description: 'Quản trị viên hệ thống CRM' },
+    create: { bizId, name: 'Administrator', code: 'ADMIN', description: 'Quản trị viên hệ thống CRM' },
   });
 
   const salesRole = await prisma.role.upsert({
-    where: { code: 'SALES' },
+    where: { bizId_code: { bizId, code: 'SALES' } },
     update: {},
-    create: { name: 'Sales Executive', code: 'SALES', description: 'Chuyên viên tư vấn & bán hàng' },
+    create: { bizId, name: 'Sales Executive', code: 'SALES', description: 'Chuyên viên tư vấn & bán hàng' },
   });
 
   const managerRole = await prisma.role.upsert({
-    where: { code: 'MANAGER' },
+    where: { bizId_code: { bizId, code: 'MANAGER' } },
     update: {},
-    create: { name: 'Sales Manager', code: 'MANAGER', description: 'Quản lý đội ngũ Sales' },
+    create: { bizId, name: 'Sales Manager', code: 'MANAGER', description: 'Quản lý đội ngũ Sales' },
   });
 
-  // 4. System Users (Default password: password123)
+  // 4. System Users & Business Memberships
   const passwordHash = await bcrypt.hash('password123', 10);
 
-  const adminUser = await prisma.user.upsert({
-    where: { email: 'admin@example.com' },
-    update: {},
-    create: {
-      email: 'admin@example.com',
-      passwordHash,
-      firstName: 'Quản trị',
-      lastName: 'Hệ Thống',
-      phone: '0901000001',
-      userRoles: { create: { roleId: adminRole.id } },
-    },
-  });
+  const upsertUserWithMember = async (email: string, firstName: string, lastName: string, phone: string, roleId: bigint) => {
+    let user = await prisma.user.findUnique({ where: { email } });
+    if (!user) {
+      user = await prisma.user.create({
+        data: {
+          email,
+          passwordHash,
+          firstName,
+          lastName,
+          phone,
+        },
+      });
+    }
+    // Ensure membership in this biz
+    await prisma.businessMember.upsert({
+      where: { businessId_userId: { businessId: bizId, userId: user.id } },
+      update: { roleId, isActive: true },
+      create: {
+        businessId: bizId,
+        userId: user.id,
+        roleId,
+        isDefault: true,
+        isActive: true,
+      },
+    });
+    return user;
+  };
 
-  const sales1User = await prisma.user.upsert({
-    where: { email: 'sales1@example.com' },
-    update: { firstName: 'Sale', lastName: 'Minh' },
-    create: {
-      email: 'sales1@example.com',
-      passwordHash,
-      firstName: 'Sale',
-      lastName: 'Minh',
-      phone: '0901000002',
-      userRoles: { create: { roleId: salesRole.id } },
-    },
-  });
-
-  const sales2User = await prisma.user.upsert({
-    where: { email: 'sales2@example.com' },
-    update: { firstName: 'Sale', lastName: 'Lan' },
-    create: {
-      email: 'sales2@example.com',
-      passwordHash,
-      firstName: 'Sale',
-      lastName: 'Lan',
-      phone: '0901000003',
-      userRoles: { create: { roleId: salesRole.id } },
-    },
-  });
-
-  const managerUser = await prisma.user.upsert({
-    where: { email: 'manager@example.com' },
-    update: { firstName: 'Sale', lastName: 'Nam' },
-    create: {
-      email: 'manager@example.com',
-      passwordHash,
-      firstName: 'Sale',
-      lastName: 'Nam',
-      phone: '0901000004',
-      userRoles: { create: { roleId: managerRole.id } },
-    },
-  });
+  const adminUser = await upsertUserWithMember('admin@example.com', 'Quản trị', 'Hệ Thống', '0901000001', adminRole.id);
+  const sales1User = await upsertUserWithMember('sales1@example.com', 'Sale', 'Minh', '0901000002', salesRole.id);
+  const sales2User = await upsertUserWithMember('sales2@example.com', 'Sale', 'Lan', '0901000003', salesRole.id);
+  const managerUser = await upsertUserWithMember('manager@example.com', 'Sale', 'Nam', '0901000004', managerRole.id);
 
   const userMap: Record<string, any> = {
     'admin@example.com': adminUser,
@@ -124,10 +136,11 @@ export async function runSeedEngine(industryKey: string = 'xedien') {
   };
 
   // 5. Pipeline & Stages
-  let pipeline = await prisma.pipeline.findFirst({ where: { isDefault: true } });
+  let pipeline = await prisma.pipeline.findFirst({ where: { bizId, isDefault: true } });
   if (!pipeline) {
     pipeline = await prisma.pipeline.create({
       data: {
+        bizId,
         name: dataset.pipelineName || 'Quy trình Bán Hàng',
         isDefault: true,
         isActive: true,
@@ -165,7 +178,7 @@ export async function runSeedEngine(industryKey: string = 'xedien') {
   console.log(`🛍️ Seeding ${dataset.products.length} Products...`);
   const productMapByCode: Record<string, any> = {};
   for (const prodData of dataset.products) {
-    const created = await prisma.product.create({ data: prodData });
+    const created = await prisma.product.create({ data: { ...prodData, bizId } });
     productMapByCode[prodData.code] = created;
   }
 
@@ -176,6 +189,7 @@ export async function runSeedEngine(industryKey: string = 'xedien') {
     const created = await prisma.campaign.create({
       data: {
         ...campData,
+        bizId,
         ownerId: managerUser.id,
       },
     });
@@ -190,6 +204,7 @@ export async function runSeedEngine(industryKey: string = 'xedien') {
       const company = await prisma.company.create({
         data: {
           ...compFields,
+          bizId,
           ownerId: sales1User.id,
         },
       });
@@ -199,6 +214,7 @@ export async function runSeedEngine(industryKey: string = 'xedien') {
         contactRecord = await prisma.contact.create({
           data: {
             ...contact,
+            bizId,
             companyId: company.id,
             ownerId: sales1User.id,
             isCustomer: true,
@@ -209,6 +225,7 @@ export async function runSeedEngine(industryKey: string = 'xedien') {
       if (customer) {
         const custRecord = await prisma.customer.create({
           data: {
+            bizId,
             customerCode: customer.customerCode,
             entityType: 'COMPANY',
             companyId: company.id,
@@ -255,6 +272,7 @@ export async function runSeedEngine(industryKey: string = 'xedien') {
     const lead = await prisma.lead.create({
       data: {
         ...leadFields,
+        bizId,
         campaignId: campaign ? campaign.id : null,
         ownerId: assignedUser.id,
       },
@@ -264,12 +282,12 @@ export async function runSeedEngine(industryKey: string = 'xedien') {
     }
   }
 
-  // Ensure Lead Mới = 32 (28 có activity/xử lý, 4 chưa xử lý)
   // Create 4 unprocessed leads (status = NEW, 0 activities)
   const salesUsersList = [sales1User, sales2User, managerUser];
   for (let i = 1; i <= 4; i++) {
     await prisma.lead.create({
       data: {
+        bizId,
         firstName: `Khách mới chưa gọi`,
         lastName: `#${i}`,
         phone: `090811100${i}`,
@@ -285,6 +303,7 @@ export async function runSeedEngine(industryKey: string = 'xedien') {
   for (let i = 1; i <= 28; i++) {
     const processedLead = await prisma.lead.create({
       data: {
+        bizId,
         firstName: `Khách tiềm năng mới`,
         lastName: `Đã xử lý #${i}`,
         phone: `09082220${i < 10 ? '0' + i : i}`,
@@ -294,9 +313,9 @@ export async function runSeedEngine(industryKey: string = 'xedien') {
         ownerId: salesUsersList[i % 3].id,
       },
     });
-    // Add an activity for this processed lead
     await prisma.activity.create({
       data: {
+        bizId,
         type: 'CALL',
         subject: `Cuộc gọi tiếp cận đầu tiên #${i}`,
         status: 'COMPLETED',
@@ -307,12 +326,13 @@ export async function runSeedEngine(industryKey: string = 'xedien') {
     });
   }
 
-  // Ensure 13 Inactive Leads > 7 days (status != CONVERTED/LOST, updated 10 days ago)
+  // Ensure 13 Inactive Leads > 7 days
   const tenDaysAgo = new Date(Date.now() - 10 * 24 * 3600 * 1000);
   for (let i = 1; i <= 13; i++) {
-    const owner = i <= 3 ? sales1User : i <= 6 ? sales2User : managerUser; // 3 for Minh, 3 for Lan, 7 for Nam
+    const owner = i <= 3 ? sales1User : i <= 6 ? sales2User : managerUser;
     await prisma.lead.create({
       data: {
+        bizId,
         firstName: `Khách bỏ quên`,
         lastName: `>7d #${i}`,
         phone: `09093330${i < 10 ? '0' + i : i}`,
@@ -326,7 +346,6 @@ export async function runSeedEngine(industryKey: string = 'xedien') {
     });
   }
 
-
   // 10. Opportunities
   console.log(`💼 Seeding ${dataset.opportunities.length} Opportunities...`);
   const oppMapByKey: Record<string, any> = {};
@@ -339,6 +358,7 @@ export async function runSeedEngine(industryKey: string = 'xedien') {
     const opp = await prisma.opportunity.create({
       data: {
         ...oppFields,
+        bizId,
         leadId: lead ? lead.id : null,
         ownerId: assignedUser.id,
         pipelineId: pipeline.id,
@@ -349,7 +369,6 @@ export async function runSeedEngine(industryKey: string = 'xedien') {
       oppMapByKey[key] = opp;
     }
 
-    // Attach products
     if (products && Array.isArray(products)) {
       for (const pItem of products) {
         const prod = productMapByCode[pItem.productCode];
@@ -368,10 +387,10 @@ export async function runSeedEngine(industryKey: string = 'xedien') {
       }
     }
 
-    // Attach quote
     if (quote) {
       const createdQuote = await prisma.quote.create({
         data: {
+          bizId,
           opportunityId: opp.id,
           quoteNumber: quote.quoteNumber,
           version: 1,
@@ -417,24 +436,25 @@ export async function runSeedEngine(industryKey: string = 'xedien') {
       await prisma.activity.create({
         data: {
           ...actFields,
+          bizId,
           ownerId: assignedUser.id,
           completedAt: new Date(),
           relatedType: relatedLead ? 'LEAD' : relatedOpp ? 'OPPORTUNITY' : 'GENERAL',
-          relatedId: relatedLead ? relatedLead.id : relatedOpp ? relatedOpp.id : null,
+          relatedId: relatedLead ? relatedLead.id : relatedOpp ? relatedOpp.id : 1n,
         },
       });
     }
   }
 
-  // 12. Tasks & Follow-ups Seeding for Leader Review
+  // 12. Tasks
   console.log(`📌 Seeding Tasks & Leader Dashboard Demo Data...`);
   const now = Date.now();
   const oneDay = 24 * 3600 * 1000;
 
-  // Sale Minh: 0 overdue, 15 follow-ups today (10 completed, 5 remaining)
   for (let i = 1; i <= 15; i++) {
     await prisma.task.create({
       data: {
+        bizId,
         title: `Gọi điện chăm sóc khách hàng Minh #${i}`,
         priority: i % 2 === 0 ? 'HIGH' : 'MEDIUM',
         status: i <= 10 ? 'COMPLETED' : 'TODO',
@@ -447,10 +467,10 @@ export async function runSeedEngine(industryKey: string = 'xedien') {
     });
   }
 
-  // Sale Lan: 2 overdue tasks, 20 follow-ups today (12 completed, 8 remaining)
   for (let i = 1; i <= 2; i++) {
     await prisma.task.create({
       data: {
+        bizId,
         title: `[Quá hạn] Báo giá hợp đồng xe đạp điện - Sale Lan #${i}`,
         priority: 'URGENT',
         status: 'TODO',
@@ -464,6 +484,7 @@ export async function runSeedEngine(industryKey: string = 'xedien') {
   for (let i = 1; i <= 20; i++) {
     await prisma.task.create({
       data: {
+        bizId,
         title: `Tư vấn tính năng & thủ tục trả góp - Sale Lan #${i}`,
         priority: 'MEDIUM',
         status: i <= 12 ? 'COMPLETED' : 'TODO',
@@ -476,10 +497,10 @@ export async function runSeedEngine(industryKey: string = 'xedien') {
     });
   }
 
-  // Sale Nam: 7 overdue tasks (🔴 CRITICAL), 32 follow-ups today (19 completed, 13 remaining)
   for (let i = 1; i <= 7; i++) {
     await prisma.task.create({
       data: {
+        bizId,
         title: `🔴 [QUÁ HẠN KHẨN] Đặt lịch lái thử xe & chốt hợp đồng - Sale Nam #${i}`,
         priority: 'URGENT',
         status: 'IN_PROGRESS',
@@ -493,6 +514,7 @@ export async function runSeedEngine(industryKey: string = 'xedien') {
   for (let i = 1; i <= 32; i++) {
     await prisma.task.create({
       data: {
+        bizId,
         title: `Theo dõi phản hồi đề xuất báo giá - Sale Nam #${i}`,
         priority: 'HIGH',
         status: i <= 19 ? 'COMPLETED' : 'TODO',
@@ -505,13 +527,13 @@ export async function runSeedEngine(industryKey: string = 'xedien') {
     });
   }
 
-
   // 13. Automations
   if (dataset.automations) {
     console.log(`🤖 Seeding ${dataset.automations.length} Automations...`);
     for (const autoData of dataset.automations) {
       await prisma.automation.create({
         data: {
+          bizId,
           name: autoData.name,
           description: autoData.description,
           isActive: true,
@@ -542,7 +564,7 @@ export async function runSeedEngine(industryKey: string = 'xedien') {
     }
   }
 
-  console.log(`✅ [SeedEngine] Successfully loaded dataset: "${dataset.industryName}"!`);
+  console.log(`✅ [SeedEngine] Successfully loaded dataset: "${dataset.industryName}" for Business #${bizId}!`);
   return {
     success: true,
     industryName: dataset.industryName,

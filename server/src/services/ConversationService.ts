@@ -12,7 +12,7 @@ export interface CreateConversationDTO {
 }
 
 export class ConversationService {
-  public static async getConversations(params: {
+  public static async getConversations(bizId: bigint, params: {
     customerId?: string | number;
     leadId?: string | number;
     channelType?: string;
@@ -23,7 +23,7 @@ export class ConversationService {
     const limit = Math.min(Math.max(Number(params.limit) || 10, 1), 100);
     const skip = (page - 1) * limit;
 
-    const where: any = {};
+    const where: any = { bizId };
     if (params.customerId) where.customerId = BigInt(params.customerId);
     if (params.leadId) where.leadId = BigInt(params.leadId);
     if (params.channelType) where.channelType = params.channelType;
@@ -57,10 +57,10 @@ export class ConversationService {
     };
   }
 
-  public static async getConversationById(id: string | number) {
+  public static async getConversationById(bizId: bigint, id: string | number) {
     const convId = BigInt(id);
-    const conv = await prisma.conversation.findUnique({
-      where: { id: convId },
+    const conv = await prisma.conversation.findFirst({
+      where: { id: convId, bizId },
       include: {
         customer: { include: { contact: true, company: true } },
         lead: true,
@@ -83,18 +83,19 @@ export class ConversationService {
     };
   }
 
-  public static async createConversation(dto: CreateConversationDTO) {
+  public static async createConversation(bizId: bigint, dto: CreateConversationDTO) {
     let customerId = dto.customerId ? BigInt(dto.customerId) : null;
     const leadId = dto.leadId ? BigInt(dto.leadId) : null;
 
     if (!customerId && leadId) {
-      const l = await prisma.lead.findUnique({ where: { id: leadId }, select: { customerId: true } });
+      const l = await prisma.lead.findFirst({ where: { id: leadId, bizId }, select: { customerId: true } });
       if (l?.customerId) customerId = l.customerId;
     }
 
     const result = await prisma.$transaction(async (tx) => {
       const conv = await tx.conversation.create({
         data: {
+          bizId,
           customerId,
           leadId,
           channelType: dto.channelType,
@@ -122,11 +123,12 @@ export class ConversationService {
   }
 
   public static async addMessage(
+    bizId: bigint,
     conversationId: string | number,
     data: { content: string; senderType?: 'CUSTOMER' | 'AGENT' | 'SYSTEM'; senderId?: string }
   ) {
     const convId = BigInt(conversationId);
-    const conv = await prisma.conversation.findUnique({ where: { id: convId } });
+    const conv = await prisma.conversation.findFirst({ where: { id: convId, bizId } });
     if (!conv) throw new AppError('Conversation not found', 404, 'CONVERSATION_NOT_FOUND');
 
     const msg = await prisma.$transaction(async (tx) => {

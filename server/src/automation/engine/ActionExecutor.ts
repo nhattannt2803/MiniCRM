@@ -16,23 +16,52 @@ export class ActionExecutor {
     const rawConfig = typeof action.config === 'string' ? JSON.parse(action.config) : action.config || {};
     const type = action.type || rawConfig.type;
 
+    // Extract bizId from event payload
+    let bizId: bigint | null = eventPayload.bizId ? BigInt(eventPayload.bizId) : null;
+
+    // Fallback: If no bizId in payload, query entity for bizId
+    if (!bizId) {
+      const eId = BigInt(entityId);
+      if (entityType === 'LEAD') {
+        const item = await prisma.lead.findUnique({ where: { id: eId }, select: { bizId: true } });
+        if (item) bizId = item.bizId;
+      } else if (entityType === 'OPPORTUNITY') {
+        const item = await prisma.opportunity.findUnique({ where: { id: eId }, select: { bizId: true } });
+        if (item) bizId = item.bizId;
+      } else if (entityType === 'COMPANY') {
+        const item = await prisma.company.findUnique({ where: { id: eId }, select: { bizId: true } });
+        if (item) bizId = item.bizId;
+      } else if (entityType === 'CONTACT') {
+        const item = await prisma.contact.findUnique({ where: { id: eId }, select: { bizId: true } });
+        if (item) bizId = item.bizId;
+      } else if (entityType === 'CUSTOMER') {
+        const item = await prisma.customer.findUnique({ where: { id: eId }, select: { bizId: true } });
+        if (item) bizId = item.bizId;
+      }
+    }
+
+    if (!bizId) {
+      console.error(`[ActionExecutor] Cannot execute action: bizId not found for ${entityType} #${entityId}`);
+      return { skipped: true, reason: 'bizId not found' };
+    }
+
     switch (type) {
       case 'CREATE_TASK':
-        return this.handleCreateTask(rawConfig, entityType, entityId, eventPayload);
+        return this.handleCreateTask(bizId, rawConfig, entityType, entityId, eventPayload);
       case 'CREATE_ACTIVITY':
-        return this.handleCreateActivity(rawConfig, entityType, entityId, eventPayload);
+        return this.handleCreateActivity(bizId, rawConfig, entityType, entityId, eventPayload);
       case 'ASSIGN_OWNER':
-        return this.handleAssignOwner(rawConfig, entityType, entityId);
+        return this.handleAssignOwner(bizId, rawConfig, entityType, entityId);
       case 'CHANGE_STATUS':
-        return this.handleChangeStatus(rawConfig, entityType, entityId);
+        return this.handleChangeStatus(bizId, rawConfig, entityType, entityId);
       case 'CHANGE_STAGE':
-        return this.handleChangeStage(rawConfig, entityType, entityId);
+        return this.handleChangeStage(bizId, rawConfig, entityType, entityId);
       case 'SEND_NOTIFICATION':
-        return this.handleSendNotification(rawConfig, entityType, entityId, eventPayload);
+        return this.handleSendNotification(bizId, rawConfig, entityType, entityId, eventPayload);
       case 'CREATE_OPPORTUNITY':
-        return this.handleCreateOpportunity(rawConfig, entityType, entityId, eventPayload);
+        return this.handleCreateOpportunity(bizId, rawConfig, entityType, entityId, eventPayload);
       case 'CREATE_CUSTOMER':
-        return this.handleCreateCustomer(rawConfig, entityType, entityId, eventPayload);
+        return this.handleCreateCustomer(bizId, rawConfig, entityType, entityId, eventPayload);
       case 'CALL_WEBHOOK':
         return this.handleCallWebhook(rawConfig, eventPayload);
       default:
@@ -42,6 +71,7 @@ export class ActionExecutor {
   }
 
   private static async handleCreateTask(
+    bizId: bigint,
     config: Record<string, any>,
     entityType: string,
     entityId: number | bigint,
@@ -58,12 +88,15 @@ export class ActionExecutor {
     if (eventPayload && eventPayload.owner_id) {
       assignedTo = BigInt(eventPayload.owner_id);
     } else {
-      const salesUser = await prisma.user.findFirst({ where: { isActive: true } });
-      if (salesUser) assignedTo = salesUser.id;
+      const salesMember = await prisma.businessMember.findFirst({
+        where: { businessId: bizId, isActive: true },
+      });
+      if (salesMember) assignedTo = salesMember.userId;
     }
 
     const task = await prisma.task.create({
       data: {
+        bizId,
         title,
         description,
         priority,
@@ -84,6 +117,7 @@ export class ActionExecutor {
   }
 
   private static async handleCreateActivity(
+    bizId: bigint,
     config: Record<string, any>,
     entityType: string,
     entityId: number | bigint,
@@ -91,6 +125,7 @@ export class ActionExecutor {
   ) {
     const activity = await prisma.activity.create({
       data: {
+        bizId,
         type: config.activity_type || 'NOTE',
         subject: config.subject || 'Automated Activity',
         description: config.description || 'Activity created by Automation Rule',
@@ -104,23 +139,23 @@ export class ActionExecutor {
   }
 
   private static async handleAssignOwner(
+    bizId: bigint,
     config: Record<string, any>,
     entityType: string,
     entityId: number | bigint
   ) {
-    // Pick sales user or explicit user
     let newOwnerId: bigint | null = null;
     if (config.owner_id) {
       newOwnerId = BigInt(config.owner_id);
     } else {
-      // Pick first active sales user
-      const salesUser = await prisma.user.findFirst({
+      const salesMember = await prisma.businessMember.findFirst({
         where: {
+          businessId: bizId,
           isActive: true,
-          userRoles: { some: { role: { code: 'SALES' } } },
+          role: { code: { in: ['SALES', 'SALES_REP', 'SALES_MANAGER'] } },
         },
       });
-      if (salesUser) newOwnerId = salesUser.id;
+      if (salesMember) newOwnerId = salesMember.userId;
     }
 
     if (!newOwnerId) return { updated: false, reason: 'No owner found to assign' };
@@ -137,6 +172,7 @@ export class ActionExecutor {
   }
 
   private static async handleChangeStatus(
+    bizId: bigint,
     config: Record<string, any>,
     entityType: string,
     entityId: number | bigint
@@ -154,6 +190,7 @@ export class ActionExecutor {
   }
 
   private static async handleChangeStage(
+    bizId: bigint,
     config: Record<string, any>,
     entityType: string,
     entityId: number | bigint
@@ -161,7 +198,9 @@ export class ActionExecutor {
     if (entityType !== 'OPPORTUNITY') return { updated: false };
 
     const targetStageCode = config.stage_code || config.to_stage_code;
-    const stage = await prisma.pipelineStage.findFirst({ where: { code: targetStageCode } });
+    const stage = await prisma.pipelineStage.findFirst({
+      where: { code: targetStageCode, pipeline: { bizId } },
+    });
     if (!stage) return { updated: false, reason: 'Stage code not found' };
 
     await prisma.opportunity.update({
@@ -173,6 +212,7 @@ export class ActionExecutor {
   }
 
   private static async handleSendNotification(
+    bizId: bigint,
     config: Record<string, any>,
     entityType: string,
     entityId: number | bigint,
@@ -184,14 +224,17 @@ export class ActionExecutor {
     } else if (eventPayload && eventPayload.assigned_to) {
       targetUserId = BigInt(eventPayload.assigned_to);
     } else {
-      const admin = await prisma.user.findFirst();
-      if (admin) targetUserId = admin.id;
+      const adminMember = await prisma.businessMember.findFirst({
+        where: { businessId: bizId, isActive: true },
+      });
+      if (adminMember) targetUserId = adminMember.userId;
     }
 
     if (!targetUserId) return { created: false };
 
     const notification = await prisma.notification.create({
       data: {
+        bizId,
         userId: targetUserId,
         type: 'AUTOMATION_ALERT',
         title: config.title || 'Automation Notification',
@@ -205,6 +248,7 @@ export class ActionExecutor {
   }
 
   private static async handleCreateOpportunity(
+    bizId: bigint,
     config: Record<string, any>,
     entityType: string,
     entityId: number | bigint,
@@ -214,9 +258,10 @@ export class ActionExecutor {
       const lead = await prisma.lead.findUnique({ where: { id: BigInt(entityId) } });
       if (!lead) return { created: false };
 
-      // Prevent duplicate opportunity creation: Check if an OPEN opportunity already exists for this lead
+      // Prevent duplicate opportunity creation
       const existingOpp = await prisma.opportunity.findFirst({
         where: {
+          bizId,
           leadId: lead.id,
           status: 'OPEN',
           deletedAt: null,
@@ -227,23 +272,23 @@ export class ActionExecutor {
         return { created: false, reason: 'OPEN opportunity already exists for this Lead', opportunityId: existingOpp.id.toString() };
       }
 
-      // Resolve pipeline: use config.pipeline_id if provided, else fall back to default pipeline
+      // Resolve pipeline
       let pipeline;
       if (config.pipeline_id) {
-        pipeline = await prisma.pipeline.findUnique({
-          where: { id: BigInt(config.pipeline_id) },
+        pipeline = await prisma.pipeline.findFirst({
+          where: { id: BigInt(config.pipeline_id), bizId },
           include: { stages: { orderBy: { orderNo: 'asc' } } },
         });
       }
       if (!pipeline) {
         pipeline = await prisma.pipeline.findFirst({
-          where: { isDefault: true },
+          where: { bizId, isDefault: true },
           include: { stages: { orderBy: { orderNo: 'asc' } } },
         });
       }
       if (!pipeline || pipeline.stages.length === 0) return { created: false, reason: 'No pipeline or stages found' };
 
-      // Resolve stage: use config.stage_id if provided, else use first stage of pipeline
+      // Resolve stage
       let targetStage;
       if (config.stage_id) {
         targetStage = pipeline.stages.find((s: any) => s.id.toString() === config.stage_id.toString());
@@ -252,15 +297,11 @@ export class ActionExecutor {
         targetStage = pipeline.stages[0];
       }
 
-      // Fetch lead products with product details
       const leadProducts = await prisma.leadProduct.findMany({
         where: { leadId: lead.id },
         include: { product: true },
       });
 
-      // Resolve initial opportunity value:
-      // If config.amount is provided and > 0, use config.amount.
-      // Otherwise, sum the unit prices of all products associated with this Lead.
       let amount = config.amount ? Number(config.amount) : 0;
       if (!amount || amount === 0) {
         if (leadProducts.length > 0) {
@@ -272,6 +313,7 @@ export class ActionExecutor {
 
       const opp = await prisma.opportunity.create({
         data: {
+          bizId,
           name: oppName,
           leadId: lead.id,
           companyId: lead.companyId,
@@ -287,7 +329,6 @@ export class ActionExecutor {
         },
       });
 
-      // Copy lead products to opportunity products
       if (leadProducts.length > 0) {
         for (const lp of leadProducts) {
           if (lp.product) {
@@ -311,6 +352,7 @@ export class ActionExecutor {
   }
 
   private static async handleCreateCustomer(
+    bizId: bigint,
     config: Record<string, any>,
     entityType: string,
     entityId: number | bigint,
@@ -335,9 +377,9 @@ export class ActionExecutor {
 
     if (!companyId && !contactId) return { created: false, reason: 'No Company or Contact linked' };
 
-    // Check existing customer
     const existing = await prisma.customer.findFirst({
       where: {
+        bizId,
         OR: [
           companyId ? { companyId } : {},
           contactId ? { contactId } : {},
@@ -358,6 +400,7 @@ export class ActionExecutor {
 
     const customer = await prisma.customer.create({
       data: {
+        bizId,
         customerCode,
         entityType: eType,
         companyId,

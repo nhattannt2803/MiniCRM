@@ -2,12 +2,12 @@ import prisma from '../config/database';
 import { AppError } from '../middleware/errorMiddleware';
 
 export class CustomerService {
-  public static async getCustomers(params: { page?: number; limit?: number; search?: string; entityType?: string; status?: string }) {
+  public static async getCustomers(bizId: bigint, params: { page?: number; limit?: number; search?: string; entityType?: string; status?: string }) {
     const page = Math.max(Number(params.page) || 1, 1);
     const limit = Math.min(Math.max(Number(params.limit) || 10, 1), 100);
     const skip = (page - 1) * limit;
 
-    const where: any = { deletedAt: null };
+    const where: any = { bizId, deletedAt: null };
     if (params.entityType) {
       where.entityType = params.entityType;
     }
@@ -35,7 +35,7 @@ export class CustomerService {
           company: {
             include: {
               contacts: {
-                where: { deletedAt: null },
+                where: { bizId, deletedAt: null },
               },
             },
           },
@@ -62,26 +62,27 @@ export class CustomerService {
     };
   }
 
-  public static async getCustomerById(id: string | number) {
+  public static async getCustomerById(bizId: bigint, id: string | number) {
     const customerId = BigInt(id);
     const customer = await prisma.customer.findFirst({
-      where: { id: customerId, deletedAt: null },
+      where: { id: customerId, bizId, deletedAt: null },
       include: {
         company: { include: { contacts: true } },
         contact: true,
         identities: { orderBy: { createdAt: 'desc' } },
         leads: {
-          where: { deletedAt: null },
+          where: { bizId, deletedAt: null },
           orderBy: { createdAt: 'desc' },
           include: { owner: { select: { id: true, firstName: true, lastName: true } } },
         },
         conversations: {
+          where: { bizId },
           orderBy: { updatedAt: 'desc' },
           include: { messages: { orderBy: { sentAt: 'desc' }, take: 1 } },
         },
         owner: { select: { id: true, firstName: true, lastName: true } },
         opportunities: {
-          where: { status: 'WON', deletedAt: null },
+          where: { bizId, status: 'WON', deletedAt: null },
           include: { stage: true, products: { include: { product: true } } },
         },
       },
@@ -95,14 +96,14 @@ export class CustomerService {
     const [activities, tasks] = await Promise.all([
       relatedId
         ? prisma.activity.findMany({
-            where: { relatedType, relatedId },
+            where: { bizId, relatedType, relatedId },
             orderBy: { createdAt: 'desc' },
             include: { owner: { select: { firstName: true, lastName: true } } },
           })
         : [],
       relatedId
         ? prisma.task.findMany({
-            where: { relatedType, relatedId },
+            where: { bizId, relatedType, relatedId },
             orderBy: { dueAt: 'asc' },
             include: { assignee: { select: { firstName: true, lastName: true } } },
           })
@@ -142,7 +143,7 @@ export class CustomerService {
     };
   }
 
-  public static async createCustomer(data: any) {
+  public static async createCustomer(bizId: bigint, data: any) {
     const {
       entityType,
       customerCode,
@@ -180,6 +181,7 @@ export class CustomerService {
 
         const company = await tx.company.create({
           data: {
+            bizId,
             name: companyName,
             taxCode: taxCode || null,
             phone: phone || null,
@@ -195,6 +197,7 @@ export class CustomerService {
         if (firstName || lastName) {
           const contact = await tx.contact.create({
             data: {
+              bizId,
               companyId: company.id,
               firstName: firstName || 'N/A',
               lastName: lastName || '',
@@ -214,6 +217,7 @@ export class CustomerService {
 
         const contact = await tx.contact.create({
           data: {
+            bizId,
             firstName: firstName,
             lastName: lastName || '',
             email: email || contactEmail || null,
@@ -228,6 +232,7 @@ export class CustomerService {
 
       const customer = await tx.customer.create({
         data: {
+          bizId,
           customerCode: code,
           entityType,
           companyId: createdCompanyId,
@@ -290,10 +295,10 @@ export class CustomerService {
     };
   }
 
-  public static async updateCustomer(id: string | number, data: any) {
+  public static async updateCustomer(bizId: bigint, id: string | number, data: any) {
     const customerId = BigInt(id);
     const existing = await prisma.customer.findFirst({
-      where: { id: customerId, deletedAt: null },
+      where: { id: customerId, bizId, deletedAt: null },
       include: { company: true, contact: true },
     });
     if (!existing) throw new AppError('Customer not found', 404, 'CUSTOMER_NOT_FOUND');
@@ -365,9 +370,9 @@ export class CustomerService {
     };
   }
 
-  public static async deleteCustomer(id: string | number) {
+  public static async deleteCustomer(bizId: bigint, id: string | number) {
     const customerId = BigInt(id);
-    const existing = await prisma.customer.findFirst({ where: { id: customerId, deletedAt: null } });
+    const existing = await prisma.customer.findFirst({ where: { id: customerId, bizId, deletedAt: null } });
     if (!existing) throw new AppError('Customer not found', 404, 'CUSTOMER_NOT_FOUND');
 
     await prisma.customer.update({

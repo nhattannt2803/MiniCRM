@@ -7,89 +7,157 @@ generator client {
   provider = "prisma-client-js"
 }
 
-model Role {
-  id          BigInt     @id @default(autoincrement()) @db.UnsignedBigInt
-  name        String     @unique @db.VarChar(50)
-  code        String     @unique @db.VarChar(50)
-  description String?    @db.VarChar(255)
-  createdAt   DateTime   @default(now()) @map("created_at") @db.DateTime(3)
-  updatedAt   DateTime   @default(now()) @updatedAt @map("updated_at") @db.DateTime(3)
-  userRoles   UserRole[]
+// =============================================================================
+// MULTI-TENANT: Business (Doanh Nghiệp / Tổ Chức dùng SaaS)
+// =============================================================================
 
+model Business {
+  id        BigInt   @id @default(autoincrement()) @db.UnsignedBigInt
+  name      String   @db.VarChar(150)
+  slug      String   @unique @db.VarChar(50)
+  logo      String?  @db.VarChar(500)
+  taxCode   String?  @map("tax_code") @db.VarChar(50)
+  email     String?  @db.VarChar(191)
+  phone     String?  @db.VarChar(30)
+  address   String?  @db.Text
+  status    String   @default("ACTIVE") @db.VarChar(30)
+  plan      String   @default("FREE") @db.VarChar(30)
+  createdAt DateTime @default(now()) @map("created_at") @db.DateTime(3)
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.DateTime(3)
+
+  members         BusinessMember[]
+  roles           Role[]
+  campaigns       Campaign[]
+  companies       Company[]
+  contacts        Contact[]
+  customers       Customer[]
+  leads           Lead[]
+  pipelines       Pipeline[]
+  products        Product[]
+  opportunities   Opportunity[]
+  automations     Automation[]
+  activities      Activity[]
+  tasks           Task[]
+  notifications   Notification[]
+  auditLogs       AuditLog[]
+  outboxEvents    OutboxEvent[]
+  quotes          Quote[]
+  conversations   Conversation[]
+  systemSettings  SystemSetting[]
+
+  @@index([status], map: "idx_biz_status")
+  @@map("businesses")
+}
+
+// =============================================================================
+// MULTI-TENANT: BusinessMember (Thay thế UserRole — Role scoped per Biz)
+// =============================================================================
+
+model BusinessMember {
+  id         BigInt   @id @default(autoincrement()) @db.UnsignedBigInt
+  businessId BigInt   @map("business_id") @db.UnsignedBigInt
+  userId     BigInt   @map("user_id") @db.UnsignedBigInt
+  roleId     BigInt   @map("role_id") @db.UnsignedBigInt
+  isDefault  Boolean  @default(false) @map("is_default")
+  isActive   Boolean  @default(true) @map("is_active")
+  joinedAt   DateTime @default(now()) @map("joined_at") @db.DateTime(3)
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role     Role     @relation(fields: [roleId], references: [id], onDelete: Restrict)
+
+  @@unique([businessId, userId], map: "uk_biz_user")
+  @@index([userId, isDefault], map: "idx_bm_user_default")
+  @@map("business_members")
+}
+
+// =============================================================================
+// IAM: Roles & Users
+// =============================================================================
+
+model Role {
+  id          BigInt           @id @default(autoincrement()) @db.UnsignedBigInt
+  bizId       BigInt           @map("biz_id") @db.UnsignedBigInt
+  name        String           @db.VarChar(50)
+  code        String           @db.VarChar(50)
+  description String?          @db.VarChar(255)
+  createdAt   DateTime         @default(now()) @map("created_at") @db.DateTime(3)
+  updatedAt   DateTime         @default(now()) @updatedAt @map("updated_at") @db.DateTime(3)
+  business    Business         @relation(fields: [bizId], references: [id], onDelete: Cascade)
+  members     BusinessMember[]
+
+  @@unique([bizId, code], map: "uk_role_biz_code")
+  @@index([bizId], map: "idx_roles_biz")
   @@map("roles")
 }
 
 model User {
-  id                   BigInt                  @id @default(autoincrement()) @db.UnsignedBigInt
-  email                String                  @unique @db.VarChar(191)
-  passwordHash         String                  @map("password_hash") @db.VarChar(255)
-  firstName            String                  @map("first_name") @db.VarChar(100)
-  lastName             String                  @map("last_name") @db.VarChar(100)
-  phone                String?                 @db.VarChar(30)
-  isActive             Boolean                 @default(true) @map("is_active")
-  createdAt            DateTime                @default(now()) @map("created_at") @db.DateTime(3)
-  updatedAt            DateTime                @default(now()) @updatedAt @map("updated_at") @db.DateTime(3)
-  deletedAt            DateTime?               @map("deleted_at") @db.DateTime(3)
-  userRoles            UserRole[]
-  campaigns            Campaign[]
-  companies            Company[]
-  contacts             Contact[]
-  customers            Customer[]
-  leads                Lead[]                  @relation("LeadOwner")
-  opportunities        Opportunity[]           @relation("OpportunityOwner")
-  stageHistories       OpportunityStageHistory[] @relation("StageHistoryChangedBy")
-  quotes               Quote[]                 @relation("QuoteCreatedBy")
-  activitiesOwned      Activity[]              @relation("ActivityOwner")
-  activitiesCreated    Activity[]              @relation("ActivityCreator")
-  tasksAssigned        Task[]                  @relation("TaskAssignee")
-  tasksCreated         Task[]                  @relation("TaskCreator")
-  notifications        Notification[]
-  auditLogs            AuditLog[]
-  automationsCreated   Automation[]
+  id                BigInt                   @id @default(autoincrement()) @db.UnsignedBigInt
+  email             String                   @unique @db.VarChar(191)
+  passwordHash      String                   @map("password_hash") @db.VarChar(255)
+  firstName         String                   @map("first_name") @db.VarChar(100)
+  lastName          String                   @map("last_name") @db.VarChar(100)
+  phone             String?                  @db.VarChar(30)
+  isActive          Boolean                  @default(true) @map("is_active")
+  createdAt         DateTime                 @default(now()) @map("created_at") @db.DateTime(3)
+  updatedAt         DateTime                 @default(now()) @updatedAt @map("updated_at") @db.DateTime(3)
+  deletedAt         DateTime?                @map("deleted_at") @db.DateTime(3)
+  memberships       BusinessMember[]
+  campaigns         Campaign[]
+  companies         Company[]
+  contacts          Contact[]
+  customers         Customer[]
+  leads             Lead[]                   @relation("LeadOwner")
+  opportunities     Opportunity[]            @relation("OpportunityOwner")
+  stageHistories    OpportunityStageHistory[] @relation("StageHistoryChangedBy")
+  quotes            Quote[]                  @relation("QuoteCreatedBy")
+  activitiesOwned   Activity[]               @relation("ActivityOwner")
+  activitiesCreated Activity[]               @relation("ActivityCreator")
+  tasksAssigned     Task[]                   @relation("TaskAssignee")
+  tasksCreated      Task[]                   @relation("TaskCreator")
+  notifications     Notification[]
+  auditLogs         AuditLog[]
+  automationsCreated Automation[]
 
   @@index([email], map: "idx_users_email")
   @@index([isActive], map: "idx_users_is_active")
   @@map("users")
 }
 
-model UserRole {
-  id        BigInt   @id @default(autoincrement()) @db.UnsignedBigInt
-  userId    BigInt   @map("user_id") @db.UnsignedBigInt
-  roleId    BigInt   @map("role_id") @db.UnsignedBigInt
-  createdAt DateTime @default(now()) @map("created_at") @db.DateTime(3)
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  role      Role     @relation(fields: [roleId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, roleId], map: "uk_user_role")
-  @@map("user_roles")
-}
+// =============================================================================
+// CRM Core: Campaign, Company, Contact, Customer, Lead
+// =============================================================================
 
 model Campaign {
-  id             BigInt        @id @default(autoincrement()) @db.UnsignedBigInt
-  name           String        @db.VarChar(150)
-  code           String        @unique @db.VarChar(50)
-  type           String        @db.VarChar(50)
-  status         String        @default("ACTIVE") @db.VarChar(30)
-  budget         Decimal       @default(0.00) @db.Decimal(15, 2)
-  actualCost     Decimal       @default(0.00) @map("actual_cost") @db.Decimal(15, 2)
-  expectedRevenue Decimal      @default(0.00) @map("expected_revenue") @db.Decimal(15, 2)
-  startDate      DateTime?     @map("start_date") @db.Date
-  endDate        DateTime?     @map("end_date") @db.Date
-  ownerId        BigInt?       @map("owner_id") @db.UnsignedBigInt
-  createdAt      DateTime      @default(now()) @map("created_at") @db.DateTime(3)
-  updatedAt      DateTime      @default(now()) @updatedAt @map("updated_at") @db.DateTime(3)
-  deletedAt      DateTime?     @map("deleted_at") @db.DateTime(3)
-  owner          User?         @relation(fields: [ownerId], references: [id], onDelete: SetNull)
-  leads          Lead[]
-  opportunities  Opportunity[]
+  id              BigInt        @id @default(autoincrement()) @db.UnsignedBigInt
+  bizId           BigInt        @map("biz_id") @db.UnsignedBigInt
+  name            String        @db.VarChar(150)
+  code            String        @db.VarChar(50)
+  type            String        @db.VarChar(50)
+  status          String        @default("ACTIVE") @db.VarChar(30)
+  budget          Decimal       @default(0.00) @db.Decimal(15, 2)
+  actualCost      Decimal       @default(0.00) @map("actual_cost") @db.Decimal(15, 2)
+  expectedRevenue Decimal       @default(0.00) @map("expected_revenue") @db.Decimal(15, 2)
+  startDate       DateTime?     @map("start_date") @db.Date
+  endDate         DateTime?     @map("end_date") @db.Date
+  ownerId         BigInt?       @map("owner_id") @db.UnsignedBigInt
+  createdAt       DateTime      @default(now()) @map("created_at") @db.DateTime(3)
+  updatedAt       DateTime      @default(now()) @updatedAt @map("updated_at") @db.DateTime(3)
+  deletedAt       DateTime?     @map("deleted_at") @db.DateTime(3)
+  business        Business      @relation(fields: [bizId], references: [id], onDelete: Cascade)
+  owner           User?         @relation(fields: [ownerId], references: [id], onDelete: SetNull)
+  leads           Lead[]
+  opportunities   Opportunity[]
 
-  @@index([status], map: "idx_campaigns_status")
-  @@index([type], map: "idx_campaigns_type")
+  @@unique([bizId, code], map: "uk_campaign_biz_code")
+  @@index([bizId, status], map: "idx_campaigns_biz_status")
+  @@index([bizId, type], map: "idx_campaigns_biz_type")
   @@map("campaigns")
 }
 
 model Company {
   id            BigInt        @id @default(autoincrement()) @db.UnsignedBigInt
+  bizId         BigInt        @map("biz_id") @db.UnsignedBigInt
   name          String        @db.VarChar(200)
   taxCode       String?       @map("tax_code") @db.VarChar(50)
   email         String?       @db.VarChar(191)
@@ -102,6 +170,7 @@ model Company {
   createdAt     DateTime      @default(now()) @map("created_at") @db.DateTime(3)
   updatedAt     DateTime      @default(now()) @updatedAt @map("updated_at") @db.DateTime(3)
   deletedAt     DateTime?     @map("deleted_at") @db.DateTime(3)
+  business      Business      @relation(fields: [bizId], references: [id], onDelete: Cascade)
   owner         User?         @relation(fields: [ownerId], references: [id], onDelete: SetNull)
   contacts      Contact[]
   customers     Customer[]
@@ -109,15 +178,16 @@ model Company {
   opportunities Opportunity[]
   quotes        Quote[]
 
-  @@index([ownerId], map: "idx_companies_owner")
-  @@index([name], map: "idx_companies_name")
-  @@index([taxCode], map: "idx_companies_tax_code")
-  @@index([isCustomer], map: "idx_companies_is_customer")
+  @@index([bizId, ownerId], map: "idx_companies_biz_owner")
+  @@index([bizId, name], map: "idx_companies_biz_name")
+  @@index([bizId, taxCode], map: "idx_companies_biz_tax_code")
+  @@index([bizId, isCustomer], map: "idx_companies_biz_is_customer")
   @@map("companies")
 }
 
 model Contact {
   id            BigInt        @id @default(autoincrement()) @db.UnsignedBigInt
+  bizId         BigInt        @map("biz_id") @db.UnsignedBigInt
   companyId     BigInt?       @map("company_id") @db.UnsignedBigInt
   firstName     String        @map("first_name") @db.VarChar(100)
   lastName      String        @map("last_name") @db.VarChar(100)
@@ -131,6 +201,7 @@ model Contact {
   createdAt     DateTime      @default(now()) @map("created_at") @db.DateTime(3)
   updatedAt     DateTime      @default(now()) @updatedAt @map("updated_at") @db.DateTime(3)
   deletedAt     DateTime?     @map("deleted_at") @db.DateTime(3)
+  business      Business      @relation(fields: [bizId], references: [id], onDelete: Cascade)
   company       Company?      @relation(fields: [companyId], references: [id], onDelete: SetNull)
   owner         User?         @relation(fields: [ownerId], references: [id], onDelete: SetNull)
   customers     Customer[]
@@ -138,16 +209,17 @@ model Contact {
   opportunities Opportunity[]
   quotes        Quote[]
 
-  @@index([companyId], map: "idx_contacts_company")
-  @@index([ownerId], map: "idx_contacts_owner")
-  @@index([email], map: "idx_contacts_email")
-  @@index([phone], map: "idx_contacts_phone")
+  @@index([bizId, companyId], map: "idx_contacts_biz_company")
+  @@index([bizId, ownerId], map: "idx_contacts_biz_owner")
+  @@index([bizId, email], map: "idx_contacts_biz_email")
+  @@index([bizId, phone], map: "idx_contacts_biz_phone")
   @@map("contacts")
 }
 
 model Customer {
   id            BigInt             @id @default(autoincrement()) @db.UnsignedBigInt
-  customerCode  String             @unique @map("customer_code") @db.VarChar(50)
+  bizId         BigInt             @map("biz_id") @db.UnsignedBigInt
+  customerCode  String             @map("customer_code") @db.VarChar(50)
   entityType    String             @map("entity_type") @db.VarChar(20)
   companyId     BigInt?            @map("company_id") @db.UnsignedBigInt
   contactId     BigInt?            @map("contact_id") @db.UnsignedBigInt
@@ -158,6 +230,7 @@ model Customer {
   createdAt     DateTime           @default(now()) @map("created_at") @db.DateTime(3)
   updatedAt     DateTime           @default(now()) @updatedAt @map("updated_at") @db.DateTime(3)
   deletedAt     DateTime?          @map("deleted_at") @db.DateTime(3)
+  business      Business           @relation(fields: [bizId], references: [id], onDelete: Cascade)
   company       Company?           @relation(fields: [companyId], references: [id], onDelete: SetNull)
   contact       Contact?           @relation(fields: [contactId], references: [id], onDelete: SetNull)
   owner         User?              @relation(fields: [ownerId], references: [id], onDelete: SetNull)
@@ -167,80 +240,90 @@ model Customer {
   identities    CustomerIdentity[]
   conversations Conversation[]
 
-  @@index([companyId], map: "idx_customers_company")
-  @@index([contactId], map: "idx_customers_contact")
-  @@index([ownerId], map: "idx_customers_owner")
-  @@index([status], map: "idx_customers_status")
+  @@unique([bizId, customerCode], map: "uk_customer_biz_code")
+  @@index([bizId, companyId], map: "idx_customers_biz_company")
+  @@index([bizId, contactId], map: "idx_customers_biz_contact")
+  @@index([bizId, ownerId], map: "idx_customers_biz_owner")
+  @@index([bizId, status], map: "idx_customers_biz_status")
   @@map("customers")
 }
 
 model Lead {
-  id                     BigInt       @id @default(autoincrement()) @db.UnsignedBigInt
-  companyId              BigInt?      @map("company_id") @db.UnsignedBigInt
-  contactId              BigInt?      @map("contact_id") @db.UnsignedBigInt
-  customerId             BigInt?      @map("customer_id") @db.UnsignedBigInt
-  campaignId             BigInt?      @map("campaign_id") @db.UnsignedBigInt
-  ownerId                BigInt?      @map("owner_id") @db.UnsignedBigInt
-  source                 String       @db.VarChar(50)
-  status                 String       @default("NEW") @db.VarChar(30)
-  rating                 String       @default("WARM") @db.VarChar(20)
-  identityResolutionStatus String     @default("MATCHED") @map("identity_resolution_status") @db.VarChar(30)
-  firstName              String       @map("first_name") @db.VarChar(100)
-  lastName               String       @map("last_name") @db.VarChar(100)
-  email                  String?      @db.VarChar(191)
-  phone                  String?      @db.VarChar(30)
-  companyName            String?      @map("company_name") @db.VarChar(200)
-  jobTitle               String?      @map("job_title") @db.VarChar(100)
-  notes                  String?      @db.Text
-  convertedOpportunityId BigInt?      @map("converted_opportunity_id") @db.UnsignedBigInt
-  convertedCustomerId    BigInt?      @map("converted_customer_id") @db.UnsignedBigInt
-  convertedAt            DateTime?    @map("converted_at") @db.DateTime(3)
-  receivedAt             DateTime?    @map("received_at") @db.DateTime(3)
-  createdAt              DateTime     @default(now()) @map("created_at") @db.DateTime(3)
-  updatedAt              DateTime     @default(now()) @updatedAt @map("updated_at") @db.DateTime(3)
-  deletedAt              DateTime?    @map("deleted_at") @db.DateTime(3)
-  company                Company?     @relation(fields: [companyId], references: [id], onDelete: SetNull)
-  contact                Contact?     @relation(fields: [contactId], references: [id], onDelete: SetNull)
-  customer               Customer?    @relation("CustomerLeads", fields: [customerId], references: [id], onDelete: SetNull)
-  campaign               Campaign?    @relation(fields: [campaignId], references: [id], onDelete: SetNull)
-  owner                  User?        @relation("LeadOwner", fields: [ownerId], references: [id], onDelete: SetNull)
-  convertedOpportunity   Opportunity? @relation("ConvertedOpportunity", fields: [convertedOpportunityId], references: [id], onDelete: SetNull)
-  convertedCustomer      Customer?    @relation("ConvertedCustomer", fields: [convertedCustomerId], references: [id], onDelete: SetNull)
-  opportunities          Opportunity[] @relation("LeadSource")
-  conversations          Conversation[]
-  products               LeadProduct[]
+  id                       BigInt       @id @default(autoincrement()) @db.UnsignedBigInt
+  bizId                    BigInt       @map("biz_id") @db.UnsignedBigInt
+  companyId                BigInt?      @map("company_id") @db.UnsignedBigInt
+  contactId                BigInt?      @map("contact_id") @db.UnsignedBigInt
+  customerId               BigInt?      @map("customer_id") @db.UnsignedBigInt
+  campaignId               BigInt?      @map("campaign_id") @db.UnsignedBigInt
+  ownerId                  BigInt?      @map("owner_id") @db.UnsignedBigInt
+  source                   String       @db.VarChar(50)
+  status                   String       @default("NEW") @db.VarChar(30)
+  rating                   String       @default("WARM") @db.VarChar(20)
+  identityResolutionStatus String       @default("MATCHED") @map("identity_resolution_status") @db.VarChar(30)
+  firstName                String       @map("first_name") @db.VarChar(100)
+  lastName                 String       @map("last_name") @db.VarChar(100)
+  email                    String?      @db.VarChar(191)
+  phone                    String?      @db.VarChar(30)
+  companyName              String?      @map("company_name") @db.VarChar(200)
+  jobTitle                 String?      @map("job_title") @db.VarChar(100)
+  notes                    String?      @db.Text
+  convertedOpportunityId   BigInt?      @map("converted_opportunity_id") @db.UnsignedBigInt
+  convertedCustomerId      BigInt?      @map("converted_customer_id") @db.UnsignedBigInt
+  convertedAt              DateTime?    @map("converted_at") @db.DateTime(3)
+  receivedAt               DateTime?    @map("received_at") @db.DateTime(3)
+  createdAt                DateTime     @default(now()) @map("created_at") @db.DateTime(3)
+  updatedAt                DateTime     @default(now()) @updatedAt @map("updated_at") @db.DateTime(3)
+  deletedAt                DateTime?    @map("deleted_at") @db.DateTime(3)
+  business                 Business     @relation(fields: [bizId], references: [id], onDelete: Cascade)
+  company                  Company?     @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  contact                  Contact?     @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  customer                 Customer?    @relation("CustomerLeads", fields: [customerId], references: [id], onDelete: SetNull)
+  campaign                 Campaign?    @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+  owner                    User?        @relation("LeadOwner", fields: [ownerId], references: [id], onDelete: SetNull)
+  convertedOpportunity     Opportunity? @relation("ConvertedOpportunity", fields: [convertedOpportunityId], references: [id], onDelete: SetNull)
+  convertedCustomer        Customer?    @relation("ConvertedCustomer", fields: [convertedCustomerId], references: [id], onDelete: SetNull)
+  opportunities            Opportunity[] @relation("LeadSource")
+  conversations            Conversation[]
+  products                 LeadProduct[]
 
-  @@index([status], map: "idx_leads_status")
-  @@index([ownerId], map: "idx_leads_owner")
-  @@index([source], map: "idx_leads_source")
-  @@index([createdAt], map: "idx_leads_created_at")
-  @@index([receivedAt], map: "idx_leads_received_at")
-  @@index([email], map: "idx_leads_email")
-  @@index([campaignId], map: "idx_leads_campaign")
-  @@index([customerId], map: "idx_leads_customer")
+  @@index([bizId, status], map: "idx_leads_biz_status")
+  @@index([bizId, ownerId], map: "idx_leads_biz_owner")
+  @@index([bizId, source], map: "idx_leads_biz_source")
+  @@index([bizId, createdAt], map: "idx_leads_biz_created_at")
+  @@index([bizId, receivedAt], map: "idx_leads_biz_received_at")
+  @@index([bizId, email], map: "idx_leads_biz_email")
+  @@index([bizId, campaignId], map: "idx_leads_biz_campaign")
+  @@index([bizId, customerId], map: "idx_leads_biz_customer")
   @@map("leads")
 }
 
+// =============================================================================
+// Sales Pipeline & Deal Management
+// =============================================================================
+
 model Pipeline {
-  id        BigInt          @id @default(autoincrement()) @db.UnsignedBigInt
-  name      String          @db.VarChar(100)
-  isDefault Boolean         @default(false) @map("is_default")
-  isActive  Boolean         @default(true) @map("is_active")
-  createdAt DateTime        @default(now()) @map("created_at") @db.DateTime(3)
-  updatedAt DateTime        @default(now()) @updatedAt @map("updated_at") @db.DateTime(3)
-  stages    PipelineStage[]
+  id            BigInt          @id @default(autoincrement()) @db.UnsignedBigInt
+  bizId         BigInt          @map("biz_id") @db.UnsignedBigInt
+  name          String          @db.VarChar(100)
+  isDefault     Boolean         @default(false) @map("is_default")
+  isActive      Boolean         @default(true) @map("is_active")
+  createdAt     DateTime        @default(now()) @map("created_at") @db.DateTime(3)
+  updatedAt     DateTime        @default(now()) @updatedAt @map("updated_at") @db.DateTime(3)
+  business      Business        @relation(fields: [bizId], references: [id], onDelete: Cascade)
+  stages        PipelineStage[]
   opportunities Opportunity[]
 
+  @@index([bizId, isActive], map: "idx_pipelines_biz_active")
   @@map("pipelines")
 }
 
 model PipelineStage {
-  id            BigInt                    @id @default(autoincrement()) @db.UnsignedBigInt
-  pipelineId    BigInt                    @map("pipeline_id") @db.UnsignedBigInt
-  name          String                    @db.VarChar(100)
-  code          String                    @db.VarChar(50)
-  orderNo       Int                       @default(1) @map("order_no")
-  probability   Decimal                   @default(0.00) @db.Decimal(5, 2)
+  id             BigInt                    @id @default(autoincrement()) @db.UnsignedBigInt
+  pipelineId     BigInt                    @map("pipeline_id") @db.UnsignedBigInt
+  name           String                    @db.VarChar(100)
+  code           String                    @db.VarChar(50)
+  orderNo        Int                       @default(1) @map("order_no")
+  probability    Decimal                   @default(0.00) @db.Decimal(5, 2)
   isWon          Boolean                   @default(false) @map("is_won")
   isLost         Boolean                   @default(false) @map("is_lost")
   allowLeadMerge Boolean                   @default(true) @map("allow_lead_merge")
@@ -260,6 +343,7 @@ model PipelineStage {
 
 model Opportunity {
   id                BigInt                    @id @default(autoincrement()) @db.UnsignedBigInt
+  bizId             BigInt                    @map("biz_id") @db.UnsignedBigInt
   companyId         BigInt?                   @map("company_id") @db.UnsignedBigInt
   contactId         BigInt?                   @map("contact_id") @db.UnsignedBigInt
   customerId        BigInt?                   @map("customer_id") @db.UnsignedBigInt
@@ -281,6 +365,7 @@ model Opportunity {
   createdAt         DateTime                  @default(now()) @map("created_at") @db.DateTime(3)
   updatedAt         DateTime                  @default(now()) @updatedAt @map("updated_at") @db.DateTime(3)
   deletedAt         DateTime?                 @map("deleted_at") @db.DateTime(3)
+  business          Business                  @relation(fields: [bizId], references: [id], onDelete: Cascade)
   company           Company?                  @relation(fields: [companyId], references: [id], onDelete: SetNull)
   contact           Contact?                  @relation(fields: [contactId], references: [id], onDelete: SetNull)
   customer          Customer?                 @relation(fields: [customerId], references: [id], onDelete: SetNull)
@@ -294,37 +379,42 @@ model Opportunity {
   quotes            Quote[]
   leadsConverted    Lead[]                    @relation("ConvertedOpportunity")
 
-  @@index([stageId], map: "idx_opp_stage_id")
-  @@index([ownerId], map: "idx_opp_owner_id")
-  @@index([status], map: "idx_opp_status")
-  @@index([expectedCloseDate], map: "idx_opp_expected_close")
-  @@index([companyId], map: "idx_opp_company")
-  @@index([customerId], map: "idx_opp_customer")
-  @@index([campaignId], map: "idx_opp_campaign")
+  @@index([bizId, stageId], map: "idx_opp_biz_stage_id")
+  @@index([bizId, ownerId], map: "idx_opp_biz_owner_id")
+  @@index([bizId, status], map: "idx_opp_biz_status")
+  @@index([bizId, expectedCloseDate], map: "idx_opp_biz_expected_close")
+  @@index([bizId, companyId], map: "idx_opp_biz_company")
+  @@index([bizId, customerId], map: "idx_opp_biz_customer")
+  @@index([bizId, campaignId], map: "idx_opp_biz_campaign")
   @@map("opportunities")
 }
 
 model OpportunityStageHistory {
-  id                BigInt        @id @default(autoincrement()) @db.UnsignedBigInt
-  opportunityId     BigInt        @map("opportunity_id") @db.UnsignedBigInt
-  fromStageId       BigInt?       @map("from_stage_id") @db.UnsignedBigInt
-  toStageId         BigInt        @map("to_stage_id") @db.UnsignedBigInt
-  changedBy         BigInt?       @map("changed_by") @db.UnsignedBigInt
-  changedAt         DateTime      @default(now()) @map("changed_at") @db.DateTime(3)
-  durationInSeconds BigInt?       @map("duration_in_seconds") @db.UnsignedBigInt
-  opportunity       Opportunity   @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+  id                BigInt         @id @default(autoincrement()) @db.UnsignedBigInt
+  opportunityId     BigInt         @map("opportunity_id") @db.UnsignedBigInt
+  fromStageId       BigInt?        @map("from_stage_id") @db.UnsignedBigInt
+  toStageId         BigInt         @map("to_stage_id") @db.UnsignedBigInt
+  changedBy         BigInt?        @map("changed_by") @db.UnsignedBigInt
+  changedAt         DateTime       @default(now()) @map("changed_at") @db.DateTime(3)
+  durationInSeconds BigInt?        @map("duration_in_seconds") @db.UnsignedBigInt
+  opportunity       Opportunity    @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
   fromStage         PipelineStage? @relation("FromStage", fields: [fromStageId], references: [id], onDelete: SetNull)
-  toStage           PipelineStage @relation("ToStage", fields: [toStageId], references: [id], onDelete: Restrict)
-  user              User?         @relation("StageHistoryChangedBy", fields: [changedBy], references: [id], onDelete: SetNull)
+  toStage           PipelineStage  @relation("ToStage", fields: [toStageId], references: [id], onDelete: Restrict)
+  user              User?          @relation("StageHistoryChangedBy", fields: [changedBy], references: [id], onDelete: SetNull)
 
   @@index([opportunityId, changedAt], map: "idx_osh_opp_changed")
   @@map("opportunity_stage_histories")
 }
 
+// =============================================================================
+// Products, Quotes
+// =============================================================================
+
 model Product {
   id                  BigInt               @id @default(autoincrement()) @db.UnsignedBigInt
+  bizId               BigInt               @map("biz_id") @db.UnsignedBigInt
   name                String               @db.VarChar(200)
-  code                String               @unique @db.VarChar(50)
+  code                String               @db.VarChar(50)
   type                String               @default("PRODUCT") @db.VarChar(30)
   description         String?              @db.Text
   unitPrice           Decimal              @default(0.00) @map("unit_price") @db.Decimal(15, 2)
@@ -333,28 +423,29 @@ model Product {
   createdAt           DateTime             @default(now()) @map("created_at") @db.DateTime(3)
   updatedAt           DateTime             @default(now()) @updatedAt @map("updated_at") @db.DateTime(3)
   deletedAt           DateTime?            @map("deleted_at") @db.DateTime(3)
+  business            Business             @relation(fields: [bizId], references: [id], onDelete: Cascade)
   opportunityProducts OpportunityProduct[]
   quoteItems          QuoteItem[]
   leadProducts        LeadProduct[]
 
-  @@index([code], map: "idx_products_code")
-  @@index([isActive], map: "idx_products_is_active")
+  @@unique([bizId, code], map: "uk_product_biz_code")
+  @@index([bizId, isActive], map: "idx_products_biz_active")
   @@map("products")
 }
 
 model OpportunityProduct {
-  id            BigInt      @id @default(autoincrement()) @db.UnsignedBigInt
-  opportunityId BigInt      @map("opportunity_id") @db.UnsignedBigInt
-  productId     BigInt      @map("product_id") @db.UnsignedBigInt
-  quantity      Int         @default(1)
-  unitPrice     Decimal     @default(0.00) @map("unit_price") @db.Decimal(15, 2)
-  discountAmount Decimal    @default(0.00) @map("discount_amount") @db.Decimal(15, 2)
-  totalPrice    Decimal     @default(0.00) @map("total_price") @db.Decimal(15, 2)
-  notes         String?     @db.VarChar(255)
-  createdAt     DateTime    @default(now()) @map("created_at") @db.DateTime(3)
-  updatedAt     DateTime    @default(now()) @updatedAt @map("updated_at") @db.DateTime(3)
-  opportunity   Opportunity @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
-  product       Product     @relation(fields: [productId], references: [id], onDelete: Restrict)
+  id             BigInt      @id @default(autoincrement()) @db.UnsignedBigInt
+  opportunityId  BigInt      @map("opportunity_id") @db.UnsignedBigInt
+  productId      BigInt      @map("product_id") @db.UnsignedBigInt
+  quantity       Int         @default(1)
+  unitPrice      Decimal     @default(0.00) @map("unit_price") @db.Decimal(15, 2)
+  discountAmount Decimal     @default(0.00) @map("discount_amount") @db.Decimal(15, 2)
+  totalPrice     Decimal     @default(0.00) @map("total_price") @db.Decimal(15, 2)
+  notes          String?     @db.VarChar(255)
+  createdAt      DateTime    @default(now()) @map("created_at") @db.DateTime(3)
+  updatedAt      DateTime    @default(now()) @updatedAt @map("updated_at") @db.DateTime(3)
+  opportunity    Opportunity @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+  product        Product     @relation(fields: [productId], references: [id], onDelete: Restrict)
 
   @@index([opportunityId], map: "idx_op_opp_id")
   @@map("opportunity_products")
@@ -362,8 +453,9 @@ model OpportunityProduct {
 
 model Quote {
   id             BigInt      @id @default(autoincrement()) @db.UnsignedBigInt
+  bizId          BigInt      @map("biz_id") @db.UnsignedBigInt
   opportunityId  BigInt      @map("opportunity_id") @db.UnsignedBigInt
-  quoteNumber    String      @unique @map("quote_number") @db.VarChar(50)
+  quoteNumber    String      @map("quote_number") @db.VarChar(50)
   version        Int         @default(1)
   companyId      BigInt?     @map("company_id") @db.UnsignedBigInt
   contactId      BigInt?     @map("contact_id") @db.UnsignedBigInt
@@ -378,37 +470,44 @@ model Quote {
   createdAt      DateTime    @default(now()) @map("created_at") @db.DateTime(3)
   updatedAt      DateTime    @default(now()) @updatedAt @map("updated_at") @db.DateTime(3)
   deletedAt      DateTime?   @map("deleted_at") @db.DateTime(3)
+  business       Business    @relation(fields: [bizId], references: [id], onDelete: Cascade)
   opportunity    Opportunity @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
   company        Company?    @relation(fields: [companyId], references: [id], onDelete: SetNull)
   contact        Contact?    @relation(fields: [contactId], references: [id], onDelete: SetNull)
   creator        User?       @relation("QuoteCreatedBy", fields: [createdBy], references: [id], onDelete: SetNull)
   items          QuoteItem[]
 
-  @@index([opportunityId], map: "idx_quotes_opp")
-  @@index([status], map: "idx_quotes_status")
+  @@unique([bizId, quoteNumber], map: "uk_quote_biz_number")
+  @@index([bizId, opportunityId], map: "idx_quotes_biz_opp")
+  @@index([bizId, status], map: "idx_quotes_biz_status")
   @@map("quotes")
 }
 
 model QuoteItem {
-  id              BigInt    @id @default(autoincrement()) @db.UnsignedBigInt
-  quoteId         BigInt    @map("quote_id") @db.UnsignedBigInt
-  productId       BigInt?   @map("product_id") @db.UnsignedBigInt
-  itemDescription String    @map("item_description") @db.VarChar(255)
-  quantity        Int       @default(1)
-  unitPrice       Decimal   @default(0.00) @map("unit_price") @db.Decimal(15, 2)
-  discountAmount  Decimal   @default(0.00) @map("discount_amount") @db.Decimal(15, 2)
-  taxRate         Decimal   @default(0.00) @map("tax_rate") @db.Decimal(5, 2)
-  totalPrice      Decimal   @default(0.00) @map("total_price") @db.Decimal(15, 2)
-  createdAt       DateTime  @default(now()) @map("created_at") @db.DateTime(3)
-  quote           Quote     @relation(fields: [quoteId], references: [id], onDelete: Cascade)
-  product         Product?  @relation(fields: [productId], references: [id], onDelete: SetNull)
+  id              BigInt   @id @default(autoincrement()) @db.UnsignedBigInt
+  quoteId         BigInt   @map("quote_id") @db.UnsignedBigInt
+  productId       BigInt?  @map("product_id") @db.UnsignedBigInt
+  itemDescription String   @map("item_description") @db.VarChar(255)
+  quantity        Int      @default(1)
+  unitPrice       Decimal  @default(0.00) @map("unit_price") @db.Decimal(15, 2)
+  discountAmount  Decimal  @default(0.00) @map("discount_amount") @db.Decimal(15, 2)
+  taxRate         Decimal  @default(0.00) @map("tax_rate") @db.Decimal(5, 2)
+  totalPrice      Decimal  @default(0.00) @map("total_price") @db.Decimal(15, 2)
+  createdAt       DateTime @default(now()) @map("created_at") @db.DateTime(3)
+  quote           Quote    @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+  product         Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
 
   @@index([quoteId], map: "idx_qi_quote")
   @@map("quote_items")
 }
 
+// =============================================================================
+// Activities, Tasks, Notifications, Audit Logs
+// =============================================================================
+
 model Activity {
   id          BigInt    @id @default(autoincrement()) @db.UnsignedBigInt
+  bizId       BigInt    @map("biz_id") @db.UnsignedBigInt
   type        String    @db.VarChar(30)
   subject     String    @db.VarChar(200)
   description String?   @db.Text
@@ -421,18 +520,20 @@ model Activity {
   relatedId   BigInt    @map("related_id") @db.UnsignedBigInt
   createdAt   DateTime  @default(now()) @map("created_at") @db.DateTime(3)
   updatedAt   DateTime  @default(now()) @updatedAt @map("updated_at") @db.DateTime(3)
+  business    Business  @relation(fields: [bizId], references: [id], onDelete: Cascade)
   owner       User?     @relation("ActivityOwner", fields: [ownerId], references: [id], onDelete: SetNull)
   creator     User?     @relation("ActivityCreator", fields: [createdBy], references: [id], onDelete: SetNull)
 
-  @@index([relatedType, relatedId], map: "idx_act_related")
-  @@index([ownerId], map: "idx_act_owner")
-  @@index([createdAt], map: "idx_act_created")
-  @@index([dueAt], map: "idx_act_due")
+  @@index([bizId, relatedType, relatedId], map: "idx_act_biz_related")
+  @@index([bizId, ownerId], map: "idx_act_biz_owner")
+  @@index([bizId, createdAt], map: "idx_act_biz_created")
+  @@index([bizId, dueAt], map: "idx_act_biz_due")
   @@map("activities")
 }
 
 model Task {
   id          BigInt    @id @default(autoincrement()) @db.UnsignedBigInt
+  bizId       BigInt    @map("biz_id") @db.UnsignedBigInt
   title       String    @db.VarChar(200)
   description String?   @db.Text
   priority    String    @default("MEDIUM") @db.VarChar(20)
@@ -445,17 +546,19 @@ model Task {
   relatedId   BigInt    @map("related_id") @db.UnsignedBigInt
   createdAt   DateTime  @default(now()) @map("created_at") @db.DateTime(3)
   updatedAt   DateTime  @default(now()) @updatedAt @map("updated_at") @db.DateTime(3)
+  business    Business  @relation(fields: [bizId], references: [id], onDelete: Cascade)
   assignee    User?     @relation("TaskAssignee", fields: [assignedTo], references: [id], onDelete: SetNull)
   creator     User?     @relation("TaskCreator", fields: [createdBy], references: [id], onDelete: SetNull)
 
-  @@index([assignedTo, status, dueAt], map: "idx_tasks_assigned_status_due")
-  @@index([relatedType, relatedId], map: "idx_tasks_related")
-  @@index([dueAt, status], map: "idx_tasks_due_status")
+  @@index([bizId, assignedTo, status, dueAt], map: "idx_tasks_biz_assigned_status_due")
+  @@index([bizId, relatedType, relatedId], map: "idx_tasks_biz_related")
+  @@index([bizId, dueAt, status], map: "idx_tasks_biz_due_status")
   @@map("tasks")
 }
 
 model Notification {
   id         BigInt    @id @default(autoincrement()) @db.UnsignedBigInt
+  bizId      BigInt    @map("biz_id") @db.UnsignedBigInt
   userId     BigInt    @map("user_id") @db.UnsignedBigInt
   type       String    @db.VarChar(50)
   title      String    @db.VarChar(200)
@@ -464,15 +567,17 @@ model Notification {
   entityId   BigInt?   @map("entity_id") @db.UnsignedBigInt
   readAt     DateTime? @map("read_at") @db.DateTime(3)
   createdAt  DateTime  @default(now()) @map("created_at") @db.DateTime(3)
+  business   Business  @relation(fields: [bizId], references: [id], onDelete: Cascade)
   user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@index([userId, readAt], map: "idx_notif_user_read")
-  @@index([createdAt], map: "idx_notif_created")
+  @@index([bizId, userId, readAt], map: "idx_notif_biz_user_read")
+  @@index([bizId, createdAt], map: "idx_notif_biz_created")
   @@map("notifications")
 }
 
 model AuditLog {
   id         BigInt   @id @default(autoincrement()) @db.UnsignedBigInt
+  bizId      BigInt   @map("biz_id") @db.UnsignedBigInt
   actorId    BigInt?  @map("actor_id") @db.UnsignedBigInt
   action     String   @db.VarChar(100)
   entityType String   @map("entity_type") @db.VarChar(50)
@@ -482,33 +587,41 @@ model AuditLog {
   ipAddress  String?  @map("ip_address") @db.VarChar(45)
   userAgent  String?  @map("user_agent") @db.VarChar(255)
   createdAt  DateTime @default(now()) @map("created_at") @db.DateTime(3)
+  business   Business @relation(fields: [bizId], references: [id], onDelete: Cascade)
   actor      User?    @relation(fields: [actorId], references: [id], onDelete: SetNull)
 
-  @@index([entityType, entityId], map: "idx_audit_entity")
-  @@index([actorId], map: "idx_audit_actor")
-  @@index([createdAt], map: "idx_audit_created")
+  @@index([bizId, entityType, entityId], map: "idx_audit_biz_entity")
+  @@index([bizId, actorId], map: "idx_audit_biz_actor")
+  @@index([bizId, createdAt], map: "idx_audit_biz_created")
   @@map("audit_logs")
 }
 
-model OutboxEvent {
-  id          BigInt    @id @default(autoincrement()) @db.UnsignedBigInt
-  eventId     String    @unique @map("event_id") @db.VarChar(64)
-  eventType   String    @map("event_type") @db.VarChar(100)
-  entityType  String    @map("entity_type") @db.VarChar(50)
-  entityId    BigInt    @map("entity_id") @db.UnsignedBigInt
-  payload     Json
-  status      String    @default("PENDING") @db.VarChar(20)
-  retryCount  Int       @default(0) @map("retry_count")
-  errorMessage String?  @map("error_message") @db.Text
-  createdAt   DateTime  @default(now()) @map("created_at") @db.DateTime(3)
-  processedAt DateTime? @map("processed_at") @db.DateTime(3)
+// =============================================================================
+// Automation Engine & Outbox
+// =============================================================================
 
-  @@index([status, createdAt], map: "idx_outbox_status_created")
+model OutboxEvent {
+  id           BigInt    @id @default(autoincrement()) @db.UnsignedBigInt
+  bizId        BigInt    @map("biz_id") @db.UnsignedBigInt
+  eventId      String    @unique @map("event_id") @db.VarChar(64)
+  eventType    String    @map("event_type") @db.VarChar(100)
+  entityType   String    @map("entity_type") @db.VarChar(50)
+  entityId     BigInt    @map("entity_id") @db.UnsignedBigInt
+  payload      Json
+  status       String    @default("PENDING") @db.VarChar(20)
+  retryCount   Int       @default(0) @map("retry_count")
+  errorMessage String?   @map("error_message") @db.Text
+  createdAt    DateTime  @default(now()) @map("created_at") @db.DateTime(3)
+  processedAt  DateTime? @map("processed_at") @db.DateTime(3)
+  business     Business  @relation(fields: [bizId], references: [id], onDelete: Cascade)
+
+  @@index([bizId, status, createdAt], map: "idx_outbox_biz_status_created")
   @@map("outbox_events")
 }
 
 model Automation {
   id          BigInt                @id @default(autoincrement()) @db.UnsignedBigInt
+  bizId       BigInt                @map("biz_id") @db.UnsignedBigInt
   name        String                @db.VarChar(150)
   description String?               @db.Text
   isActive    Boolean               @default(true) @map("is_active")
@@ -518,13 +631,14 @@ model Automation {
   createdAt   DateTime              @default(now()) @map("created_at") @db.DateTime(3)
   updatedAt   DateTime              @default(now()) @updatedAt @map("updated_at") @db.DateTime(3)
   deletedAt   DateTime?             @map("deleted_at") @db.DateTime(3)
+  business    Business              @relation(fields: [bizId], references: [id], onDelete: Cascade)
   creator     User?                 @relation(fields: [createdBy], references: [id], onDelete: SetNull)
   triggers    AutomationTrigger[]
   conditions  AutomationCondition[]
   actions     AutomationAction[]
   executions  AutomationExecution[]
 
-  @@index([isActive, triggerType], map: "idx_auto_active_trigger")
+  @@index([bizId, isActive, triggerType], map: "idx_auto_biz_active_trigger")
   @@map("automations")
 }
 
@@ -600,31 +714,35 @@ model AutomationExecution {
 }
 
 model AutomationExecutionLog {
-  id           BigInt              @id @default(autoincrement()) @db.UnsignedBigInt
-  executionId  BigInt              @map("execution_id") @db.UnsignedBigInt
-  stepNo       Int                 @map("step_no")
-  actionType   String              @map("action_type") @db.VarChar(50)
-  status       String              @db.VarChar(20)
-  inputPayload Json?               @map("input_payload")
-  outputPayload Json?              @map("output_payload")
-  errorMessage String?             @map("error_message") @db.Text
-  executedAt   DateTime            @default(now()) @map("executed_at") @db.DateTime(3)
-  execution    AutomationExecution @relation(fields: [executionId], references: [id], onDelete: Cascade)
+  id            BigInt              @id @default(autoincrement()) @db.UnsignedBigInt
+  executionId   BigInt              @map("execution_id") @db.UnsignedBigInt
+  stepNo        Int                 @map("step_no")
+  actionType    String              @map("action_type") @db.VarChar(50)
+  status        String              @db.VarChar(20)
+  inputPayload  Json?               @map("input_payload")
+  outputPayload Json?               @map("output_payload")
+  errorMessage  String?             @map("error_message") @db.Text
+  executedAt    DateTime            @default(now()) @map("executed_at") @db.DateTime(3)
+  execution     AutomationExecution @relation(fields: [executionId], references: [id], onDelete: Cascade)
 
   @@index([executionId], map: "idx_ael_execution")
   @@map("automation_execution_logs")
 }
 
+// =============================================================================
+// Customer Identity, Conversations, Messages
+// =============================================================================
+
 model CustomerIdentity {
-  id            BigInt    @id @default(autoincrement()) @db.UnsignedBigInt
-  customerId    BigInt    @map("customer_id") @db.UnsignedBigInt
-  type          String    @db.VarChar(30)
-  identityValue String    @map("identity_value") @db.VarChar(191)
-  isVerified    Boolean   @default(false) @map("is_verified")
-  status        String    @default("ACTIVE") @db.VarChar(30)
-  createdAt     DateTime  @default(now()) @map("created_at") @db.DateTime(3)
-  updatedAt     DateTime  @default(now()) @updatedAt @map("updated_at") @db.DateTime(3)
-  customer      Customer  @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  id            BigInt   @id @default(autoincrement()) @db.UnsignedBigInt
+  customerId    BigInt   @map("customer_id") @db.UnsignedBigInt
+  type          String   @db.VarChar(30)
+  identityValue String   @map("identity_value") @db.VarChar(191)
+  isVerified    Boolean  @default(false) @map("is_verified")
+  status        String   @default("ACTIVE") @db.VarChar(30)
+  createdAt     DateTime @default(now()) @map("created_at") @db.DateTime(3)
+  updatedAt     DateTime @default(now()) @updatedAt @map("updated_at") @db.DateTime(3)
+  customer      Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
 
   @@unique([customerId, type, identityValue], name: "customerId_type_identityValue", map: "uk_customer_identity_type_value")
   @@index([type, identityValue], map: "idx_identity_type_value")
@@ -634,6 +752,7 @@ model CustomerIdentity {
 
 model Conversation {
   id              BigInt    @id @default(autoincrement()) @db.UnsignedBigInt
+  bizId           BigInt    @map("biz_id") @db.UnsignedBigInt
   customerId      BigInt?   @map("customer_id") @db.UnsignedBigInt
   leadId          BigInt?   @map("lead_id") @db.UnsignedBigInt
   channelType     String    @map("channel_type") @db.VarChar(30)
@@ -642,12 +761,13 @@ model Conversation {
   lastMessageAt   DateTime? @map("last_message_at") @db.DateTime(3)
   createdAt       DateTime  @default(now()) @map("created_at") @db.DateTime(3)
   updatedAt       DateTime  @default(now()) @updatedAt @map("updated_at") @db.DateTime(3)
+  business        Business  @relation(fields: [bizId], references: [id], onDelete: Cascade)
   customer        Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
   lead            Lead?     @relation(fields: [leadId], references: [id], onDelete: SetNull)
   messages        Message[]
 
-  @@index([customerId], map: "idx_conv_customer")
-  @@index([leadId], map: "idx_conv_lead")
+  @@index([bizId, customerId], map: "idx_conv_biz_customer")
+  @@index([bizId, leadId], map: "idx_conv_biz_lead")
   @@map("conversations")
 }
 
@@ -680,14 +800,19 @@ model LeadProduct {
   @@map("lead_products")
 }
 
+// =============================================================================
+// System Settings (scoped per Biz)
+// =============================================================================
+
 model SystemSetting {
   id          BigInt   @id @default(autoincrement()) @db.UnsignedBigInt
-  key         String   @unique @db.VarChar(100)
+  bizId       BigInt   @map("biz_id") @db.UnsignedBigInt
+  key         String   @db.VarChar(100)
   value       Json
   description String?  @db.VarChar(255)
   updatedAt   DateTime @default(now()) @updatedAt @map("updated_at") @db.DateTime(3)
+  business    Business @relation(fields: [bizId], references: [id], onDelete: Cascade)
 
-  @@index([key], map: "idx_ss_key")
+  @@unique([bizId, key], map: "uk_setting_biz_key")
   @@map("system_settings")
 }
-

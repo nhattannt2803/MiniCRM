@@ -2,7 +2,7 @@ import prisma from '../config/database';
 import { AppError } from '../middleware/errorMiddleware';
 
 export class ContactService {
-  public static async getContacts(params: {
+  public static async getContacts(bizId: bigint, params: {
     page?: number;
     limit?: number;
     search?: string;
@@ -12,7 +12,7 @@ export class ContactService {
     const limit = Math.min(Math.max(Number(params.limit) || 10, 1), 100);
     const skip = (page - 1) * limit;
 
-    const where: any = { deletedAt: null };
+    const where: any = { bizId, deletedAt: null };
     if (params.companyId) where.companyId = BigInt(params.companyId);
 
     if (params.search) {
@@ -49,10 +49,10 @@ export class ContactService {
     };
   }
 
-  public static async getContactById(id: string | number) {
+  public static async getContactById(bizId: bigint, id: string | number) {
     const contactId = BigInt(id);
     const contact = await prisma.contact.findFirst({
-      where: { id: contactId, deletedAt: null },
+      where: { id: contactId, bizId, deletedAt: null },
       include: {
         company: true,
         owner: { select: { id: true, firstName: true, lastName: true } },
@@ -69,9 +69,10 @@ export class ContactService {
     };
   }
 
-  public static async createContact(data: any) {
+  public static async createContact(bizId: bigint, data: any) {
     const created = await prisma.contact.create({
       data: {
+        bizId,
         firstName: data.firstName,
         lastName: data.lastName,
         email: data.email || null,
@@ -86,8 +87,11 @@ export class ContactService {
     return { ...created, id: created.id.toString() };
   }
 
-  public static async updateContact(id: string | number, data: any) {
+  public static async updateContact(bizId: bigint, id: string | number, data: any) {
     const contactId = BigInt(id);
+    const existing = await prisma.contact.findFirst({ where: { id: contactId, bizId, deletedAt: null } });
+    if (!existing) throw new AppError('Contact not found', 404, 'CONTACT_NOT_FOUND');
+
     const updated = await prisma.contact.update({
       where: { id: contactId },
       data: {

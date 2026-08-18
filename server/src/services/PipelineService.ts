@@ -2,9 +2,9 @@ import prisma from '../config/database';
 import { AppError } from '../middleware/errorMiddleware';
 
 export class PipelineService {
-  public static async getPipelines() {
+  public static async getPipelines(bizId: bigint) {
     const pipelines = await prisma.pipeline.findMany({
-      where: { isActive: true },
+      where: { bizId, isActive: true },
       include: {
         stages: {
           where: { isActive: true },
@@ -25,7 +25,7 @@ export class PipelineService {
     }));
   }
 
-  public static async createPipeline(data: {
+  public static async createPipeline(bizId: bigint, data: {
     name: string;
     isDefault?: boolean;
     stages?: Array<{
@@ -43,7 +43,7 @@ export class PipelineService {
 
     if (data.isDefault) {
       await prisma.pipeline.updateMany({
-        where: { isDefault: true },
+        where: { bizId, isDefault: true },
         data: { isDefault: false },
       });
     }
@@ -68,6 +68,7 @@ export class PipelineService {
 
     const pipeline = await prisma.pipeline.create({
       data: {
+        bizId,
         name: data.name,
         isDefault: data.isDefault ?? false,
         isActive: true,
@@ -94,14 +95,14 @@ export class PipelineService {
     };
   }
 
-  public static async updatePipeline(id: string, data: { name?: string; isDefault?: boolean; isActive?: boolean }) {
+  public static async updatePipeline(bizId: bigint, id: string, data: { name?: string; isDefault?: boolean; isActive?: boolean }) {
     const pipelineId = BigInt(id);
-    const existing = await prisma.pipeline.findUnique({ where: { id: pipelineId } });
+    const existing = await prisma.pipeline.findFirst({ where: { id: pipelineId, bizId } });
     if (!existing) throw new AppError('Quy trình bán hàng không tồn tại', 404);
 
     if (data.isDefault) {
       await prisma.pipeline.updateMany({
-        where: { isDefault: true },
+        where: { bizId, isDefault: true },
         data: { isDefault: false },
       });
     }
@@ -133,10 +134,10 @@ export class PipelineService {
     };
   }
 
-  public static async deletePipeline(id: string) {
+  public static async deletePipeline(bizId: bigint, id: string) {
     const pipelineId = BigInt(id);
     const oppCount = await prisma.opportunity.count({
-      where: { pipelineId, deletedAt: null },
+      where: { bizId, pipelineId, deletedAt: null },
     });
 
     if (oppCount > 0) {
@@ -151,7 +152,7 @@ export class PipelineService {
     return { success: true };
   }
 
-  public static async addStage(pipelineId: string, data: {
+  public static async addStage(bizId: bigint, pipelineId: string, data: {
     name: string;
     code?: string;
     orderNo?: number;
@@ -162,7 +163,7 @@ export class PipelineService {
     stageCategory?: string;
   }) {
     const pId = BigInt(pipelineId);
-    const pipeline = await prisma.pipeline.findUnique({ where: { id: pId } });
+    const pipeline = await prisma.pipeline.findFirst({ where: { id: pId, bizId } });
     if (!pipeline) throw new AppError('Quy trình bán hàng không tồn tại', 404);
 
     const count = await prisma.pipelineStage.count({ where: { pipelineId: pId } });
@@ -191,7 +192,7 @@ export class PipelineService {
     };
   }
 
-  public static async updateStage(stageId: string, data: {
+  public static async updateStage(bizId: bigint, stageId: string, data: {
     name?: string;
     orderNo?: number;
     probability?: number;
@@ -202,7 +203,9 @@ export class PipelineService {
     isActive?: boolean;
   }) {
     const sId = BigInt(stageId);
-    const existing = await prisma.pipelineStage.findUnique({ where: { id: sId } });
+    const existing = await prisma.pipelineStage.findFirst({
+      where: { id: sId, pipeline: { bizId } },
+    });
     if (!existing) throw new AppError('Giai đoạn không tồn tại', 404);
 
     const updated = await prisma.pipelineStage.update({
@@ -227,10 +230,10 @@ export class PipelineService {
     };
   }
 
-  public static async deleteStage(stageId: string) {
+  public static async deleteStage(bizId: bigint, stageId: string) {
     const sId = BigInt(stageId);
     const oppCount = await prisma.opportunity.count({
-      where: { stageId: sId, deletedAt: null },
+      where: { bizId, stageId: sId, deletedAt: null },
     });
 
     if (oppCount > 0) {
@@ -247,8 +250,8 @@ export class PipelineService {
 }
 
 export class ProductService {
-  public static async getProducts(params: { search?: string; type?: string }) {
-    const where: any = { deletedAt: null, isActive: true };
+  public static async getProducts(bizId: bigint, params: { search?: string; type?: string }) {
+    const where: any = { bizId, deletedAt: null, isActive: true };
     if (params.type) where.type = params.type;
     if (params.search) {
       where.OR = [
@@ -269,9 +272,10 @@ export class ProductService {
     }));
   }
 
-  public static async createProduct(data: any) {
+  public static async createProduct(bizId: bigint, data: any) {
     const created = await prisma.product.create({
       data: {
+        bizId,
         name: data.name,
         code: data.code,
         type: data.type || 'PRODUCT',
@@ -283,17 +287,17 @@ export class ProductService {
     return { ...created, id: created.id.toString(), unitPrice: Number(created.unitPrice) };
   }
 
-  public static async getProductById(id: string) {
+  public static async getProductById(bizId: bigint, id: string) {
     const product = await prisma.product.findFirst({
-      where: { id: BigInt(id), deletedAt: null },
+      where: { id: BigInt(id), bizId, deletedAt: null },
     });
     if (!product) throw new AppError('Product not found', 404);
     return { ...product, id: product.id.toString(), unitPrice: Number(product.unitPrice) };
   }
 
-  public static async updateProduct(id: string, data: any) {
+  public static async updateProduct(bizId: bigint, id: string, data: any) {
     const existing = await prisma.product.findFirst({
-      where: { id: BigInt(id), deletedAt: null },
+      where: { id: BigInt(id), bizId, deletedAt: null },
     });
     if (!existing) throw new AppError('Product not found', 404);
 
@@ -313,9 +317,9 @@ export class ProductService {
     return { ...updated, id: updated.id.toString(), unitPrice: Number(updated.unitPrice) };
   }
 
-  public static async deleteProduct(id: string) {
+  public static async deleteProduct(bizId: bigint, id: string) {
     const existing = await prisma.product.findFirst({
-      where: { id: BigInt(id), deletedAt: null },
+      where: { id: BigInt(id), bizId, deletedAt: null },
     });
     if (!existing) throw new AppError('Product not found', 404);
 
@@ -326,4 +330,3 @@ export class ProductService {
     return { success: true };
   }
 }
-

@@ -3,6 +3,12 @@ import { verifyToken, TokenPayload } from '../utils/jwt';
 
 export interface AuthenticatedRequest extends Request {
   user?: TokenPayload;
+  bizId?: bigint;
+  bizMembership?: {
+    roleCode: string;
+    roleName: string;
+    isActive: boolean;
+  };
 }
 
 export const authenticate = (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
@@ -36,8 +42,9 @@ export const authorize = (allowedRoles: string[]) => {
       });
     }
 
-    const hasRole = req.user.roles.some((role) => allowedRoles.includes(role));
-    if (!hasRole) {
+    // Use bizMembership role (per-biz role) if available, fallback to legacy roles
+    const currentRole = req.bizMembership?.roleCode;
+    if (!currentRole || !allowedRoles.includes(currentRole)) {
       return res.status(403).json({
         success: false,
         error: { code: 'FORBIDDEN', message: 'Insufficient permissions' },

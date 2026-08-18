@@ -3,12 +3,12 @@ import { publishOutboxEvent } from '../events/outboxPublisher';
 import { AppError } from '../middleware/errorMiddleware';
 
 export class ActivityService {
-  public static async getActivities(params: {
+  public static async getActivities(bizId: bigint, params: {
     relatedType?: string;
     relatedId?: string | number;
     ownerId?: string | number;
   }) {
-    const where: any = {};
+    const where: any = { bizId };
     if (params.relatedType && params.relatedId) {
       where.relatedType = params.relatedType;
       where.relatedId = BigInt(params.relatedId);
@@ -33,10 +33,11 @@ export class ActivityService {
     }));
   }
 
-  public static async createActivity(data: any) {
+  public static async createActivity(bizId: bigint, data: any) {
     const activity = await prisma.$transaction(async (tx) => {
       const created = await tx.activity.create({
         data: {
+          bizId,
           type: data.type || 'NOTE',
           subject: data.subject,
           description: data.description || null,
@@ -50,7 +51,7 @@ export class ActivityService {
         },
       });
 
-      await publishOutboxEvent(tx, 'ACTIVITY_CREATED', data.relatedType, data.relatedId, {
+      await publishOutboxEvent(tx, bizId, 'ACTIVITY_CREATED', data.relatedType, data.relatedId, {
         activity_id: created.id.toString(),
         type: created.type,
         subject: created.subject,
@@ -65,7 +66,7 @@ export class ActivityService {
 }
 
 export class TaskService {
-  public static async getTasks(params: {
+  public static async getTasks(bizId: bigint, params: {
     status?: string;
     priority?: string;
     assignedTo?: string | number;
@@ -75,7 +76,7 @@ export class TaskService {
     preset?: string;
     limit?: string | number;
   }) {
-    const where: any = {};
+    const where: any = { bizId };
     if (params.status) {
       if (typeof params.status === 'string' && params.status.includes(',')) {
         where.status = { in: params.status.split(',').map((s) => s.trim()) };
@@ -147,13 +148,13 @@ export class TaskService {
     const [leads, customers] = await Promise.all([
       leadIds.length > 0
         ? prisma.lead.findMany({
-            where: { id: { in: leadIds } },
+            where: { bizId, id: { in: leadIds } },
             select: { id: true, firstName: true, lastName: true, companyName: true },
           })
         : [],
       customerIds.length > 0
         ? prisma.customer.findMany({
-            where: { id: { in: customerIds } },
+            where: { bizId, id: { in: customerIds } },
             include: { company: { select: { name: true } }, contact: { select: { firstName: true, lastName: true } } },
           })
         : [],
@@ -199,10 +200,11 @@ export class TaskService {
     });
   }
 
-  public static async createTask(data: any) {
+  public static async createTask(bizId: bigint, data: any) {
     const task = await prisma.$transaction(async (tx) => {
       const created = await tx.task.create({
         data: {
+          bizId,
           title: data.title,
           description: data.description || null,
           priority: data.priority || 'MEDIUM',
@@ -215,7 +217,7 @@ export class TaskService {
         },
       });
 
-      await publishOutboxEvent(tx, 'TASK_CREATED', data.relatedType, data.relatedId, {
+      await publishOutboxEvent(tx, bizId, 'TASK_CREATED', data.relatedType, data.relatedId, {
         task_id: created.id.toString(),
         title: created.title,
         priority: created.priority,
@@ -228,8 +230,11 @@ export class TaskService {
     return { ...task, id: task.id.toString() };
   }
 
-  public static async updateTaskStatus(id: string | number, status: string) {
+  public static async updateTaskStatus(bizId: bigint, id: string | number, status: string) {
     const taskId = BigInt(id);
+    const existing = await prisma.task.findFirst({ where: { id: taskId, bizId } });
+    if (!existing) throw new AppError('Task not found', 404, 'TASK_NOT_FOUND');
+
     const completedAt = status === 'COMPLETED' ? new Date() : null;
 
     const updated = await prisma.task.update({
@@ -240,9 +245,9 @@ export class TaskService {
     return { ...updated, id: updated.id.toString() };
   }
 
-  public static async updateTask(id: string | number, data: any) {
+  public static async updateTask(bizId: bigint, id: string | number, data: any) {
     const taskId = BigInt(id);
-    const existing = await prisma.task.findFirst({ where: { id: taskId } });
+    const existing = await prisma.task.findFirst({ where: { id: taskId, bizId } });
     if (!existing) throw new AppError('Task not found', 404, 'TASK_NOT_FOUND');
 
     const status = data.status !== undefined ? data.status : existing.status;
@@ -272,9 +277,9 @@ export class TaskService {
 }
 
 export class CampaignService {
-  public static async getCampaigns() {
+  public static async getCampaigns(bizId: bigint) {
     const campaigns = await prisma.campaign.findMany({
-      where: { deletedAt: null },
+      where: { bizId, deletedAt: null },
       orderBy: { createdAt: 'desc' },
       include: {
         _count: { select: { leads: true, opportunities: true } },

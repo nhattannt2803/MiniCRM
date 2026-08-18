@@ -3,39 +3,41 @@ import { hashPassword } from '../utils/password';
 import { AppError } from '../middleware/errorMiddleware';
 
 export class UserService {
-  public static async getUsers() {
-    const users = await prisma.user.findMany({
-      where: { deletedAt: null },
-      orderBy: { createdAt: 'desc' },
+  public static async getUsers(bizId: bigint) {
+    const members = await prisma.businessMember.findMany({
+      where: { businessId: bizId, isActive: true },
       include: {
-        userRoles: {
-          include: { role: true },
+        user: {
+          include: {
+            _count: {
+              select: { leads: true, opportunities: true, tasksAssigned: true },
+            },
+          },
         },
-        _count: {
-          select: { leads: true, opportunities: true, tasksAssigned: true },
-        },
+        role: true,
       },
+      orderBy: { joinedAt: 'asc' },
     });
 
-    return users.map((u) => ({
-      id: u.id.toString(),
-      email: u.email,
-      firstName: u.firstName,
-      lastName: u.lastName,
-      phone: u.phone,
-      isActive: u.isActive,
-      createdAt: u.createdAt,
-      roles: u.userRoles.map((ur) => ur.role.code),
-      roleNames: u.userRoles.map((ur) => ur.role.name),
+    return members.map((m) => ({
+      id: m.user.id.toString(),
+      email: m.user.email,
+      firstName: m.user.firstName,
+      lastName: m.user.lastName,
+      phone: m.user.phone,
+      isActive: m.user.isActive && m.isActive,
+      createdAt: m.user.createdAt,
+      roles: [m.role.code],
+      roleNames: [m.role.name],
       stats: {
-        leadsCount: u._count.leads,
-        dealsCount: u._count.opportunities,
-        tasksCount: u._count.tasksAssigned,
+        leadsCount: m.user._count.leads,
+        dealsCount: m.user._count.opportunities,
+        tasksCount: m.user._count.tasksAssigned,
       },
     }));
   }
 
-  public static async createUser(data: {
+  public static async createUser(bizId: bigint, data: {
     email: string;
     password?: string;
     firstName: string;
@@ -43,37 +45,50 @@ export class UserService {
     phone?: string;
     roleCodes?: string[];
   }) {
-    const existing = await prisma.user.findUnique({ where: { email: data.email } });
-    if (existing) {
-      throw new AppError('Email đã được sử dụng trong hệ thống', 400, 'EMAIL_EXISTS');
+    const roleCode = (data.roleCodes && data.roleCodes[0]) || 'SALES';
+
+    // Check role exists for this biz
+    const role = await prisma.role.findFirst({
+      where: { bizId, code: roleCode },
+    });
+    if (!role) {
+      throw new AppError(`Role ${roleCode} không tồn tại trong doanh nghiệp`, 400, 'ROLE_NOT_FOUND');
     }
 
-    const passwordHash = await hashPassword(data.password || 'Password123!');
-    const user = await prisma.user.create({
-      data: {
-        email: data.email,
-        passwordHash,
-        firstName: data.firstName,
-        lastName: data.lastName,
-        phone: data.phone || null,
-        isActive: true,
-      },
-    });
+    let user = await prisma.user.findUnique({ where: { email: data.email } });
 
-    // Assign roles
-    const roleCodes = data.roleCodes && data.roleCodes.length > 0 ? data.roleCodes : ['SALES_REP'];
-    const roles = await prisma.role.findMany({
-      where: { code: { in: roleCodes } },
-    });
-
-    for (const r of roles) {
-      await prisma.userRole.create({
+    if (!user) {
+      const passwordHash = await hashPassword(data.password || 'Password123!');
+      user = await prisma.user.create({
         data: {
-          userId: user.id,
-          roleId: r.id,
+          email: data.email,
+          passwordHash,
+          firstName: data.firstName,
+          lastName: data.lastName,
+          phone: data.phone || null,
+          isActive: true,
         },
       });
     }
+
+    // Check if already member
+    const existingMember = await prisma.businessMember.findUnique({
+      where: { businessId_userId: { businessId: bizId, userId: user.id } },
+    });
+
+    if (existingMember) {
+      throw new AppError('Người dùng đã là thành viên của doanh nghiệp này', 400, 'ALREADY_MEMBER');
+    }
+
+    await prisma.businessMember.create({
+      data: {
+        businessId: bizId,
+        userId: user.id,
+        roleId: role.id,
+        isDefault: false,
+        isActive: true,
+      },
+    });
 
     return {
       id: user.id.toString(),
@@ -81,7 +96,7 @@ export class UserService {
       firstName: user.firstName,
       lastName: user.lastName,
       phone: user.phone,
-      roles: roleCodes,
+      roles: [roleCode],
     };
   }
 
@@ -122,10 +137,8 @@ export class UserService {
     };
   }
 
-
-  public static async getStaff() {
-    const users = await this.getUsers();
-    // Return staff metrics suitable for management directory
+  public static async getStaff(bizId: bigint) {
+    const users = await this.getUsers(bizId);
     return users.map((u) => ({
       ...u,
       department: u.roles.includes('ADMIN')
@@ -142,7 +155,7 @@ export class UserService {
     }));
   }
 
-  public static async getTeams() {
+  public static async getTeams(bizId: bigint) {
     return [
       {
         id: 'team-1',
@@ -153,7 +166,7 @@ export class UserService {
         targetRevenue: 500000000,
         achievedRevenue: 340000000,
         leadCount: 42,
-        description: 'Chuyên trách tư vấn & chốt đơn sản phẩm xe điệnMOVE Pro / Urban.',
+        description: 'Chuyên trách tư vấn & chốt đơn sản phẩm xe điện MOVE Pro / Urban.',
       },
       {
         id: 'team-2',
@@ -166,33 +179,13 @@ export class UserService {
         leadCount: 28,
         description: 'Tư vấn giải pháp phần mềm quản trị cho doanh nghiệp B2B.',
       },
-      {
-        id: 'team-3',
-        name: 'Đội Bất Động Sản & Dự Án',
-        code: 'SALES_REALTOR',
-        leaderName: 'Lê Văn Bất Động Sản',
-        memberCount: 6,
-        targetRevenue: 3000000000,
-        achievedRevenue: 2100000000,
-        leadCount: 65,
-        description: 'Tư vấn căn hộ cao cấp & biệt thự nghỉ dưỡng.',
-      },
-      {
-        id: 'team-4',
-        name: 'Telesale & Inbound Leads',
-        code: 'TELESALE_INBOUND',
-        leaderName: 'Phạm Thị Tele',
-        memberCount: 8,
-        targetRevenue: 400000000,
-        achievedRevenue: 390000000,
-        leadCount: 110,
-        description: 'Tiếp nhận Lead inbound, phân loại và chuyển tiếp cho Sales Rep.',
-      },
     ];
   }
 
-  public static async getRoles() {
-    const roles = await prisma.role.findMany();
+  public static async getRoles(bizId: bigint) {
+    const roles = await prisma.role.findMany({
+      where: { bizId },
+    });
     return roles.map((r) => ({
       id: r.id.toString(),
       name: r.name,
@@ -208,12 +201,12 @@ export class UserService {
     }));
   }
 
-  public static async allocateLeads(leadIds: (string | number)[], ownerId: string | number) {
+  public static async allocateLeads(bizId: bigint, leadIds: (string | number)[], ownerId: string | number) {
     const bigintIds = leadIds.map((id) => BigInt(id));
     const bigintOwner = BigInt(ownerId);
 
     const updated = await prisma.lead.updateMany({
-      where: { id: { in: bigintIds } },
+      where: { bizId, id: { in: bigintIds } },
       data: { ownerId: bigintOwner },
     });
 

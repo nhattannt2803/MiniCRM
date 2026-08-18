@@ -12,6 +12,10 @@ api.interceptors.request.use((config) => {
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
+  const bizId = localStorage.getItem('activeBizId');
+  if (bizId) {
+    config.headers['X-Biz-Id'] = bizId;
+  }
   return config;
 });
 
@@ -20,6 +24,7 @@ api.interceptors.response.use(
   (error) => {
     if (error.response && error.response.status === 401) {
       localStorage.removeItem('token');
+      localStorage.removeItem('activeBizId');
       window.location.href = '/login';
     }
     return Promise.reject(error.response?.data?.error || { message: error.message });

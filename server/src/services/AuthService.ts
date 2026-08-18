@@ -8,8 +8,13 @@ export class AuthService {
     const user = await prisma.user.findUnique({
       where: { email },
       include: {
-        userRoles: {
-          include: { role: true },
+        memberships: {
+          where: { isActive: true },
+          include: {
+            role: { select: { code: true, name: true } },
+            business: { select: { id: true, name: true, slug: true, logo: true, status: true, plan: true } },
+          },
+          orderBy: [{ isDefault: 'desc' }, { joinedAt: 'asc' }],
         },
       },
     });
@@ -23,12 +28,40 @@ export class AuthService {
       throw new AppError('Invalid credentials', 401, 'INVALID_CREDENTIALS');
     }
 
-    const roles = user.userRoles.map((ur) => ur.role.code);
+    // Find default Biz (or first available)
+    const defaultMembership = user.memberships.find((m) => m.isDefault) || user.memberships[0];
+    const defaultBizId = defaultMembership ? Number(defaultMembership.businessId) : undefined;
+
     const token = generateToken({
       userId: Number(user.id),
       email: user.email,
-      roles,
+      defaultBizId,
     });
+
+    // Build businesses list
+    const businesses = user.memberships.map((m) => ({
+      id: m.business.id.toString(),
+      name: m.business.name,
+      slug: m.business.slug,
+      logo: m.business.logo,
+      status: m.business.status,
+      plan: m.business.plan,
+      roleCode: m.role.code,
+      roleName: m.role.name,
+      isDefault: m.isDefault,
+    }));
+
+    // Active Biz context
+    const activeBiz = defaultMembership
+      ? {
+          id: defaultMembership.business.id.toString(),
+          name: defaultMembership.business.name,
+          slug: defaultMembership.business.slug,
+          logo: defaultMembership.business.logo,
+          role: defaultMembership.role.code,
+          roleName: defaultMembership.role.name,
+        }
+      : null;
 
     return {
       token,
@@ -38,8 +71,9 @@ export class AuthService {
         firstName: user.firstName,
         lastName: user.lastName,
         phone: user.phone,
-        roles,
       },
+      businesses,
+      activeBiz,
     };
   }
 
@@ -47,8 +81,13 @@ export class AuthService {
     const user = await prisma.user.findUnique({
       where: { id: BigInt(userId) },
       include: {
-        userRoles: {
-          include: { role: true },
+        memberships: {
+          where: { isActive: true },
+          include: {
+            role: { select: { code: true, name: true } },
+            business: { select: { id: true, name: true, slug: true, logo: true, status: true, plan: true } },
+          },
+          orderBy: [{ isDefault: 'desc' }, { joinedAt: 'asc' }],
         },
       },
     });
@@ -63,7 +102,16 @@ export class AuthService {
       firstName: user.firstName,
       lastName: user.lastName,
       phone: user.phone,
-      roles: user.userRoles.map((ur) => ur.role.code),
+      memberships: user.memberships.map((m) => ({
+        bizId: m.business.id.toString(),
+        bizName: m.business.name,
+        bizSlug: m.business.slug,
+        bizLogo: m.business.logo,
+        bizStatus: m.business.status,
+        roleCode: m.role.code,
+        roleName: m.role.name,
+        isDefault: m.isDefault,
+      })),
     };
   }
 }

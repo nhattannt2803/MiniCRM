@@ -6,7 +6,7 @@ import { SystemSettingService } from './SystemSettingService';
 import { parseFbPsidInput, parseZaloUidInput } from '../utils/identityHelper';
 
 export class LeadService {
-  public static async getLeads(params: {
+  public static async getLeads(bizId: bigint, params: {
     page?: number;
     limit?: number;
     search?: string;
@@ -20,7 +20,7 @@ export class LeadService {
     const limit = Math.min(Math.max(Number(params.limit) || 10, 1), 100);
     const skip = (page - 1) * limit;
 
-    const where: any = { deletedAt: null };
+    const where: any = { bizId, deletedAt: null };
 
     if (params.status) where.status = params.status;
     if (params.rating) where.rating = params.rating;
@@ -84,10 +84,10 @@ export class LeadService {
     };
   }
 
-  public static async getLeadById(id: string | number) {
+  public static async getLeadById(bizId: bigint, id: string | number) {
     const leadId = BigInt(id);
     const lead = await prisma.lead.findFirst({
-      where: { id: leadId, deletedAt: null },
+      where: { id: leadId, bizId, deletedAt: null },
       include: {
         owner: { select: { id: true, firstName: true, lastName: true, email: true } },
         company: true,
@@ -157,9 +157,9 @@ export class LeadService {
     };
   }
 
-  public static async createLead(data: any) {
+  public static async createLead(bizId: bigint, data: any) {
     // 1. Identity Resolution Check
-    const resolution = await IdentityResolutionService.resolveIdentity({
+    const resolution = await IdentityResolutionService.resolveIdentity(bizId, {
       phone: data.phone,
       email: data.email,
       name: `${data.firstName || ''} ${data.lastName || ''}`.trim(),
@@ -182,6 +182,7 @@ export class LeadService {
     if (whereOR.length > 0) {
       activeExistingLead = await prisma.lead.findFirst({
         where: {
+          bizId,
           deletedAt: null,
           status: { notIn: ['CONVERTED', 'DISQUALIFIED'] },
           OR: whereOR,
@@ -191,7 +192,7 @@ export class LeadService {
     }
 
     if (activeExistingLead) {
-      const duplicateRule = await SystemSettingService.getLeadDuplicateRule();
+      const duplicateRule = await SystemSettingService.getLeadDuplicateRule(bizId);
       let shouldMerge = false;
 
       if (duplicateRule.mode === 'ALWAYS_MERGE') {
@@ -261,6 +262,7 @@ export class LeadService {
       if (!assignedCustomerId && resolutionStatus === 'NEW_CUSTOMER') {
         const contact = await tx.contact.create({
           data: {
+            bizId,
             firstName: data.firstName,
             lastName: data.lastName,
             email: data.email || null,
@@ -274,6 +276,7 @@ export class LeadService {
         const custCode = `CUST-${Date.now().toString().slice(-6)}`;
         const customer = await tx.customer.create({
           data: {
+            bizId,
             customerCode: custCode,
             entityType: 'CONTACT',
             contactId: contact.id,
@@ -289,6 +292,7 @@ export class LeadService {
 
       const created = await tx.lead.create({
         data: {
+          bizId,
           firstName: data.firstName,
           lastName: data.lastName,
           email: data.email || null,
@@ -359,7 +363,7 @@ export class LeadService {
       }
 
       // Publish Outbox Event
-      await publishOutboxEvent(tx, 'LEAD_CREATED', 'LEAD', created.id, {
+      await publishOutboxEvent(tx, bizId, 'LEAD_CREATED', 'LEAD', created.id, {
         id: created.id.toString(),
         first_name: created.firstName,
         last_name: created.lastName,
@@ -380,9 +384,9 @@ export class LeadService {
     };
   }
 
-  public static async updateLead(id: string | number, data: any) {
+  public static async updateLead(bizId: bigint, id: string | number, data: any) {
     const leadId = BigInt(id);
-    const existing = await prisma.lead.findFirst({ where: { id: leadId, deletedAt: null } });
+    const existing = await prisma.lead.findFirst({ where: { id: leadId, bizId, deletedAt: null } });
     if (!existing) throw new AppError('Lead not found', 404, 'LEAD_NOT_FOUND');
 
     const updated = await prisma.$transaction(async (tx) => {
@@ -422,7 +426,7 @@ export class LeadService {
 
       if (data.status && data.status !== existing.status) {
         // Publish single STATUS_CHANGED outbox event for any status transition
-        await publishOutboxEvent(tx, 'STATUS_CHANGED', 'LEAD', res.id, {
+        await publishOutboxEvent(tx, bizId, 'STATUS_CHANGED', 'LEAD', res.id, {
           id: res.id.toString(),
           status: res.status,
           old_status: existing.status,
@@ -436,7 +440,7 @@ export class LeadService {
     return { ...updated, id: updated.id.toString(), customerId: updated.customerId?.toString() || null };
   }
 
-  public static async deleteLead(id: string | number) {
+  public static async deleteLead(bizId: bigint, id: string | number) {
     const leadId = BigInt(id);
     await prisma.lead.update({
       where: { id: leadId },

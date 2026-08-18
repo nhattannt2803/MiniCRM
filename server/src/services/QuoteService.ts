@@ -16,8 +16,8 @@ export interface CreateQuoteDTO {
 }
 
 export class QuoteService {
-  public static async getQuotes(params: { opportunityId?: string | number }) {
-    const where: any = { deletedAt: null };
+  public static async getQuotes(bizId: bigint, params: { opportunityId?: string | number }) {
+    const where: any = { bizId, deletedAt: null };
     if (params.opportunityId) where.opportunityId = BigInt(params.opportunityId);
 
     const quotes = await prisma.quote.findMany({
@@ -39,10 +39,10 @@ export class QuoteService {
     }));
   }
 
-  public static async getQuoteById(id: string | number) {
+  public static async getQuoteById(bizId: bigint, id: string | number) {
     const quoteId = BigInt(id);
     const quote = await prisma.quote.findFirst({
-      where: { id: quoteId, deletedAt: null },
+      where: { id: quoteId, bizId, deletedAt: null },
       include: {
         opportunity: true,
         company: true,
@@ -62,9 +62,9 @@ export class QuoteService {
     };
   }
 
-  public static async createQuote(dto: CreateQuoteDTO) {
+  public static async createQuote(bizId: bigint, dto: CreateQuoteDTO) {
     const oppId = BigInt(dto.opportunityId);
-    const opp = await prisma.opportunity.findUnique({ where: { id: oppId } });
+    const opp = await prisma.opportunity.findFirst({ where: { id: oppId, bizId } });
     if (!opp) throw new AppError('Opportunity not found', 404, 'OPPORTUNITY_NOT_FOUND');
 
     const quoteNumber = `QT-${Date.now()}`;
@@ -100,6 +100,7 @@ export class QuoteService {
 
     const quote = await prisma.quote.create({
       data: {
+        bizId,
         opportunityId: oppId,
         quoteNumber,
         companyId: opp.companyId,
@@ -121,8 +122,11 @@ export class QuoteService {
     return { ...quote, id: quote.id.toString() };
   }
 
-  public static async updateQuoteStatus(id: string | number, status: string) {
+  public static async updateQuoteStatus(bizId: bigint, id: string | number, status: string) {
     const quoteId = BigInt(id);
+    const existing = await prisma.quote.findFirst({ where: { id: quoteId, bizId } });
+    if (!existing) throw new AppError('Quote not found', 404, 'QUOTE_NOT_FOUND');
+
     const updated = await prisma.quote.update({
       where: { id: quoteId },
       data: { status },

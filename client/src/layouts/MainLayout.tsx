@@ -28,6 +28,7 @@ import {
   MenuUnfoldOutlined,
   GlobalOutlined,
   ThunderboltOutlined,
+  ShopOutlined,
 } from '@ant-design/icons';
 import { useNavigate, useLocation, Outlet } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -51,9 +52,13 @@ export const MainLayout: React.FC = () => {
   );
 
   const { t, i18n } = useTranslation();
-  const { user, logout } = useAuthStore();
+  const { user, logout, businesses, activeBiz, switchBiz } = useAuthStore();
   const navigate = useNavigate();
   const location = useLocation();
+
+  const handleSwitchBiz = (bizId: string) => {
+    switchBiz(bizId);
+  };
 
   const handleSwitchDemo = async (value: string) => {
     setSwitchingDemo(true);
@@ -194,6 +199,11 @@ export const MainLayout: React.FC = () => {
         disabled: true,
       },
       {
+        key: 'role',
+        label: <Text className="text-xs text-indigo-600 font-semibold">Quyền: {activeBiz?.roleName || activeBiz?.role || 'SALES'}</Text>,
+        disabled: true,
+      },
+      {
         key: 'logout',
         icon: <LogoutOutlined />,
         label: t('nav.logout'),
@@ -247,6 +257,26 @@ export const MainLayout: React.FC = () => {
           />
 
           <div className="flex items-center gap-4">
+            {/* Multi-Tenant Business Switcher Widget */}
+            {businesses && businesses.length > 0 && (
+              <div className="flex items-center gap-2 bg-emerald-50/80 border border-emerald-200 rounded-full px-3 py-1 shadow-2xs">
+                <ShopOutlined className="text-emerald-600 font-bold" />
+                <span className="text-xs font-semibold text-emerald-950 hidden sm:inline">Doanh nghiệp:</span>
+                <Select
+                  value={activeBiz?.id}
+                  onChange={handleSwitchBiz}
+                  size="small"
+                  variant="borderless"
+                  popupMatchSelectWidth={false}
+                  className="font-bold text-emerald-900 text-xs"
+                  options={businesses.map((b: any) => ({
+                    value: b.id,
+                    label: `${b.name} (${b.roleName || b.roleCode || 'Member'})`,
+                  }))}
+                />
+              </div>
+            )}
+
             {/* Demo Industry Switcher Widget */}
             <div className="flex items-center gap-2 bg-indigo-50/80 border border-indigo-100 rounded-full px-3 py-1 shadow-2xs">
               <ThunderboltOutlined className="text-indigo-600 font-bold" />
@@ -311,4 +341,3 @@ export const MainLayout: React.FC = () => {
     </Layout>
   );
 };
-

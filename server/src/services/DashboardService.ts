@@ -1,7 +1,7 @@
 import prisma from '../config/database';
 
 export class DashboardService {
-  public static async getDashboardStats() {
+  public static async getDashboardStats(bizId: bigint) {
     const now = new Date();
 
     const [
@@ -16,36 +16,37 @@ export class DashboardService {
       stages,
       oppsByStage,
     ] = await Promise.all([
-      prisma.lead.count({ where: { deletedAt: null } }),
-      prisma.lead.count({ where: { status: 'NEW', deletedAt: null } }),
-      prisma.lead.count({ where: { status: 'QUALIFIED', deletedAt: null } }),
-      prisma.opportunity.count({ where: { status: 'OPEN', deletedAt: null } }),
+      prisma.lead.count({ where: { bizId, deletedAt: null } }),
+      prisma.lead.count({ where: { bizId, status: 'NEW', deletedAt: null } }),
+      prisma.lead.count({ where: { bizId, status: 'QUALIFIED', deletedAt: null } }),
+      prisma.opportunity.count({ where: { bizId, status: 'OPEN', deletedAt: null } }),
       prisma.opportunity.findMany({
-        where: { status: 'OPEN', deletedAt: null },
+        where: { bizId, status: 'OPEN', deletedAt: null },
         select: { amount: true, probability: true },
       }),
       prisma.opportunity.aggregate({
-        where: { status: 'WON', deletedAt: null },
+        where: { bizId, status: 'WON', deletedAt: null },
         _sum: { amount: true },
       }),
       prisma.task.count({
         where: {
+          bizId,
           status: { in: ['TODO', 'IN_PROGRESS'] },
           dueAt: { lt: now },
         },
       }),
       prisma.lead.groupBy({
         by: ['source'],
-        where: { deletedAt: null },
+        where: { bizId, deletedAt: null },
         _count: { id: true },
       }),
       prisma.pipelineStage.findMany({
-        where: { isActive: true },
+        where: { pipeline: { bizId }, isActive: true },
         orderBy: { orderNo: 'asc' },
       }),
       prisma.opportunity.groupBy({
         by: ['stageId'],
-        where: { deletedAt: null },
+        where: { bizId, deletedAt: null },
         _count: { id: true },
         _sum: { amount: true },
       }),
@@ -59,11 +60,11 @@ export class DashboardService {
     const wonRevenue = Number(wonRevenueSum._sum.amount || 0);
 
     // Dynamic Sales Funnel Calculation
-    const convertedLeads = await prisma.lead.count({ where: { status: 'CONVERTED', deletedAt: null } });
+    const convertedLeads = await prisma.lead.count({ where: { bizId, status: 'CONVERTED', deletedAt: null } });
     const proposalOpps = await prisma.opportunity.count({
-      where: { stage: { code: 'PROPOSAL' }, deletedAt: null },
+      where: { bizId, stage: { code: 'PROPOSAL' }, deletedAt: null },
     });
-    const wonOpps = await prisma.opportunity.count({ where: { status: 'WON', deletedAt: null } });
+    const wonOpps = await prisma.opportunity.count({ where: { bizId, status: 'WON', deletedAt: null } });
 
     const funnelData = [
       { stage: 'Total Leads', count: totalLeads },
@@ -104,7 +105,7 @@ export class DashboardService {
     };
   }
 
-  public static async getLeaderDashboardStats() {
+  public static async getLeaderDashboardStats(bizId: bigint) {
     const now = new Date();
     const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
     const endOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
@@ -112,7 +113,7 @@ export class DashboardService {
 
     // 1. New Leads calculation
     const allNewLeads = await prisma.lead.findMany({
-      where: { status: 'NEW', deletedAt: null },
+      where: { bizId, status: 'NEW', deletedAt: null },
       select: {
         id: true,
         firstName: true,
@@ -129,6 +130,7 @@ export class DashboardService {
     const activitiesForNewLeads = await prisma.activity.groupBy({
       by: ['relatedId'],
       where: {
+        bizId,
         relatedType: 'LEAD',
         relatedId: { in: leadIds },
       },
@@ -144,6 +146,7 @@ export class DashboardService {
     // 2. Today's Follow-ups
     const todayTasks = await prisma.task.findMany({
       where: {
+        bizId,
         dueAt: { gte: startOfToday, lte: endOfToday },
       },
       select: {
@@ -163,6 +166,7 @@ export class DashboardService {
     // 3. Overdue Follow-ups
     const overdueTasks = await prisma.task.findMany({
       where: {
+        bizId,
         dueAt: { lt: startOfToday },
         status: { in: ['TODO', 'IN_PROGRESS'] },
       },
@@ -183,6 +187,7 @@ export class DashboardService {
     // 4. Inactive Leads > 7 Days
     const activeLeads = await prisma.lead.findMany({
       where: {
+        bizId,
         status: { notIn: ['CONVERTED', 'LOST'] },
         deletedAt: null,
       },
@@ -201,7 +206,7 @@ export class DashboardService {
 
     const leadActivityMaxDate = await prisma.activity.groupBy({
       by: ['relatedId'],
-      where: { relatedType: 'LEAD' },
+      where: { bizId, relatedType: 'LEAD' },
       _max: { createdAt: true },
     });
 
@@ -219,27 +224,29 @@ export class DashboardService {
     });
     const inactiveLeadsCount = inactiveLeads.length;
 
-    // 5. Sales Rep Breakdown
-    const salesUsers = await prisma.user.findMany({
+    // 5. Sales Rep Breakdown (get members of this biz)
+    const bizMembers = await prisma.businessMember.findMany({
       where: {
+        businessId: bizId,
         isActive: true,
-        userRoles: {
-          some: {
-            role: { code: { in: ['SALES', 'MANAGER', 'ADMIN'] } },
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            phone: true,
           },
         },
+        role: true,
       },
-      select: {
-        id: true,
-        firstName: true,
-        lastName: true,
-        email: true,
-        phone: true,
-      },
-      orderBy: { id: 'asc' },
+      orderBy: { userId: 'asc' },
     });
 
-    const salesReps = salesUsers.map((user) => {
+    const salesReps = bizMembers.map((member) => {
+      const user = member.user;
       const userIdStr = user.id.toString();
 
       const userOverdueTasks = overdueTasks.filter(
@@ -272,6 +279,7 @@ export class DashboardService {
         name: `${user.lastName} ${user.firstName}`.trim(),
         email: user.email,
         phone: user.phone,
+        role: member.role.code,
         overdueCount: userOverdueTasks.length,
         unprocessedCount: userUnprocessedLeads.length,
         inactiveCount: userInactiveLeads.length,
@@ -315,7 +323,7 @@ export class DashboardService {
     };
   }
 
-  public static async nudgeSalesRep(userId: string, customMessage?: string) {
+  public static async nudgeSalesRep(bizId: bigint, userId: string, customMessage?: string) {
     const userBigIntId = BigInt(userId);
 
     const user = await prisma.user.findUnique({
@@ -328,6 +336,7 @@ export class DashboardService {
 
     const notification = await prisma.notification.create({
       data: {
+        bizId,
         userId: userBigIntId,
         type: 'LEADER_NUDGE',
         title: '🔴 Nhắc nhở công việc từ Trưởng nhóm Sale',
@@ -344,4 +353,3 @@ export class DashboardService {
     };
   }
 }
-

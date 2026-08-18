@@ -107,9 +107,11 @@ export const SettingsPage: React.FC = () => {
           <div>
             <span className="text-slate-400 font-medium block text-xs">Vai trò</span>
             <div className="flex gap-1 mt-1">
-              {user?.roles.map((r) => (
-                <Tag key={r} color="purple">{r}</Tag>
-              ))}
+              {user?.roles ? (
+                user.roles.map((r) => <Tag key={r} color="purple">{r}</Tag>)
+              ) : (
+                <Tag color="purple">SALES</Tag>
+              )}
             </div>
           </div>
         </div>

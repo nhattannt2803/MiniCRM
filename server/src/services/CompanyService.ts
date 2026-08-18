@@ -2,7 +2,7 @@ import prisma from '../config/database';
 import { AppError } from '../middleware/errorMiddleware';
 
 export class CompanyService {
-  public static async getCompanies(params: {
+  public static async getCompanies(bizId: bigint, params: {
     page?: number;
     limit?: number;
     search?: string;
@@ -13,7 +13,7 @@ export class CompanyService {
     const limit = Math.min(Math.max(Number(params.limit) || 10, 1), 100);
     const skip = (page - 1) * limit;
 
-    const where: any = { deletedAt: null };
+    const where: any = { bizId, deletedAt: null };
     if (params.status) where.status = params.status;
     if (params.isCustomer !== undefined) where.isCustomer = params.isCustomer;
 
@@ -52,15 +52,15 @@ export class CompanyService {
     };
   }
 
-  public static async getCompanyById(id: string | number) {
+  public static async getCompanyById(bizId: bigint, id: string | number) {
     const companyId = BigInt(id);
     const company = await prisma.company.findFirst({
-      where: { id: companyId, deletedAt: null },
+      where: { id: companyId, bizId, deletedAt: null },
       include: {
         owner: { select: { id: true, firstName: true, lastName: true, email: true } },
-        contacts: { where: { deletedAt: null } },
+        contacts: { where: { bizId, deletedAt: null } },
         opportunities: {
-          where: { deletedAt: null },
+          where: { bizId, deletedAt: null },
           include: { stage: true },
         },
       },
@@ -70,12 +70,12 @@ export class CompanyService {
 
     const [activities, tasks] = await Promise.all([
       prisma.activity.findMany({
-        where: { relatedType: 'COMPANY', relatedId: companyId },
+        where: { bizId, relatedType: 'COMPANY', relatedId: companyId },
         orderBy: { createdAt: 'desc' },
         include: { owner: { select: { firstName: true, lastName: true } } },
       }),
       prisma.task.findMany({
-        where: { relatedType: 'COMPANY', relatedId: companyId },
+        where: { bizId, relatedType: 'COMPANY', relatedId: companyId },
         orderBy: { dueAt: 'asc' },
         include: { assignee: { select: { firstName: true, lastName: true } } },
       }),
@@ -92,9 +92,10 @@ export class CompanyService {
     };
   }
 
-  public static async createCompany(data: any) {
+  public static async createCompany(bizId: bigint, data: any) {
     const created = await prisma.company.create({
       data: {
+        bizId,
         name: data.name,
         taxCode: data.taxCode || null,
         email: data.email || null,
@@ -108,8 +109,11 @@ export class CompanyService {
     return { ...created, id: created.id.toString() };
   }
 
-  public static async updateCompany(id: string | number, data: any) {
+  public static async updateCompany(bizId: bigint, id: string | number, data: any) {
     const companyId = BigInt(id);
+    const existing = await prisma.company.findFirst({ where: { id: companyId, bizId, deletedAt: null } });
+    if (!existing) throw new AppError('Company not found', 404, 'COMPANY_NOT_FOUND');
+
     const updated = await prisma.company.update({
       where: { id: companyId },
       data: {
@@ -126,9 +130,9 @@ export class CompanyService {
     return { ...updated, id: updated.id.toString() };
   }
 
-  public static async addContact(companyId: string | number, data: any) {
+  public static async addContact(bizId: bigint, companyId: string | number, data: any) {
     const compId = BigInt(companyId);
-    const company = await prisma.company.findFirst({ where: { id: compId, deletedAt: null } });
+    const company = await prisma.company.findFirst({ where: { id: compId, bizId, deletedAt: null } });
     if (!company) throw new AppError('Company not found', 404, 'COMPANY_NOT_FOUND');
 
     const isPrimary = Boolean(data.isPrimary);
@@ -137,13 +141,14 @@ export class CompanyService {
       if (isPrimary) {
         // Reset existing contacts to secondary
         await tx.contact.updateMany({
-          where: { companyId: compId },
+          where: { bizId, companyId: compId },
           data: { isPrimary: false },
         });
       }
 
       const newContact = await tx.contact.create({
         data: {
+          bizId,
           companyId: compId,
           firstName: data.firstName,
           lastName: data.lastName,
@@ -159,7 +164,7 @@ export class CompanyService {
 
       // Find associated Customer profile for this company
       const linkedCustomer = await tx.customer.findFirst({
-        where: { companyId: compId, entityType: 'COMPANY', deletedAt: null },
+        where: { bizId, companyId: compId, entityType: 'COMPANY', deletedAt: null },
       });
 
       if (linkedCustomer) {
@@ -195,13 +200,13 @@ export class CompanyService {
     });
   }
 
-  public static async setPrimaryContact(companyId: string | number, contactId: string | number) {
+  public static async setPrimaryContact(bizId: bigint, companyId: string | number, contactId: string | number) {
     const compId = BigInt(companyId);
     const ctId = BigInt(contactId);
 
     return await prisma.$transaction(async (tx) => {
       await tx.contact.updateMany({
-        where: { companyId: compId },
+        where: { bizId, companyId: compId },
         data: { isPrimary: false },
       });
 
@@ -212,7 +217,7 @@ export class CompanyService {
 
       // Update linked customer's primary contactId
       const linkedCustomer = await tx.customer.findFirst({
-        where: { companyId: compId, entityType: 'COMPANY', deletedAt: null },
+        where: { bizId, companyId: compId, entityType: 'COMPANY', deletedAt: null },
       });
 
       if (linkedCustomer) {
@@ -230,3 +235,4 @@ export class CompanyService {
     });
   }
 }
+

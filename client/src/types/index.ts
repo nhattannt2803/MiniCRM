@@ -1,10 +1,35 @@
+export interface Business {
+  id: string;
+  name: string;
+  slug: string;
+  logo?: string;
+  taxCode?: string;
+  email?: string;
+  phone?: string;
+  address?: string;
+  status: string;
+  plan: string;
+}
+
+export interface BusinessMembership {
+  bizId: string;
+  bizName: string;
+  bizSlug: string;
+  bizLogo?: string;
+  bizStatus?: string;
+  roleCode: string;
+  roleName: string;
+  isDefault: boolean;
+}
+
 export interface User {
   id: string;
   email: string;
   firstName: string;
   lastName: string;
   phone?: string;
-  roles: string[];
+  roles?: string[];
+  memberships?: BusinessMembership[];
 }
 
 export interface CustomerIdentity {
