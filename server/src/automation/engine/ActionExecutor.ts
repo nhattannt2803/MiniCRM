@@ -214,13 +214,59 @@ export class ActionExecutor {
       const lead = await prisma.lead.findUnique({ where: { id: BigInt(entityId) } });
       if (!lead) return { created: false };
 
-      const defaultPipeline = await prisma.pipeline.findFirst({
-        where: { isDefault: true },
-        include: { stages: { orderBy: { orderNo: 'asc' } } },
+      // Prevent duplicate opportunity creation: Check if an OPEN opportunity already exists for this lead
+      const existingOpp = await prisma.opportunity.findFirst({
+        where: {
+          leadId: lead.id,
+          status: 'OPEN',
+          deletedAt: null,
+        },
       });
-      if (!defaultPipeline || defaultPipeline.stages.length === 0) return { created: false };
+      if (existingOpp) {
+        console.log(`[ActionExecutor] Skip creating duplicate opportunity: Lead #${lead.id} already has an OPEN opportunity #${existingOpp.id}`);
+        return { created: false, reason: 'OPEN opportunity already exists for this Lead', opportunityId: existingOpp.id.toString() };
+      }
 
-      const firstStage = defaultPipeline.stages[0];
+      // Resolve pipeline: use config.pipeline_id if provided, else fall back to default pipeline
+      let pipeline;
+      if (config.pipeline_id) {
+        pipeline = await prisma.pipeline.findUnique({
+          where: { id: BigInt(config.pipeline_id) },
+          include: { stages: { orderBy: { orderNo: 'asc' } } },
+        });
+      }
+      if (!pipeline) {
+        pipeline = await prisma.pipeline.findFirst({
+          where: { isDefault: true },
+          include: { stages: { orderBy: { orderNo: 'asc' } } },
+        });
+      }
+      if (!pipeline || pipeline.stages.length === 0) return { created: false, reason: 'No pipeline or stages found' };
+
+      // Resolve stage: use config.stage_id if provided, else use first stage of pipeline
+      let targetStage;
+      if (config.stage_id) {
+        targetStage = pipeline.stages.find((s: any) => s.id.toString() === config.stage_id.toString());
+      }
+      if (!targetStage) {
+        targetStage = pipeline.stages[0];
+      }
+
+      // Fetch lead products with product details
+      const leadProducts = await prisma.leadProduct.findMany({
+        where: { leadId: lead.id },
+        include: { product: true },
+      });
+
+      // Resolve initial opportunity value:
+      // If config.amount is provided and > 0, use config.amount.
+      // Otherwise, sum the unit prices of all products associated with this Lead.
+      let amount = config.amount ? Number(config.amount) : 0;
+      if (!amount || amount === 0) {
+        if (leadProducts.length > 0) {
+          amount = leadProducts.reduce((sum, lp) => sum + (lp.product ? Number(lp.product.unitPrice) : 0), 0);
+        }
+      }
 
       const oppName = `Deal from ${lead.firstName} ${lead.lastName} (${lead.companyName || 'Individual'})`;
 
@@ -230,15 +276,34 @@ export class ActionExecutor {
           leadId: lead.id,
           companyId: lead.companyId,
           contactId: lead.contactId,
+          customerId: lead.customerId,
           ownerId: lead.ownerId,
-          pipelineId: defaultPipeline.id,
-          stageId: firstStage.id,
-          amount: config.amount || 0.0,
-          probability: firstStage.probability,
+          pipelineId: pipeline.id,
+          stageId: targetStage.id,
+          amount: amount,
+          probability: targetStage.probability,
           status: 'OPEN',
           source: lead.source,
         },
       });
+
+      // Copy lead products to opportunity products
+      if (leadProducts.length > 0) {
+        for (const lp of leadProducts) {
+          if (lp.product) {
+            const uPrice = Number(lp.product.unitPrice);
+            await prisma.opportunityProduct.create({
+              data: {
+                opportunityId: opp.id,
+                productId: lp.productId,
+                quantity: 1,
+                unitPrice: uPrice,
+                totalPrice: uPrice,
+              },
+            });
+          }
+        }
+      }
 
       return opp;
     }

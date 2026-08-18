@@ -16,6 +16,7 @@ export class AutomationEngine {
     const triggerEventsToMatch = [eventType];
     if (eventType === 'LEAD_CREATED') triggerEventsToMatch.push('RECORD_CREATED');
     if (eventType === 'RECORD_CREATED') triggerEventsToMatch.push('LEAD_CREATED');
+    if (eventType === 'STATUS_CHANGED' && payload.status === 'QUALIFIED') triggerEventsToMatch.push('LEAD_QUALIFIED');
 
     // 1. Find matching triggers and active automations
     const triggers = await prisma.automationTrigger.findMany({

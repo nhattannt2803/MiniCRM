@@ -421,8 +421,8 @@ export class LeadService {
       }
 
       if (data.status && data.status !== existing.status) {
-        const eventType = data.status === 'QUALIFIED' ? 'LEAD_QUALIFIED' : 'LEAD_UPDATED';
-        await publishOutboxEvent(tx, eventType, 'LEAD', res.id, {
+        // Publish single STATUS_CHANGED outbox event for any status transition
+        await publishOutboxEvent(tx, 'STATUS_CHANGED', 'LEAD', res.id, {
           id: res.id.toString(),
           status: res.status,
           old_status: existing.status,
