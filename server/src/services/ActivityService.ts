@@ -76,7 +76,15 @@ export class TaskService {
     limit?: string | number;
   }) {
     const where: any = {};
-    if (params.status) where.status = params.status;
+    if (params.status) {
+      if (typeof params.status === 'string' && params.status.includes(',')) {
+        where.status = { in: params.status.split(',').map((s) => s.trim()) };
+      } else if (Array.isArray(params.status)) {
+        where.status = { in: params.status };
+      } else {
+        where.status = params.status;
+      }
+    }
     if (params.priority) where.priority = params.priority;
     if (params.assignedTo) where.assignedTo = BigInt(params.assignedTo);
     if (params.relatedType && params.relatedId) {
@@ -90,12 +98,15 @@ export class TaskService {
     const endOfNext2Days = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 2, 23, 59, 59, 999);
 
     if (params.preset === 'OVERDUE_TODAY') {
+      const statusCondition = where.status || { in: ['TODO', 'IN_PROGRESS'] };
+      delete where.status;
       where.OR = [
         {
-          status: { in: ['TODO', 'IN_PROGRESS'] },
+          status: statusCondition,
           dueAt: { lt: startOfToday },
         },
         {
+          status: statusCondition,
           dueAt: { gte: startOfToday, lte: endOfToday },
         },
       ];
@@ -116,10 +127,8 @@ export class TaskService {
     }
 
     let take: number | undefined;
-    if (params.limit) {
+    if (params.limit && params.limit !== 'all' && params.limit !== 'unlimited') {
       take = Number(params.limit);
-    } else if (!params.preset || params.preset === 'ALL') {
-      take = 30;
     }
 
     const tasks = await prisma.task.findMany({

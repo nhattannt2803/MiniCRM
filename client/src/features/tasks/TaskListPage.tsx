@@ -1,19 +1,22 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Table, Button, Tag, Select, Checkbox, Popconfirm, Modal, Form, Input, DatePicker, Tooltip, notification } from 'antd';
-import { PlusOutlined, AlertOutlined, CheckOutlined, EditOutlined, CheckCircleOutlined } from '@ant-design/icons';
+import { Table, Button, Tag, Select, Popconfirm, Modal, Form, Input, DatePicker, Tooltip, notification } from 'antd';
+import { PlusOutlined, AlertOutlined, CheckOutlined, EditOutlined, CheckCircleOutlined, UserOutlined } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
 import dayjs from 'dayjs';
 import { crmService } from '../../services/crmService';
+import { useAuthStore } from '../../stores/authStore';
 import { Task, User } from '../../types';
 
 export const TaskListPage: React.FC = () => {
   const navigate = useNavigate();
+  const { user } = useAuthStore();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
-  const [statusFilter, setStatusFilter] = useState<string | undefined>();
+  const [statusFilter, setStatusFilter] = useState<string>('TODO,IN_PROGRESS');
   const [presetFilter, setPresetFilter] = useState<string | undefined>('OVERDUE_TODAY');
+  const [assigneeFilter, setAssigneeFilter] = useState<string>('MY_TASKS');
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
 
@@ -23,10 +26,20 @@ export const TaskListPage: React.FC = () => {
   const fetchTasks = async () => {
     setLoading(true);
     try {
-      const res: any = await crmService.getTasks({
-        status: statusFilter,
-        preset: presetFilter,
-      });
+      const params: any = {
+        status: statusFilter && statusFilter !== 'ALL' ? statusFilter : undefined,
+        preset: presetFilter || undefined,
+      };
+
+      if (assigneeFilter === 'MY_TASKS') {
+        if (user?.id) {
+          params.assignedTo = user.id;
+        }
+      } else if (assigneeFilter !== 'ALL') {
+        params.assignedTo = assigneeFilter;
+      }
+
+      const res: any = await crmService.getTasks(params);
       if (res.success) setTasks(res.data);
     } catch (err) {
       console.error(err);
@@ -46,8 +59,11 @@ export const TaskListPage: React.FC = () => {
 
   useEffect(() => {
     fetchTasks();
+  }, [statusFilter, presetFilter, assigneeFilter, user?.id]);
+
+  useEffect(() => {
     fetchUsers();
-  }, [statusFilter, presetFilter]);
+  }, []);
 
   const handleConfirmCompleteTask = async (task: Task) => {
     try {
@@ -156,6 +172,20 @@ export const TaskListPage: React.FC = () => {
       ),
     },
     {
+      title: 'Người thực hiện',
+      key: 'assignee',
+      render: (_: any, r: any) => {
+        if (r.assignee) {
+          return (
+            <span className="text-xs text-slate-700 font-medium">
+              👤 {r.assignee.lastName} {r.assignee.firstName}
+            </span>
+          );
+        }
+        return <span className="text-slate-400 text-xs">—</span>;
+      },
+    },
+    {
       title: 'Liên quan đến',
       key: 'related',
       render: (_: any, r: any) => {
@@ -235,34 +265,56 @@ export const TaskListPage: React.FC = () => {
 
       <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs flex flex-wrap items-center gap-4">
         <div>
+          <span className="text-xs font-semibold text-slate-500 block mb-1">Phạm vi công việc:</span>
+          <Select
+            value={assigneeFilter}
+            onChange={(v) => setAssigneeFilter(v)}
+            className="w-52"
+          >
+            <Select.Option value="MY_TASKS">👤 Task của tôi</Select.Option>
+            <Select.Option value="ALL">👥 Tất cả mọi người</Select.Option>
+            {users.map((u) => (
+              <Select.Option key={u.id} value={u.id.toString()}>
+                👤 {u.lastName} {u.firstName}
+              </Select.Option>
+            ))}
+          </Select>
+        </div>
+
+        <div>
+          <span className="text-xs font-semibold text-slate-500 block mb-1">{t('common.status')}:</span>
+          <Select
+            value={statusFilter}
+            className="w-60"
+            onChange={(v) => setStatusFilter(v)}
+          >
+            <Select.Option value="TODO,IN_PROGRESS">⚡ Đang thực hiện & Chờ xử lý</Select.Option>
+            <Select.Option value="TODO">⌛ {t('tasks.status.PENDING')}</Select.Option>
+            <Select.Option value="IN_PROGRESS">🔄 {t('tasks.status.IN_PROGRESS')}</Select.Option>
+            <Select.Option value="COMPLETED">✅ {t('tasks.status.COMPLETED')}</Select.Option>
+            <Select.Option value="CANCELLED">🚫 Đã hủy</Select.Option>
+            <Select.Option value="ALL">🌐 Tất cả trạng thái</Select.Option>
+          </Select>
+        </div>
+
+        <div>
           <span className="text-xs font-semibold text-slate-500 block mb-1">Bộ lọc thời gian:</span>
           <Select
             value={presetFilter}
             onChange={(v) => setPresetFilter(v)}
-            placeholder="Tất cả (Tối đa 30 công việc)"
-            className="w-72"
+            placeholder="Tất cả thời gian"
+            className="w-64"
             allowClear
           >
-            <Select.Option value="OVERDUE_TODAY">🔥 Chỉ xem quá hạn và Việc Hôm Nay</Select.Option>
+            <Select.Option value="OVERDUE_TODAY">🔥 Chỉ xem quá hạn & Việc Hôm Nay</Select.Option>
             <Select.Option value="OVERDUE">⚠️ Chỉ Xem Quá Hạn</Select.Option>
             <Select.Option value="TODAY">📅 Việc Hôm Nay</Select.Option>
             <Select.Option value="NEXT_2_DAYS">⏳ Việc trong 2 ngày tới</Select.Option>
           </Select>
         </div>
 
-        <div>
-          <span className="text-xs font-semibold text-slate-500 block mb-1">{t('common.status')}:</span>
-          <Select placeholder="Tất cả trạng thái" className="w-44" allowClear onChange={(v) => setStatusFilter(v)}>
-            <Select.Option value="TODO">{t('tasks.status.PENDING')}</Select.Option>
-            <Select.Option value="IN_PROGRESS">{t('tasks.status.IN_PROGRESS')}</Select.Option>
-            <Select.Option value="COMPLETED">{t('tasks.status.COMPLETED')}</Select.Option>
-            <Select.Option value="CANCELLED">Đã hủy</Select.Option>
-          </Select>
-        </div>
-
         <div className="ml-auto text-xs text-slate-500 self-end mb-1">
           Hiển thị: <strong className="text-indigo-600 font-semibold">{tasks.length}</strong> công việc
-          {(!presetFilter || presetFilter === 'ALL') && ' (Tối đa 30)'}
         </div>
       </div>
 
