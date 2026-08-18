@@ -18,6 +18,7 @@ interface AuthState {
   activeBiz: ActiveBiz | null;
   isAuthenticated: boolean;
   isLoading: boolean;
+  register: (data: { email: string; pass: string; firstName: string; lastName: string; phone?: string }) => Promise<any>;
   login: (email: string, pass: string) => Promise<void>;
   logout: () => void;
   fetchMe: () => Promise<void>;
@@ -31,6 +32,21 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   activeBiz: null,
   isAuthenticated: !!localStorage.getItem('token'),
   isLoading: true,
+
+  register: async ({ email, pass, firstName, lastName, phone }) => {
+    const res: any = await api.post('/auth/register', { email, password: pass, firstName, lastName, phone });
+    const { token, user, businesses, activeBiz } = res.data;
+    localStorage.setItem('token', token);
+    set({
+      token,
+      user,
+      businesses: businesses || [],
+      activeBiz: activeBiz || null,
+      isAuthenticated: true,
+      isLoading: false,
+    });
+    return res.data;
+  },
 
   login: async (email, password) => {
     const res: any = await api.post('/auth/login', { email, password });
@@ -65,8 +81,13 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       const userData = res.data;
       
       // Fetch businesses list
-      const bizRes: any = await api.get('/businesses');
-      const businesses = bizRes.data || [];
+      let businesses: Business[] = [];
+      try {
+        const bizRes: any = await api.get('/businesses');
+        businesses = bizRes.data || [];
+      } catch (err) {
+        // User has no business membership
+      }
 
       // Determine activeBiz
       const savedBizId = localStorage.getItem('activeBizId');
@@ -83,8 +104,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
             name: match.name,
             slug: match.slug,
             logo: match.logo,
-            role: match.roleCode,
-            roleName: match.roleName,
+            role: (match as any).roleCode || 'SALES',
+            roleName: (match as any).roleName,
           };
           localStorage.setItem('activeBizId', match.id);
         }
@@ -113,13 +134,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           roleName: (match as any).roleName,
         },
       });
-      // Optionally notify backend of default switch
       try {
         await api.patch('/businesses/switch', { bizId });
       } catch (e) {
         console.warn('Could not update default biz on server', e);
       }
-      // Reload page to refresh all queries with new tenant header context
       window.location.reload();
     }
   },

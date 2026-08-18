@@ -156,6 +156,7 @@ export const MainLayout: React.FC = () => {
       children: [
         { key: '/staff', icon: <IdcardOutlined />, label: t('nav.staff') },
         { key: '/users', icon: <UserSwitchOutlined />, label: t('nav.users') },
+        { key: '/system/users', icon: <SafetyCertificateOutlined />, label: 'Tài Khoản Hệ Thống' },
         { key: '/teams', icon: <ClusterOutlined />, label: t('nav.teams') },
         { key: '/roles', icon: <LockOutlined />, label: t('nav.roles') },
       ],

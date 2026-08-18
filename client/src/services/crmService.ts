@@ -111,6 +111,13 @@ export const crmService = {
   // Lead Allocation
   allocateLeads: (leadIds: string[], ownerId: string) => api.post('/leads/allocate', { leadIds, ownerId }),
 
+  // Auth Register
+  register: (data: any) => api.post('/auth/register', data),
+
+  // System-wide User Management
+  getAllSystemUsers: () => api.get('/system/all-users'),
+  toggleGlobalUserStatus: (id: string, isActive: boolean) => api.patch(`/users/${id}/toggle-status`, { isActive }),
+
   // User & Org Management
   getUsers: () => api.get('/users'),
   createUser: (data: any) => api.post('/users', data),

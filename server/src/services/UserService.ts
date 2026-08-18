@@ -201,6 +201,39 @@ export class UserService {
     }));
   }
 
+  public static async getAllSystemUsers() {
+    const users = await prisma.user.findMany({
+      where: { deletedAt: null },
+      orderBy: { createdAt: 'desc' },
+      include: {
+        memberships: {
+          include: {
+            business: { select: { id: true, name: true, slug: true } },
+            role: { select: { code: true, name: true } },
+          },
+        },
+      },
+    });
+
+    return users.map((u) => ({
+      id: u.id.toString(),
+      email: u.email,
+      firstName: u.firstName,
+      lastName: u.lastName,
+      phone: u.phone,
+      isActive: u.isActive,
+      createdAt: u.createdAt,
+      memberships: u.memberships.map((m) => ({
+        bizId: m.business.id.toString(),
+        bizName: m.business.name,
+        bizSlug: m.business.slug,
+        roleCode: m.role.code,
+        roleName: m.role.name,
+        isActive: m.isActive,
+      })),
+    }));
+  }
+
   public static async allocateLeads(bizId: bigint, leadIds: (string | number)[], ownerId: string | number) {
     const bigintIds = leadIds.map((id) => BigInt(id));
     const bigintOwner = BigInt(ownerId);
@@ -213,3 +246,4 @@ export class UserService {
     return { count: updated.count, ownerId: ownerId.toString() };
   }
 }
+

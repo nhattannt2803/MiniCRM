@@ -1,9 +1,52 @@
 import prisma from '../config/database';
-import { comparePassword } from '../utils/password';
+import { comparePassword, hashPassword } from '../utils/password';
 import { generateToken } from '../utils/jwt';
 import { AppError } from '../middleware/errorMiddleware';
 
 export class AuthService {
+  public static async register(data: {
+    email: string;
+    password: string;
+    firstName: string;
+    lastName: string;
+    phone?: string;
+  }) {
+    const existing = await prisma.user.findUnique({ where: { email: data.email } });
+    if (existing) {
+      throw new AppError('Email đã được đăng ký trên hệ thống', 400, 'EMAIL_EXISTS');
+    }
+
+    const passwordHash = await hashPassword(data.password);
+    const user = await prisma.user.create({
+      data: {
+        email: data.email,
+        passwordHash,
+        firstName: data.firstName,
+        lastName: data.lastName,
+        phone: data.phone || null,
+        isActive: true,
+      },
+    });
+
+    const token = generateToken({
+      userId: Number(user.id),
+      email: user.email,
+    });
+
+    return {
+      token,
+      user: {
+        id: user.id.toString(),
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        phone: user.phone,
+      },
+      businesses: [],
+      activeBiz: null,
+    };
+  }
+
   public static async login(email: string, password: string) {
     const user = await prisma.user.findUnique({
       where: { email },
@@ -20,12 +63,12 @@ export class AuthService {
     });
 
     if (!user || !user.isActive || user.deletedAt) {
-      throw new AppError('Invalid credentials or account inactive', 401, 'INVALID_CREDENTIALS');
+      throw new AppError('Tài khoản hoặc mật khẩu không chính xác hoặc đã bị khóa', 401, 'INVALID_CREDENTIALS');
     }
 
     const isMatch = await comparePassword(password, user.passwordHash);
     if (!isMatch) {
-      throw new AppError('Invalid credentials', 401, 'INVALID_CREDENTIALS');
+      throw new AppError('Tài khoản hoặc mật khẩu không chính xác', 401, 'INVALID_CREDENTIALS');
     }
 
     // Find default Biz (or first available)

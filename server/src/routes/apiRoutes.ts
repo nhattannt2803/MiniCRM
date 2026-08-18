@@ -10,6 +10,7 @@ const router = Router();
 router.use(apiLimiter);
 
 // Auth routes (Public - Rate limited strictly)
+router.post('/auth/register', authLimiter, crm.register);
 router.post('/auth/login', authLimiter, crm.login);
 
 // Protected routes middleware
@@ -17,6 +18,10 @@ router.use(authenticate);
 
 // Auth Me (before tenantGuard — returns all memberships)
 router.get('/auth/me', crm.getMe);
+
+// System-wide User Management (across all Bizs, before tenantGuard)
+router.get('/system/all-users', crm.getAllSystemUsers);
+router.patch('/users/:id/toggle-status', crm.toggleUserStatus);
 
 // Business management (after authenticate, before tenantGuard)
 router.get('/businesses', crm.getMyBusinesses);
@@ -72,8 +77,6 @@ router.post('/conversations', crm.createConversation);
 router.get('/conversations/:id', crm.getConversationById);
 router.post('/conversations/:id/messages', crm.addMessage);
 
-
-
 // Opportunities & Kanban
 router.get('/opportunities', crm.getOpportunities);
 router.get('/opportunities/kanban', crm.getKanbanBoard);
@@ -98,7 +101,6 @@ router.get('/products/:id', crm.getProductById);
 router.patch('/products/:id', crm.updateProduct);
 router.delete('/products/:id', crm.deleteProduct);
 
-
 // Quotes
 router.get('/quotes', crm.getQuotes);
 router.post('/quotes', crm.createQuote);
@@ -121,7 +123,6 @@ router.get('/dashboard', crm.getDashboardStats);
 router.get('/dashboard/leader', crm.getLeaderDashboardStats);
 router.post('/dashboard/nudge-sales', crm.nudgeSalesRep);
 
-
 // Automations
 router.get('/automations', crm.getAutomations);
 router.post('/automations', crm.createAutomation);
@@ -138,10 +139,9 @@ router.get('/notifications', crm.getUserNotifications);
 router.patch('/notifications/:id/read', crm.markNotificationRead);
 router.post('/notifications/mark-all-read', crm.markAllNotificationsRead);
 
-// User & Org Management
+// User & Org Management (Biz-scoped)
 router.get('/users', crm.getUsers);
 router.post('/users', crm.createUser);
-router.patch('/users/:id/toggle-status', crm.toggleUserStatus);
 router.patch('/users/:id/password', authorize(['ADMIN']), crm.changeUserPassword);
 router.get('/staff', crm.getStaff);
 router.get('/teams', crm.getTeams);

@@ -23,6 +23,16 @@ import { runSeedEngine } from '../services/seedEngine';
 // -----------------------------------------------------------------------------
 // Auth Controller
 // -----------------------------------------------------------------------------
+export const register = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  try {
+    const { email, password, firstName, lastName, phone } = req.body;
+    const result = await AuthService.register({ email, password, firstName, lastName, phone });
+    res.status(201).json({ success: true, data: result });
+  } catch (err) {
+    next(err);
+  }
+};
+
 export const login = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
     const { email, password } = req.body;
@@ -765,6 +775,15 @@ export const switchDemoIndustry = async (req: AuthenticatedRequest, res: Respons
 // -----------------------------------------------------------------------------
 // User, Staff, Team, Role & Lead Allocation Controllers
 // -----------------------------------------------------------------------------
+export const getAllSystemUsers = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  try {
+    const users = await UserService.getAllSystemUsers();
+    res.json({ success: true, data: users });
+  } catch (err) {
+    next(err);
+  }
+};
+
 export const getUsers = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
     const users = await UserService.getUsers(req.bizId!);

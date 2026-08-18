@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { ConfigProvider, Spin } from 'antd';
 import vi_VN from 'antd/locale/vi_VN';
 import en_US from 'antd/locale/en_US';
@@ -7,6 +7,8 @@ import { useTranslation } from 'react-i18next';
 import { useAuthStore } from './stores/authStore';
 import { MainLayout } from './layouts/MainLayout';
 import { LoginPage } from './features/auth/LoginPage';
+import { RegisterPage } from './features/auth/RegisterPage';
+import { NoBusinessPage } from './features/auth/NoBusinessPage';
 import { DashboardPage } from './features/dashboard/DashboardPage';
 import { OverviewPage } from './features/overview/OverviewPage';
 import { TeamLeaderOverviewPage } from './features/overview/TeamLeaderOverviewPage';
@@ -17,6 +19,7 @@ import { MyLeadsPage } from './features/leads/MyLeadsPage';
 import { LeadAllocationPage } from './features/leads/LeadAllocationPage';
 import { StaffListPage } from './features/staff/StaffListPage';
 import { UsersListPage } from './features/users/UsersListPage';
+import { SystemUsersPage } from './features/users/SystemUsersPage';
 import { TeamsListPage } from './features/teams/TeamsListPage';
 import { RolesPermissionsPage } from './features/roles/RolesPermissionsPage';
 import { CompanyListPage } from './features/companies/CompanyListPage';
@@ -37,7 +40,8 @@ import { AutomationExecutionPage } from './features/automations/AutomationExecut
 import { SettingsPage } from './features/settings/SettingsPage';
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { isAuthenticated, isLoading } = useAuthStore();
+  const { isAuthenticated, isLoading, businesses } = useAuthStore();
+  const location = useLocation();
 
   if (isLoading) {
     return <div className="min-h-screen flex items-center justify-center bg-slate-900"><Spin size="large" /></div>;
@@ -45,6 +49,11 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
 
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
+  }
+
+  // If user has no business memberships and is trying to access standard CRM routes, redirect to /no-business
+  if (businesses.length === 0 && location.pathname !== '/no-business') {
+    return <Navigate to="/no-business" replace />;
   }
 
   return <>{children}</>;
@@ -73,8 +82,21 @@ export const App: React.FC = () => {
     >
       <BrowserRouter>
         <Routes>
+          {/* Public Auth Routes */}
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/portal-register" element={<RegisterPage />} />
 
+          {/* User with No Business Landing Route */}
+          <Route
+            path="/no-business"
+            element={
+              <ProtectedRoute>
+                <NoBusinessPage />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Standard Main Layout CRM Routes */}
           <Route
             path="/"
             element={
@@ -94,6 +116,7 @@ export const App: React.FC = () => {
             <Route path="leads/:id" element={<LeadDetailPage />} />
             <Route path="staff" element={<StaffListPage />} />
             <Route path="users" element={<UsersListPage />} />
+            <Route path="system/users" element={<SystemUsersPage />} />
             <Route path="teams" element={<TeamsListPage />} />
             <Route path="roles" element={<RolesPermissionsPage />} />
             <Route path="companies" element={<CompanyListPage />} />
