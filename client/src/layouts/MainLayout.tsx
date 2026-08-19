@@ -23,6 +23,7 @@ import {
   SafetyCertificateOutlined,
   BellOutlined,
   SettingOutlined,
+  KeyOutlined,
   LogoutOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
@@ -183,6 +184,7 @@ export const MainLayout: React.FC = () => {
         { key: `/${currentBizSlug}/roles`, icon: <LockOutlined />, label: t('nav.roles') },
       ],
     },
+    { key: `/${currentBizSlug}/api-keys`, icon: <KeyOutlined />, label: '🔑 API Keys / Webhook' },
     { key: `/${currentBizSlug}/settings`, icon: <SettingOutlined />, label: t('nav.settings') },
   ];
 

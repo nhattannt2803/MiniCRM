@@ -146,4 +146,10 @@ export const crmService = {
   // Lead Duplicate Rules & Settings
   getLeadDuplicateRule: () => api.get('/settings/lead-duplicate-rules'),
   updateLeadDuplicateRule: (data: any) => api.put('/settings/lead-duplicate-rules', data),
+
+  // API Keys Management
+  getApiKeys: () => api.get('/businesses/current/api-keys'),
+  createApiKey: (data: { name: string; expiresAt?: string }) => api.post('/businesses/current/api-keys', data),
+  revokeApiKey: (id: string) => api.delete(`/businesses/current/api-keys/${id}`),
+  toggleApiKeyStatus: (id: string) => api.patch(`/businesses/current/api-keys/${id}/toggle`),
 };

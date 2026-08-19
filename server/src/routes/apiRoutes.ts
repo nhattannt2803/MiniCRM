@@ -13,6 +13,11 @@ router.use(apiLimiter);
 router.post('/auth/register', authLimiter, crm.register);
 router.post('/auth/login', authLimiter, crm.login);
 
+// External Lead Ingestion & Single Endpoint CRUD API (Public - No auth header required)
+router.post('/leads/external', crm.handleExternalLead);
+router.post('/leads/ingest', crm.handleExternalLead);
+router.post('/v1/leads', crm.handleExternalLead);
+
 // Protected routes middleware
 router.use(authenticate);
 
@@ -41,6 +46,10 @@ router.patch('/businesses/current', crm.updateBusiness);
 router.get('/businesses/current/members', crm.getBizMembers);
 router.post('/businesses/current/members', crm.inviteMember);
 router.delete('/businesses/current/members/:userId', crm.removeMember);
+router.get('/businesses/current/api-keys', crm.getBizApiKeys);
+router.post('/businesses/current/api-keys', crm.createBizApiKey);
+router.delete('/businesses/current/api-keys/:id', crm.revokeBizApiKey);
+router.patch('/businesses/current/api-keys/:id/toggle', crm.toggleBizApiKeyStatus);
 
 // Leads
 router.get('/leads', crm.getLeads);

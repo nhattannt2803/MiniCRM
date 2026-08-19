@@ -1,5 +1,7 @@
 import { Response, NextFunction } from 'express';
 import { AuthenticatedRequest } from '../middleware/authMiddleware';
+import prisma from '../config/database';
+import { AppError } from '../middleware/errorMiddleware';
 import { AuthService } from '../services/AuthService';
 import { BusinessService } from '../services/BusinessService';
 import { LeadService } from '../services/LeadService';
@@ -18,6 +20,7 @@ import { UserService } from '../services/UserService';
 import { IdentityResolutionService } from '../services/IdentityResolutionService';
 import { ConversationService } from '../services/ConversationService';
 import { SystemSettingService } from '../services/SystemSettingService';
+import { ApiKeyService } from '../services/ApiKeyService';
 import { runSeedEngine } from '../services/seedEngine';
 
 // -----------------------------------------------------------------------------
@@ -1028,3 +1031,291 @@ export const updateLeadDuplicateRule = async (req: AuthenticatedRequest, res: Re
     next(err);
   }
 };
+
+// -----------------------------------------------------------------------------
+// Public External Lead Ingestion & Single Endpoint CRUD Controller
+// -----------------------------------------------------------------------------
+export const handleExternalLead = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  try {
+    const body = req.body || {};
+    const query = req.query || {};
+
+    // 1. Extract Header API Key & Validate Authorization
+    const apiKeyHeader =
+      (req.headers['x-api-key'] as string) ||
+      (req.headers['x-api-token'] as string) ||
+      (req.headers['api-key'] as string) ||
+      (req.headers['authorization'] as string);
+
+    // 2. Determine action: 'create' (or default / 'ingest'), 'update', 'delete', 'read'
+    const action = String(body.action || query.action || 'create').toLowerCase();
+    const targetLeadId = body.id || body.leadId || body.lead_id || query.id || query.leadId || query.lead_id;
+
+    // 3. Resolve Tenant Context (bizId) from body or query params
+    let targetBiz: any = null;
+    const inputBizSlug = body.bizSlug || body.biz_slug || query.bizSlug || query.biz_slug;
+    const inputBizId = body.bizId || body.biz_id || query.bizId || query.biz_id;
+    const chatLink =
+      body.chatLink ||
+      body.chat_link ||
+      body.smaxUrl ||
+      body.smax_url ||
+      body.linkChat ||
+      body.link_chat ||
+      body.url ||
+      body.link;
+
+    if (inputBizSlug) {
+      targetBiz = await prisma.business.findFirst({ where: { slug: String(inputBizSlug), status: 'ACTIVE' } });
+    } else if (inputBizId) {
+      try {
+        targetBiz = await prisma.business.findFirst({ where: { id: BigInt(inputBizId), status: 'ACTIVE' } });
+      } catch (e) {}
+    }
+
+    // Try extracting bizSlug from chatLink if provided
+    if (!targetBiz && chatLink && typeof chatLink === 'string') {
+      const parsed = LeadService.parseSmaxUrl(chatLink.trim());
+      if (parsed?.biz) {
+        targetBiz = await prisma.business.findFirst({ where: { slug: parsed.biz, status: 'ACTIVE' } });
+      }
+    }
+
+    // Validate Header API Key against targetBizId (or infer targetBiz from valid API Key)
+    const validKeyRecord = await ApiKeyService.validateApiKey(
+      apiKeyHeader,
+      targetBiz ? targetBiz.id : null
+    );
+
+    // If targetBiz was not explicitly passed in body/query, use the Business bound to the API Key!
+    if (!targetBiz) {
+      targetBiz = validKeyRecord.business;
+    }
+
+    if (!targetBiz) {
+      throw new AppError(
+        "Không thể xác định Doanh nghiệp (Tenant). Vui lòng cung cấp 'bizSlug' hoặc 'bizId' trong body/query hoặc link chat hợp lệ.",
+        400,
+        'BIZ_NOT_SPECIFIED'
+      );
+    }
+
+    const bizId: bigint = targetBiz.id;
+
+    // Dispatch action: DELETE
+    if (action === 'delete') {
+      if (!targetLeadId) {
+        throw new AppError('Vui lòng cung cấp ID Lead cần xóa (id/leadId)', 400, 'MISSING_LEAD_ID');
+      }
+      const deleteResult = await LeadService.deleteLead(bizId, targetLeadId);
+      return res.json({ success: true, message: 'Xóa Lead thành công', data: deleteResult });
+    }
+
+    // Dispatch action: UPDATE
+    if (action === 'update') {
+      if (!targetLeadId) {
+        throw new AppError('Vui lòng cung cấp ID Lead cần cập nhật (id/leadId)', 400, 'MISSING_LEAD_ID');
+      }
+      const updateData = { ...body };
+      delete updateData.action;
+      delete updateData.id;
+      delete updateData.leadId;
+      delete updateData.lead_id;
+
+      const updatedLead = await LeadService.updateLead(bizId, targetLeadId, updateData);
+      return res.json({ success: true, message: 'Cập nhật Lead thành công', data: updatedLead });
+    }
+
+    // Dispatch action: READ / GET
+    if (action === 'read' || action === 'get') {
+      if (targetLeadId) {
+        const lead = await LeadService.getLeadById(bizId, targetLeadId);
+        return res.json({ success: true, data: lead });
+      }
+      const leads = await LeadService.getLeads(bizId, query);
+      return res.json({ success: true, data: leads });
+    }
+
+    // Default Action: CREATE / INGEST
+    let smaxData: any = null;
+
+    // Stack Priority 1: Check if Chat Link is provided
+    if (chatLink && typeof chatLink === 'string' && chatLink.trim()) {
+      try {
+        smaxData = await LeadService.fetchSmaxThread(chatLink.trim(), bizId);
+      } catch (err: any) {
+        console.warn('External lead ingestion Smax fetch warning:', err.message);
+      }
+    }
+
+    // Helper function for name parsing
+    const parseNameHelper = (fullName: string) => {
+      if (!fullName || !fullName.trim()) return { firstName: '', lastName: '' };
+      const parts = fullName.trim().split(/\s+/);
+      if (parts.length === 1) {
+        return { firstName: parts[0], lastName: '' };
+      }
+      const firstName = parts[parts.length - 1];
+      const lastName = parts.slice(0, parts.length - 1).join(' ');
+      return { firstName, lastName };
+    };
+
+    // Extract fields from body with alias support
+    let inputFirstName = body.firstName || body.first_name || '';
+    let inputLastName = body.lastName || body.last_name || body.ho || '';
+    const inputFullName = body.name || body.full_name || body.ten_khach_hang || body.ten || '';
+
+    if (!inputFirstName && inputFullName) {
+      const parsedName = parseNameHelper(inputFullName);
+      inputFirstName = parsedName.firstName;
+      if (!inputLastName) {
+        inputLastName = parsedName.lastName;
+      }
+    }
+
+    let phone = body.phone || body.phone_number || body.sdt || body.so_dien_thoai || '';
+    let email = body.email || '';
+    let source = body.source || body.nguon || '';
+    let fbPsid = body.fbPsid || body.fb_psid || body.psid || '';
+    let fbPageId = body.fbPageId || body.fb_page_id || '';
+    let fbPageName = body.fbPageName || body.fb_page_name || '';
+    let adIds: string[] = [];
+
+    if (Array.isArray(body.adIds)) {
+      adIds = body.adIds.map((a: any) => String(a).trim()).filter(Boolean);
+    } else if (Array.isArray(body.ad_ids)) {
+      adIds = body.ad_ids.map((a: any) => String(a).trim()).filter(Boolean);
+    } else if (body.adId || body.ad_id) {
+      const rawAd = String(body.adId || body.ad_id);
+      adIds = rawAd.split(/[,;\s]+/).map((s) => s.trim()).filter(Boolean);
+    }
+
+    // Merge Smax Data if fetched
+    if (smaxData) {
+      if (!inputFirstName && smaxData.name) {
+        const parsedSmaxName = parseNameHelper(smaxData.name);
+        inputFirstName = parsedSmaxName.firstName;
+        if (!inputLastName) inputLastName = parsedSmaxName.lastName;
+      }
+      if (!phone && smaxData.phone) phone = smaxData.phone;
+      if (!source) source = smaxData.source || 'FACEBOOK';
+      if (!fbPsid && smaxData.fbPsid) fbPsid = smaxData.fbPsid;
+      if (!fbPageId && smaxData.fbPageId) fbPageId = smaxData.fbPageId;
+      if (!fbPageName && smaxData.fbPageName) fbPageName = smaxData.fbPageName;
+
+      if (Array.isArray(smaxData.adIds) && smaxData.adIds.length > 0) {
+        adIds = Array.from(new Set([...adIds, ...smaxData.adIds]));
+      } else if (smaxData.adId && !adIds.includes(smaxData.adId)) {
+        adIds.push(smaxData.adId);
+      }
+    }
+
+    // Prepare notes
+    let notes = body.notes || body.ghi_chu || body.note || '';
+    if (chatLink && typeof chatLink === 'string' && chatLink.trim()) {
+      const linkNote = `Link chat: ${chatLink.trim()}`;
+      notes = notes ? `${notes}\n${linkNote}` : linkNote;
+    }
+
+    // Stack Priority 2: Validation constraints if no smax thread or for required fields
+    if (!inputFirstName && !phone && !email && !fbPsid && !body.zaloUid && !body.zalo_uid) {
+      throw new AppError(
+        'Vui lòng cung cấp ít nhất Tên khách hàng (firstName/name), Số điện thoại (phone), Email hoặc Link chat.',
+        400,
+        'MISSING_REQUIRED_FIELDS'
+      );
+    }
+
+    if (email && email.trim()) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email.trim())) {
+        throw new AppError('Định dạng Email không hợp lệ.', 400, 'INVALID_EMAIL_FORMAT');
+      }
+    }
+
+    if (phone && phone.trim()) {
+      const cleanPhone = phone.trim();
+      if (cleanPhone.length < 6) {
+        throw new AppError('Số điện thoại quá ngắn, vui lòng kiểm tra lại.', 400, 'INVALID_PHONE_FORMAT');
+      }
+    }
+
+    // Construct creation payload
+    const leadPayload: any = {
+      firstName: inputFirstName || 'Khách hàng',
+      lastName: inputLastName || '',
+      phone: phone ? phone.trim() : null,
+      email: email ? email.trim() : null,
+      companyName: body.companyName || body.company_name || body.ten_cong_ty || null,
+      jobTitle: body.jobTitle || body.job_title || body.chuc_vu || null,
+      source: source || 'WEBSITE',
+      status: body.status || body.trang_thai || 'NEW',
+      rating: body.rating || body.danh_gia || 'WARM',
+      notes: notes || null,
+      fbPsid: fbPsid || null,
+      zaloUid: body.zaloUid || body.zalo_uid || null,
+      fbPageId: fbPageId || null,
+      fbPageName: fbPageName || null,
+      smaxBizSlug: smaxData?.smaxBizSlug || body.smaxBizSlug || targetBiz.slug || null,
+      adIds,
+      productIds: body.productIds || body.product_ids || (body.productId || body.product_id ? [body.productId || body.product_id] : []),
+      ownerId: body.ownerId || body.owner_id || null,
+      receivedAt: body.receivedAt || body.received_at ? new Date(body.receivedAt || body.received_at) : new Date(),
+    };
+
+    const result = await LeadService.createLead(bizId, leadPayload);
+    res.status(201).json({
+      success: true,
+      message: result.message || 'Tạo/Gộp Lead thành công',
+      data: result,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// -----------------------------------------------------------------------------
+// API Key Management Controllers (Scoped per Biz)
+// -----------------------------------------------------------------------------
+export const getBizApiKeys = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  try {
+    const keys = await ApiKeyService.getApiKeys(req.bizId!);
+    res.json({ success: true, data: keys });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const createBizApiKey = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  try {
+    const { name, expiresAt } = req.body;
+    const created = await ApiKeyService.createApiKey(
+      req.bizId!,
+      name,
+      req.user?.userId ? BigInt(req.user.userId) : null,
+      expiresAt ? new Date(expiresAt) : null
+    );
+    res.status(201).json({ success: true, data: created });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const revokeBizApiKey = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  try {
+    const result = await ApiKeyService.revokeApiKey(req.bizId!, req.params.id);
+    res.json({ success: true, data: result });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const toggleBizApiKeyStatus = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  try {
+    const result = await ApiKeyService.toggleApiKeyStatus(req.bizId!, req.params.id);
+    res.json({ success: true, data: result });
+  } catch (err) {
+    next(err);
+  }
+};
+

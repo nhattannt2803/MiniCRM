@@ -44,6 +44,7 @@ model Business {
   quotes          Quote[]
   conversations   Conversation[]
   systemSettings  SystemSetting[]
+  apiKeys         ApiKey[]
 
   @@index([status], map: "idx_biz_status")
   @@map("businesses")
@@ -119,6 +120,7 @@ model User {
   notifications     Notification[]
   auditLogs         AuditLog[]
   automationsCreated Automation[]
+  createdApiKeys    ApiKey[]
 
   @@index([email], map: "idx_users_email")
   @@index([isActive], map: "idx_users_is_active")
@@ -844,4 +846,29 @@ model SystemSetting {
 
   @@unique([bizId, key], map: "uk_setting_biz_key")
   @@map("system_settings")
+}
+
+// =============================================================================
+// API Keys (scoped per Biz for External Integrations & Webhooks)
+// =============================================================================
+
+model ApiKey {
+  id          BigInt    @id @default(autoincrement()) @db.UnsignedBigInt
+  bizId       BigInt    @map("biz_id") @db.UnsignedBigInt
+  name        String    @db.VarChar(100)
+  key         String    @unique @db.VarChar(100)
+  secret      String?   @db.VarChar(255)
+  status      String    @default("ACTIVE") @db.VarChar(30)
+  lastUsedAt  DateTime? @map("last_used_at") @db.DateTime(3)
+  expiresAt   DateTime? @map("expires_at") @db.DateTime(3)
+  createdById BigInt?   @map("created_by_id") @db.UnsignedBigInt
+  createdAt   DateTime  @default(now()) @map("created_at") @db.DateTime(3)
+  updatedAt   DateTime  @default(now()) @updatedAt @map("updated_at") @db.DateTime(3)
+
+  business  Business @relation(fields: [bizId], references: [id], onDelete: Cascade)
+  createdBy User?    @relation(fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@index([bizId, status], map: "idx_apikey_biz_status")
+  @@index([key], map: "idx_apikey_key")
+  @@map("api_keys")
 }
