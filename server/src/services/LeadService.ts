@@ -540,30 +540,70 @@ export class LeadService {
     return { biz, pageId, threadId };
   }
 
-  public static async fetchSmaxThread(smaxUrl: string, bizId?: bigint) {
-    if (!smaxUrl || !smaxUrl.trim()) {
-      throw new AppError('Vui lòng cung cấp link hội thoại Smax.ai', 400, 'INVALID_SMAX_URL');
+  public static async fetchSmaxThread(
+    smaxInput: string | { smaxBizSlug?: string; pageId?: string; threadId?: string },
+    bizId?: bigint
+  ) {
+    let parsed: { biz: string; pageId: string; threadId: string } | null = null;
+
+    if (typeof smaxInput === 'string') {
+      if (!smaxInput || !smaxInput.trim()) {
+        throw new AppError('Vui lòng cung cấp link hội thoại Smax.ai', 400, 'INVALID_SMAX_URL');
+      }
+      parsed = this.parseSmaxUrl(smaxInput.trim());
+    } else if (smaxInput && typeof smaxInput === 'object') {
+      const biz = (smaxInput.smaxBizSlug || '').trim();
+      const rawPageId = String(smaxInput.pageId || '').trim();
+      const rawThreadId = String(smaxInput.threadId || '').trim();
+
+      const cleanPageId = rawPageId.replace(/^(?:fb|t_)+/gi, '').replace(/\D+/g, '');
+      const cleanThreadId = rawThreadId.replace(/^(?:fb|t_)+/gi, '').replace(/\D+/g, '');
+
+      if (biz && cleanPageId && cleanThreadId) {
+        parsed = {
+          biz,
+          pageId: `fb${cleanPageId}`,
+          threadId: `fb${cleanThreadId}`,
+        };
+      }
     }
 
-    const parsed = this.parseSmaxUrl(smaxUrl.trim());
     if (!parsed) {
       throw new AppError(
-        'Link hội thoại Smax.ai không hợp lệ. Ví dụ: https://smax.ai/bizs/xe-dien-move/chats/fb760420303821103?tid=fb27040617945611633',
+        'Thông tin hội thoại Smax.ai không hợp lệ. Ví dụ: https://smax.ai/bizs/xe-dien-move/chats/fb760420303821103?tid=fb27040617945611633 hoặc truyền bộ (pageId, threadId, smaxBizId)',
         400,
         'INVALID_SMAX_URL_FORMAT'
       );
     }
 
-    const targetApi = `https://api.smax.ai/bizs/${parsed.biz}/pages/${parsed.pageId}/threads/${parsed.threadId}`;
     const token = await SystemSettingService.getSmaxApiToken(bizId);
+    let targetApi = `https://api.smax.ai/bizs/${parsed.biz}/pages/${parsed.pageId}/threads/${parsed.threadId}`;
 
     try {
-      const response = await fetch(targetApi, {
+      let response = await fetch(targetApi, {
         headers: {
           authorization: `Bearer ${token}`,
           'Accept-Encoding': 'gzip, deflate, br',
         },
       });
+
+      // Fallback 1: If 404 Not Found, try swapping pageId and threadId (handles pageId_threadId vs threadId_pageId order)
+      if (!response.ok && response.status === 404 && parsed.pageId && parsed.threadId && parsed.pageId !== parsed.threadId) {
+        const swappedApi = `https://api.smax.ai/bizs/${parsed.biz}/pages/${parsed.threadId}/threads/${parsed.pageId}`;
+        const swappedResponse = await fetch(swappedApi, {
+          headers: {
+            authorization: `Bearer ${token}`,
+            'Accept-Encoding': 'gzip, deflate, br',
+          },
+        });
+
+        if (swappedResponse.ok) {
+          response = swappedResponse;
+          const temp = parsed.pageId;
+          parsed.pageId = parsed.threadId;
+          parsed.threadId = temp;
+        }
+      }
 
       if (!response.ok) {
         if (response.status === 401 || response.status === 403) {
@@ -586,13 +626,70 @@ export class LeadService {
         );
       }
 
-      const customer = json.data?.customers?.[0] || json.data?.customer || json.data?.facebook;
+      const customer =
+        json.data?.customers?.[0] ||
+        json.data?.customer ||
+        json.data?.facebook ||
+        json.data?.user ||
+        json.data?.subscriber ||
+        json.data?.sender;
 
       if (!customer && !json.data) {
         throw new AppError('Không tìm thấy thông tin khách hàng trong hội thoại Smax.ai', 404, 'SMAX_CUSTOMER_NOT_FOUND');
       }
 
-      const name = customer?.name || customer?.profile_name || json.data?.facebook?.name || '';
+      let name =
+        customer?.name ||
+        customer?.profile_name ||
+        customer?.full_name ||
+        customer?.display_name ||
+        json.data?.name ||
+        json.data?.title ||
+        json.data?.caption ||
+        json.data?.profile_name ||
+        json.data?.customer_name ||
+        json.data?.user_name ||
+        json.data?.subscriber?.name ||
+        json.data?.subscriber?.profile_name ||
+        json.data?.sender?.name ||
+        json.data?.sender?.profile_name ||
+        json.data?.facebook?.name ||
+        json.data?.facebook?.profile_name ||
+        json.data?.facebook_name ||
+        json.data?.user?.name ||
+        '';
+
+      if (!name && (customer?.first_name || customer?.last_name || json.data?.first_name || json.data?.last_name)) {
+        const first = customer?.first_name || json.data?.first_name || '';
+        const last = customer?.last_name || json.data?.last_name || '';
+        name = `${last} ${first}`.trim();
+      }
+
+      // Fallback 2: If thread metadata does not contain customer name, fetch recent messages to extract sender_name
+      if (!name && parsed.pageId && parsed.threadId) {
+        try {
+          const msgsApi = `https://api.smax.ai/bizs/${parsed.biz}/pages/${parsed.pageId}/threads/${parsed.threadId}/messages?sort=-created_at&limit=10`;
+          const msgsRes = await fetch(msgsApi, {
+            headers: { authorization: `Bearer ${token}`, 'Accept-Encoding': 'gzip, deflate, br' },
+          });
+          if (msgsRes.ok) {
+            const msgsJson: any = await msgsRes.json();
+            const rawMsgs = Array.isArray(msgsJson.data) ? msgsJson.data : (Array.isArray(json.data?.messages) ? json.data.messages : []);
+            const cleanPid = String(parsed.pageId).replace(/^(?:fb|t_)+/gi, '').replace(/\D+/g, '');
+            for (const m of rawMsgs) {
+              const senderPid = String(m.sender_pid || m.from || m.by || '');
+              const isPageSender = senderPid.includes(cleanPid) || m.is_page === true || m.is_bot === true || m.sender_type === 'AGENT';
+              if (!isPageSender) {
+                const foundSenderName = m.sender_name || m.from?.name || m.by_name || m.user_name || m.name || m.facebook?.sender_name || '';
+                if (foundSenderName && typeof foundSenderName === 'string' && foundSenderName.trim()) {
+                  name = foundSenderName.trim();
+                  break;
+                }
+              }
+            }
+          }
+        } catch (msgErr) {}
+      }
       let phone = customer?.phone || customer?.phones?.[0]?.value || '';
       if (!phone && json.data?.tag_aliases) {
         const foundPhone = json.data.tag_aliases.find((t: string) => /^\d{9,11}$/.test(t));
@@ -687,15 +784,9 @@ export class LeadService {
       threadId = `fb${parts[1]}`;
 
       if (!smaxBizSlug && bizId) {
-        const leadWithSlug = await prisma.lead.findFirst({
-          where: { bizId, smaxBizSlug: { not: null } },
-          select: { smaxBizSlug: true },
-        });
-        if (leadWithSlug && leadWithSlug.smaxBizSlug) {
-          smaxBizSlug = leadWithSlug.smaxBizSlug;
-        }
+        const bizObj = await prisma.business.findUnique({ where: { id: bizId }, select: { slug: true } });
+        if (bizObj?.slug) smaxBizSlug = bizObj.slug;
       }
-      if (!smaxBizSlug) smaxBizSlug = 'xe-dien-move';
 
       fullSmaxUrl = `https://smax.ai/bizs/${smaxBizSlug}/chats/${pageId}?tid=${threadId}`;
     }

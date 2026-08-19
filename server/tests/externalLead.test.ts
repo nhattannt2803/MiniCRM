@@ -88,6 +88,63 @@ describe('External Lead Single Endpoint Ingestion & CRUD API', () => {
     expect(res.body.data.lastName).toBe('Trần Thị');
   });
 
+  it('should process lead via pageId, threadId with fb prefix and smaxBizId tuple', async () => {
+    if (!testApiKey) return;
+
+    const timestamp = Date.now();
+    const res = await request(app)
+      .post('/api/leads/external')
+      .set('x-api-key', testApiKey)
+      .send({
+        smaxBizId: 'xe-dien-move',
+        pageId: 'fb760420303821103',
+        threadId: 'fb27040617945611633',
+        ten: 'Lê Văn SmaxTuple',
+        sdt: `0933${timestamp.toString().slice(-6)}`,
+      });
+
+    expect([200, 201]).toContain(res.status);
+    expect(res.body.success).toBe(true);
+    expect(res.body.data).toBeDefined();
+  });
+
+  it('should process lead via PSID and smaxBizId pair', async () => {
+    if (!testApiKey) return;
+
+    const timestamp = Date.now();
+    const res = await request(app)
+      .post('/api/leads/external')
+      .set('x-api-key', testApiKey)
+      .send({
+        psid: 'fb27153987427612742_717689788099525',
+        smaxBizId: 'xe-dien-move',
+        sdt: `0966${timestamp.toString().slice(-6)}`,
+      });
+
+    expect([200, 201]).toContain(res.status);
+    expect(res.body.success).toBe(true);
+    expect(res.body.data).toBeDefined();
+  });
+
+  it('should process lead via standalone PSID without smaxBizId using manual UI logic', async () => {
+    if (!testApiKey) return;
+
+    const timestamp = Date.now();
+    const res = await request(app)
+      .post('/api/leads/external')
+      .set('x-api-key', testApiKey)
+      .send({
+        psid: 'fb760420303821103_28029744610001629',
+        ten: 'Phạm Standalone PSID',
+        sdt: `0944${timestamp.toString().slice(-6)}`,
+      });
+
+    expect([200, 201]).toContain(res.status);
+    expect(res.body.success).toBe(true);
+    expect(res.body.data.source).toBe('FACEBOOK');
+    expect(res.body.data.identityResolutionStatus).toBeDefined();
+  });
+
   it('should fail with 400 when missing required identity fields', async () => {
     if (!testApiKey) return;
 

@@ -21,6 +21,7 @@ import { IdentityResolutionService } from '../services/IdentityResolutionService
 import { ConversationService } from '../services/ConversationService';
 import { SystemSettingService } from '../services/SystemSettingService';
 import { ApiKeyService } from '../services/ApiKeyService';
+import { parseFbPsidInput, parseZaloUidInput } from '../utils/identityHelper';
 import { runSeedEngine } from '../services/seedEngine';
 
 // -----------------------------------------------------------------------------
@@ -1053,7 +1054,21 @@ export const handleExternalLead = async (req: AuthenticatedRequest, res: Respons
 
     // 3. Resolve Tenant Context (bizId) from body or query params
     let targetBiz: any = null;
-    const inputBizSlug = body.bizSlug || body.biz_slug || query.bizSlug || query.biz_slug;
+    const inputBizSlug =
+      body.bizSlug ||
+      body.biz_slug ||
+      body.smaxBizId ||
+      body.smax_biz_id ||
+      body.smaxBizSlug ||
+      body.smax_biz_slug ||
+      body.biz ||
+      query.bizSlug ||
+      query.biz_slug ||
+      query.smaxBizId ||
+      query.smax_biz_id ||
+      query.smaxBizSlug ||
+      query.smax_biz_slug;
+
     const inputBizId = body.bizId || body.biz_id || query.bizId || query.biz_id;
     const chatLink =
       body.chatLink ||
@@ -1094,7 +1109,7 @@ export const handleExternalLead = async (req: AuthenticatedRequest, res: Respons
 
     if (!targetBiz) {
       throw new AppError(
-        "Không thể xác định Doanh nghiệp (Tenant). Vui lòng cung cấp 'bizSlug' hoặc 'bizId' trong body/query hoặc link chat hợp lệ.",
+        "Không thể xác định Doanh nghiệp (Tenant). Vui lòng cung cấp 'bizSlug' hoặc 'bizId' hoặc 'smaxBizId' trong body/query.",
         400,
         'BIZ_NOT_SPECIFIED'
       );
@@ -1138,13 +1153,63 @@ export const handleExternalLead = async (req: AuthenticatedRequest, res: Respons
 
     // Default Action: CREATE / INGEST
     let smaxData: any = null;
+    let effectiveChatLink = chatLink;
 
-    // Stack Priority 1: Check if Chat Link is provided
+    // Extract Smax parameter options: (pageId, threadId, smaxBizId) or (psid, smaxBizId)
+    let rawPageId = body.pageId || body.page_id || body.fbPageId || body.fb_page_id || query.pageId || query.page_id || '';
+    let rawThreadId = body.threadId || body.thread_id || body.tid || query.threadId || query.thread_id || query.tid || '';
+    const rawPsid = body.psid || body.fbPsid || body.fb_psid || query.psid || query.fbPsid || '';
+    const hasExplicitSmaxBizId = Boolean(
+      body.smaxBizId || body.smax_biz_id || body.smaxBizSlug || body.smax_biz_slug || body.biz ||
+      query.smaxBizId || query.smax_biz_id || query.smaxBizSlug || query.smax_biz_slug
+    );
+    const smaxBizSlug = String(
+      body.smaxBizId ||
+      body.smax_biz_id ||
+      body.smaxBizSlug ||
+      body.smax_biz_slug ||
+      body.biz ||
+      query.smaxBizId ||
+      query.smax_biz_id ||
+      query.smaxBizSlug ||
+      targetBiz.slug
+    );
+
+    // If PSID is passed in pageId_threadId format and threadId wasn't passed directly:
+    if (!rawThreadId && rawPsid && typeof rawPsid === 'string' && rawPsid.includes('_')) {
+      const psidMatch = rawPsid.match(/^(?:fb)?([0-9]+)_(?:fb|t_)?([0-9]+)$/i);
+      if (psidMatch) {
+        if (!rawPageId) rawPageId = psidMatch[1];
+        rawThreadId = psidMatch[2];
+      }
+    }
+
+    // Clean non-digit prefixes from threadId and pageId (e.g. "fb760420303821103" -> "760420303821103")
+    const cleanPageId = String(rawPageId).replace(/^(?:fb|t_)+/gi, '').replace(/\D+/g, '');
+    const cleanThreadId = String(rawThreadId).replace(/^(?:fb|t_)+/gi, '').replace(/\D+/g, '');
+
+    // Trigger 1: Full Chat Link string
     if (chatLink && typeof chatLink === 'string' && chatLink.trim()) {
       try {
         smaxData = await LeadService.fetchSmaxThread(chatLink.trim(), bizId);
       } catch (err: any) {
         console.warn('External lead ingestion Smax fetch warning:', err.message);
+      }
+    }
+    // Trigger 2 & Trigger 3: (pageId, threadId, smaxBizId) tuple OR (PSID + smaxBizId) pair
+    else if (cleanPageId && cleanThreadId && (hasExplicitSmaxBizId || inputBizSlug)) {
+      try {
+        smaxData = await LeadService.fetchSmaxThread(
+          {
+            smaxBizSlug,
+            pageId: cleanPageId,
+            threadId: cleanThreadId,
+          },
+          bizId
+        );
+        effectiveChatLink = `https://smax.ai/bizs/${smaxBizSlug}/chats/fb${cleanPageId}?tid=fb${cleanThreadId}`;
+      } catch (err: any) {
+        console.warn('External lead ingestion Smax tuple fetch warning:', err.message);
       }
     }
 
@@ -1176,8 +1241,8 @@ export const handleExternalLead = async (req: AuthenticatedRequest, res: Respons
     let phone = body.phone || body.phone_number || body.sdt || body.so_dien_thoai || '';
     let email = body.email || '';
     let source = body.source || body.nguon || '';
-    let fbPsid = body.fbPsid || body.fb_psid || body.psid || '';
-    let fbPageId = body.fbPageId || body.fb_page_id || '';
+    let fbPsid = parseFbPsidInput(body.fbPsid || body.fb_psid || body.psid || query.psid || '') || '';
+    let fbPageId = body.fbPageId || body.fb_page_id || (cleanPageId ? `fb${cleanPageId}` : '') || '';
     let fbPageName = body.fbPageName || body.fb_page_name || '';
     let adIds: string[] = [];
 
@@ -1192,10 +1257,15 @@ export const handleExternalLead = async (req: AuthenticatedRequest, res: Respons
 
     // Merge Smax Data if fetched
     if (smaxData) {
-      if (!inputFirstName && smaxData.name) {
-        const parsedSmaxName = parseNameHelper(smaxData.name);
-        inputFirstName = parsedSmaxName.firstName;
-        if (!inputLastName) inputLastName = parsedSmaxName.lastName;
+      if (smaxData.name) {
+        const isExplicitFirstNamePassed = Boolean(body.firstName || body.first_name);
+        const isPlaceholderName = !inputFullName || /^(tên\s*khách\s*hàng|tên\s*kh|khách\s*hàng|customer|unknown)$/i.test(inputFullName.trim());
+
+        if (!isExplicitFirstNamePassed || isPlaceholderName || !inputFirstName) {
+          const parsedSmaxName = parseNameHelper(smaxData.name);
+          inputFirstName = parsedSmaxName.firstName;
+          inputLastName = parsedSmaxName.lastName;
+        }
       }
       if (!phone && smaxData.phone) phone = smaxData.phone;
       if (!source) source = smaxData.source || 'FACEBOOK';
@@ -1210,10 +1280,15 @@ export const handleExternalLead = async (req: AuthenticatedRequest, res: Respons
       }
     }
 
+    // Standalone PSID without Smax fetch: default source to FACEBOOK
+    if (!source && fbPsid) {
+      source = 'FACEBOOK';
+    }
+
     // Prepare notes
     let notes = body.notes || body.ghi_chu || body.note || '';
-    if (chatLink && typeof chatLink === 'string' && chatLink.trim()) {
-      const linkNote = `Link chat: ${chatLink.trim()}`;
+    if (effectiveChatLink && typeof effectiveChatLink === 'string' && effectiveChatLink.trim()) {
+      const linkNote = `Link chat: ${effectiveChatLink.trim()}`;
       notes = notes ? `${notes}\n${linkNote}` : linkNote;
     }
 
@@ -1241,9 +1316,24 @@ export const handleExternalLead = async (req: AuthenticatedRequest, res: Respons
     }
 
     // Construct creation payload
+    let finalFirstName = inputFirstName;
+    let finalLastName = inputLastName;
+
+    if (!finalFirstName) {
+      if (phone) {
+        finalFirstName = 'Khách hàng';
+        finalLastName = phone.trim();
+      } else if (fbPsid) {
+        finalFirstName = 'Khách hàng';
+        finalLastName = `FB ${fbPsid.replace(/^fb/, '')}`;
+      } else {
+        finalFirstName = 'Khách hàng';
+      }
+    }
+
     const leadPayload: any = {
-      firstName: inputFirstName || 'Khách hàng',
-      lastName: inputLastName || '',
+      firstName: finalFirstName,
+      lastName: finalLastName || '',
       phone: phone ? phone.trim() : null,
       email: email ? email.trim() : null,
       companyName: body.companyName || body.company_name || body.ten_cong_ty || null,
