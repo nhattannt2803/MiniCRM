@@ -1285,12 +1285,8 @@ export const handleExternalLead = async (req: AuthenticatedRequest, res: Respons
       source = 'FACEBOOK';
     }
 
-    // Prepare notes
-    let notes = body.notes || body.ghi_chu || body.note || '';
-    if (effectiveChatLink && typeof effectiveChatLink === 'string' && effectiveChatLink.trim()) {
-      const linkNote = `Link chat: ${effectiveChatLink.trim()}`;
-      notes = notes ? `${notes}\n${linkNote}` : linkNote;
-    }
+    // Prepare notes (only fill if explicitly passed in request body)
+    const notes = body.notes || body.ghi_chu || body.note || '';
 
     // Stack Priority 2: Validation constraints if no smax thread or for required fields
     if (!inputFirstName && !phone && !email && !fbPsid && !body.zaloUid && !body.zalo_uid) {
