@@ -6,8 +6,8 @@ export const parseFbPsidInput = (input: string | null | undefined): string | nul
   if (!input) return null;
   const trimmed = input.trim();
 
-  // 1. Check if input is already formatted as "fbPageId_ThreadId"
-  const combinedMatch = trimmed.match(/^(?:fb)?([0-9]+)_(?:fb)?([0-9]+)$/i);
+  // 1. Check if input is already formatted as "fbPageId_ThreadId" (with optional fb or t_ prefix)
+  const combinedMatch = trimmed.match(/^(?:fb)?([0-9]+)_(?:fb|t_)?([0-9]+)$/i);
   if (combinedMatch) {
     return `fb${combinedMatch[1]}_${combinedMatch[2]}`;
   }
@@ -15,10 +15,9 @@ export const parseFbPsidInput = (input: string | null | undefined): string | nul
   // 2. Parse Pancake.vn / pages.fm link format:
   if (trimmed.includes('pancake.vn') || trimmed.includes('pages.fm') || trimmed.includes('c_id=')) {
     try {
-      const cIdMatch = trimmed.match(/[?&]c_id=(?:fb)?([0-9]+_[0-9]+)/i);
+      const cIdMatch = trimmed.match(/[?&]c_id=(?:fb)?([0-9]+)_(?:fb|t_)?([0-9]+)/i);
       if (cIdMatch) {
-        const parts = cIdMatch[1].split('_');
-        return `fb${parts[0]}_${parts[1]}`;
+        return `fb${cIdMatch[1]}_${cIdMatch[2]}`;
       }
     } catch (e) {
       console.error('Error parsing Pancake URL:', e);
@@ -29,7 +28,7 @@ export const parseFbPsidInput = (input: string | null | undefined): string | nul
   if (trimmed.includes('smax.ai') || trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
     try {
       const pageMatch = trimmed.match(/\/(?:chats|pages)\/(?:fb)?([0-9]+)/i);
-      const tidMatch = trimmed.match(/(?:[?&]tid=|threads\/)(?:fb)?([0-9]+)/i);
+      const tidMatch = trimmed.match(/(?:[?&]tid=|threads\/)(?:fb|t_)?([0-9]+)/i);
 
       if (pageMatch && tidMatch) {
         return `fb${pageMatch[1]}_${tidMatch[1]}`;

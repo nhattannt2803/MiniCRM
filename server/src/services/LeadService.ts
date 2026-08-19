@@ -529,10 +529,17 @@ export class LeadService {
 
       const rawPageId = json.data?.facebook?.page_id || parsed.pageId || '';
       const rawThreadId = json.data?.facebook?.id || parsed.threadId || '';
-      const cleanPageId = rawPageId.replace(/^fb/, '');
-      const cleanThreadId = rawThreadId.replace(/^fb/, '');
+      const cleanPageId = String(rawPageId).replace(/^(?:fb|t_)+/gi, '').replace(/\D+/g, '');
+      const cleanThreadId = String(rawThreadId).replace(/^(?:fb|t_)+/gi, '').replace(/\D+/g, '');
 
-      const fbPsid = `fb${cleanPageId}_${cleanThreadId}`;
+      let fbPsid = '';
+      if (cleanPageId && cleanThreadId) {
+        fbPsid = `fb${cleanPageId}_${cleanThreadId}`;
+      } else if (cleanPageId) {
+        fbPsid = `fb${cleanPageId}`;
+      } else if (cleanThreadId) {
+        fbPsid = `fb_${cleanThreadId}`;
+      }
 
       return {
         name,
