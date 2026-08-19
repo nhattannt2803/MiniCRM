@@ -320,6 +320,9 @@ export class LeadService {
           customerId: assignedCustomerId,
           campaignId: data.campaignId ? BigInt(data.campaignId) : null,
           ownerId: data.ownerId ? BigInt(data.ownerId) : null,
+          smaxBizSlug: data.smaxBizSlug || null,
+          fbPageId: data.fbPageId || null,
+          fbPageName: data.fbPageName || null,
           receivedAt,
         },
       });
@@ -353,6 +356,8 @@ export class LeadService {
           data: {
             leadId: created.id,
             adId: aId,
+            fbPageId: data.fbPageId || null,
+            sourceType: data.source || 'FB_ADS',
           },
         });
       }
@@ -435,6 +440,9 @@ export class LeadService {
           customerId: data.customerId !== undefined ? (data.customerId ? BigInt(data.customerId) : null) : existing.customerId,
           notes: data.notes !== undefined ? data.notes : existing.notes,
           ownerId: data.ownerId !== undefined ? (data.ownerId ? BigInt(data.ownerId) : null) : existing.ownerId,
+          smaxBizSlug: data.smaxBizSlug !== undefined ? data.smaxBizSlug : existing.smaxBizSlug,
+          fbPageId: data.fbPageId !== undefined ? data.fbPageId : existing.fbPageId,
+          fbPageName: data.fbPageName !== undefined ? data.fbPageName : existing.fbPageName,
           receivedAt: data.receivedAt !== undefined ? (data.receivedAt ? new Date(data.receivedAt) : null) : existing.receivedAt,
         },
       });
@@ -468,6 +476,8 @@ export class LeadService {
             data: {
               leadId,
               adId: aId,
+              fbPageId: data.fbPageId !== undefined ? data.fbPageId : res.fbPageId,
+              sourceType: data.source !== undefined ? data.source : res.source,
             },
           });
         }
@@ -606,6 +616,14 @@ export class LeadService {
         fbPsid = `fb_${cleanThreadId}`;
       }
 
+      const fbPageId = cleanPageId || customer?.facebook?.page_id || json.data?.facebook?.page_id || undefined;
+      const fbPageName =
+        customer?.facebook?.page_name ||
+        json.data?.facebook?.page_name ||
+        json.data?.page_name ||
+        json.data?.page?.name ||
+        undefined;
+
       const isAdsSource =
         String(json.data?.source || '').toLowerCase().includes('ad') ||
         String(json.data?.type || '').toLowerCase().includes('ad') ||
@@ -622,6 +640,8 @@ export class LeadService {
         name,
         phone,
         fbPsid,
+        fbPageId,
+        fbPageName,
         smaxBizSlug: parsed.biz,
         source,
         adId,

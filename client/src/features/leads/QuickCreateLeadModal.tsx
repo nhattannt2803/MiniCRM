@@ -41,7 +41,7 @@ export const QuickCreateLeadModal: React.FC<QuickCreateLeadModalProps> = ({
     try {
       const res: any = await crmService.fetchSmaxThread(trimmed);
       if (res.success && res.data) {
-        const { name, phone, fbPsid, source, adId, adIds } = res.data;
+        const { name, phone, fbPsid, fbPageId, fbPageName, source, adId, adIds } = res.data;
         const currentPhone = form.getFieldValue('phone');
         const currentFbPsid = form.getFieldValue('fbPsid');
         const currentAdIds = form.getFieldValue('adIds') || [];
@@ -53,13 +53,15 @@ export const QuickCreateLeadModal: React.FC<QuickCreateLeadModalProps> = ({
           firstName: name || form.getFieldValue('firstName'),
           phone: phone || currentPhone,
           fbPsid: fbPsid || currentFbPsid,
+          fbPageId: fbPageId || form.getFieldValue('fbPageId'),
+          fbPageName: fbPageName || form.getFieldValue('fbPageName'),
           source: source || (extractedAds.length > 0 ? 'FB_ADS' : 'FACEBOOK'),
           adIds: mergedAdIds,
         });
 
         notification.success({
           message: 'Đã tự động lấy thông tin từ Smax.ai!',
-          description: `Tên: ${name || '—'} | SĐT: ${phone || '—'} | PSID: ${fbPsid || '—'}${extractedAds.length > 0 ? ` | Ad ID: ${extractedAds.join(', ')}` : ''}`,
+          description: `Tên: ${name || '—'} | SĐT: ${phone || '—'} | PSID: ${fbPsid || '—'}${fbPageName ? ` | Page: ${fbPageName}` : ''}${extractedAds.length > 0 ? ` | Ad ID: ${extractedAds.join(', ')}` : ''}`,
         });
 
         setTimeout(() => {
@@ -281,10 +283,19 @@ export const QuickCreateLeadModal: React.FC<QuickCreateLeadModalProps> = ({
 
         <div className="grid grid-cols-2 gap-3">
           <Form.Item name="fbPsid" label="Facebook PSID (UID)">
-            <Input placeholder="fb_102938475" onBlur={handleIdentityBlur} prefix={<span className="text-blue-600 font-bold text-xs">FB</span>} />
+            <Input placeholder="fb760420303821103_28029744610001629" onBlur={handleIdentityBlur} prefix={<span className="text-blue-600 font-bold text-xs">FB</span>} />
           </Form.Item>
           <Form.Item name="zaloUid" label="Zalo UID">
             <Input placeholder="zalo_987654321" onBlur={handleIdentityBlur} prefix={<span className="text-blue-500 font-bold text-xs">Zalo</span>} />
+          </Form.Item>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <Form.Item name="fbPageName" label="🚩 Tên Fanpage Facebook" extra="Tự động trích xuất từ link Smax">
+            <Input placeholder="Ví dụ: Xe Điện Move Official" />
+          </Form.Item>
+          <Form.Item name="fbPageId" label="🆔 Facebook Page ID" extra="Lấy tự động từ PSID">
+            <Input placeholder="760420303821103" />
           </Form.Item>
         </div>
 

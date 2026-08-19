@@ -109,6 +109,8 @@ export const LeadDetailPage: React.FC = () => {
       rating: lead.rating,
       ownerId: lead.ownerId,
       notes: lead.notes,
+      fbPageName: (lead as any).fbPageName,
+      fbPageId: (lead as any).fbPageId,
       productIds: currentProductIds,
       adIds: currentAdIds,
     });
@@ -391,6 +393,19 @@ export const LeadDetailPage: React.FC = () => {
                 <span className="text-slate-400 font-medium block text-xs">Source</span>
                 <Tag color={lead.source === 'FB_ADS' ? 'volcano' : 'blue'}>{lead.source}</Tag>
               </div>
+              {Boolean((lead as any).fbPageName || (lead as any).fbPageId) && (
+                <div>
+                  <span className="text-slate-400 font-medium block text-xs">Facebook Fanpage</span>
+                  <div className="flex items-center gap-1.5 mt-0.5">
+                    <Tag color="magenta" className="font-medium text-xs">
+                      🚩 {(lead as any).fbPageName || 'Facebook Page'}
+                    </Tag>
+                    {(lead as any).fbPageId && (
+                      <span className="text-xs text-slate-400 font-mono">(ID: {(lead as any).fbPageId})</span>
+                    )}
+                  </div>
+                </div>
+              )}
               {Boolean((lead as any).adIds && (lead as any).adIds.length > 0) && (
                 <div>
                   <span className="text-slate-400 font-medium block text-xs">Facebook Ad IDs</span>
@@ -926,6 +941,15 @@ export const LeadDetailPage: React.FC = () => {
               allowClear
             />
           </Form.Item>
+
+          <div className="grid grid-cols-2 gap-3">
+            <Form.Item name="fbPageName" label="🚩 Tên Fanpage Facebook">
+              <Input placeholder="Ví dụ: Xe Điện Move Official" />
+            </Form.Item>
+            <Form.Item name="fbPageId" label="🆔 Facebook Page ID">
+              <Input placeholder="760420303821103" />
+            </Form.Item>
+          </div>
 
           <Form.Item name="productIds" label="🛒 Sản phẩm / Dịch vụ quan tâm (Chọn nhiều)">
             <Select

@@ -269,6 +269,8 @@ model Lead {
   jobTitle                 String?      @map("job_title") @db.VarChar(100)
   notes                    String?      @db.Text
   smaxBizSlug              String?      @map("smax_biz_slug") @db.VarChar(100)
+  fbPageId                 String?      @map("fb_page_id") @db.VarChar(50)
+  fbPageName               String?      @map("fb_page_name") @db.VarChar(200)
   convertedOpportunityId   BigInt?      @map("converted_opportunity_id") @db.UnsignedBigInt
   convertedCustomerId      BigInt?      @map("converted_customer_id") @db.UnsignedBigInt
   convertedAt              DateTime?    @map("converted_at") @db.DateTime(3)
@@ -297,6 +299,7 @@ model Lead {
   @@index([bizId, email], map: "idx_leads_biz_email")
   @@index([bizId, campaignId], map: "idx_leads_biz_campaign")
   @@index([bizId, customerId], map: "idx_leads_biz_customer")
+  @@index([bizId, fbPageId], map: "idx_leads_biz_fb_page")
   @@map("leads")
 }
 
@@ -805,15 +808,24 @@ model LeadProduct {
 }
 
 model LeadAd {
-  id        BigInt   @id @default(autoincrement()) @db.UnsignedBigInt
-  leadId    BigInt   @map("lead_id") @db.UnsignedBigInt
-  adId      String   @map("ad_id") @db.VarChar(191)
-  createdAt DateTime @default(now()) @map("created_at") @db.DateTime(3)
-  lead      Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  id           BigInt   @id @default(autoincrement()) @db.UnsignedBigInt
+  leadId       BigInt   @map("lead_id") @db.UnsignedBigInt
+  adId         String   @map("ad_id") @db.VarChar(191)
+  adName       String?  @map("ad_name") @db.VarChar(255)
+  adsetId      String?  @map("adset_id") @db.VarChar(191)
+  adsetName    String?  @map("adset_name") @db.VarChar(255)
+  campaignId   String?  @map("campaign_id") @db.VarChar(191)
+  campaignName String?  @map("campaign_name") @db.VarChar(255)
+  fbPageId     String?  @map("fb_page_id") @db.VarChar(50)
+  sourceType   String?  @map("source_type") @db.VarChar(50)
+  createdAt    DateTime @default(now()) @map("created_at") @db.DateTime(3)
+  lead         Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
 
   @@unique([leadId, adId])
   @@index([leadId], map: "idx_la_lead")
   @@index([adId], map: "idx_la_ad")
+  @@index([campaignId], map: "idx_la_campaign")
+  @@index([fbPageId], map: "idx_la_fb_page")
   @@map("lead_ads")
 }
 
