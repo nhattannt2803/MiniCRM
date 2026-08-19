@@ -286,15 +286,21 @@ export class ActionExecutor {
           include: { stages: { orderBy: { orderNo: 'asc' } } },
         });
       }
+      if (!pipeline) {
+        pipeline = await prisma.pipeline.findFirst({
+          where: { bizId },
+          include: { stages: { orderBy: { orderNo: 'asc' } } },
+        });
+      }
       if (!pipeline || pipeline.stages.length === 0) return { created: false, reason: 'No pipeline or stages found' };
 
-      // Resolve stage
+      // Resolve stage (defaults to the FIRST column/stage of the Kanban board, orderNo asc)
       let targetStage;
       if (config.stage_id) {
         targetStage = pipeline.stages.find((s: any) => s.id.toString() === config.stage_id.toString());
       }
       if (!targetStage) {
-        targetStage = pipeline.stages[0];
+        targetStage = pipeline.stages[0]; // First stage column in Kanban
       }
 
       const leadProducts = await prisma.leadProduct.findMany({

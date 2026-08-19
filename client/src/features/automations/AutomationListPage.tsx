@@ -4,10 +4,12 @@ import { PlusOutlined, HistoryOutlined, RobotOutlined, EditOutlined, DeleteOutli
 import { useBizNavigate } from '../../hooks/useBizNavigate';
 import { useTranslation } from 'react-i18next';
 import { crmService } from '../../services/crmService';
-import { Automation } from '../../types';
+import { Automation, Pipeline, PipelineStage } from '../../types';
 
 export const AutomationListPage: React.FC = () => {
   const [automations, setAutomations] = useState<Automation[]>([]);
+  const [pipelines, setPipelines] = useState<Pipeline[]>([]);
+  const [actionStages, setActionStages] = useState<Record<number, PipelineStage[]>>({});
   const [loading, setLoading] = useState(true);
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [editingAutomation, setEditingAutomation] = useState<any>(null);
@@ -31,7 +33,32 @@ export const AutomationListPage: React.FC = () => {
 
   useEffect(() => {
     fetchAutomations();
+    crmService
+      .getPipelines()
+      .then((res: any) => {
+        const data: Pipeline[] = res.data?.data || res.data || [];
+        setPipelines(data);
+      })
+      .catch(() => {});
   }, []);
+
+  const handlePipelineChange = (pipelineId: string, actionIndex: number) => {
+    const pipeline = pipelines.find((p) => p.id === pipelineId);
+    const stages = pipeline?.stages || [];
+    setActionStages((prev) => ({ ...prev, [actionIndex]: stages }));
+
+    const firstStageId = stages[0]?.id || undefined;
+    const actions = form.getFieldValue('actions') || [];
+    actions[actionIndex] = {
+      ...actions[actionIndex],
+      config: {
+        ...(actions[actionIndex]?.config || {}),
+        pipeline_id: pipelineId,
+        stage_id: firstStageId,
+      },
+    };
+    form.setFieldsValue({ actions });
+  };
 
   const handleToggle = async (id: string, currentActive: boolean) => {
     try {
@@ -132,17 +159,33 @@ export const AutomationListPage: React.FC = () => {
   const handleOpenEdit = (record: any) => {
     setEditingAutomation(record);
     const firstTrigger = record.triggers?.[0] || {};
-    const parsedActions = (record.actions || []).map((act: any) => {
+    const stagesMap: Record<number, PipelineStage[]> = {};
+
+    const parsedActions = (record.actions || []).map((act: any, idx: number) => {
       const cfg = typeof act.config === 'string' ? JSON.parse(act.config) : act.config || {};
+      let pId = cfg.pipeline_id;
+      let targetPipeline = pipelines.find((p) => p.id === pId) || pipelines.find((p) => p.isDefault) || pipelines[0];
+      if (targetPipeline) {
+        stagesMap[idx] = targetPipeline.stages || [];
+        if (!pId) pId = targetPipeline.id;
+      }
+
+      const firstStageId = targetPipeline?.stages?.[0]?.id;
+
       return {
         actionType: act.actionType,
         config: {
           title: cfg.title || '',
           due_in_hours: cfg.due_in_hours || 2,
           priority: cfg.priority || 'HIGH',
+          pipeline_id: pId,
+          stage_id: cfg.stage_id || firstStageId,
+          amount: cfg.amount || 0,
         },
       };
     });
+
+    setActionStages(stagesMap);
 
     form.setFieldsValue({
       name: record.name,
@@ -151,6 +194,7 @@ export const AutomationListPage: React.FC = () => {
       entityType: firstTrigger.entityType || 'LEAD',
       actions: parsedActions.length > 0 ? parsedActions : [
         { actionType: 'ASSIGN_OWNER', config: { role: 'SALES' } },
+        { actionType: 'CREATE_OPPORTUNITY', config: { pipeline_id: pipelines[0]?.id, stage_id: pipelines[0]?.stages?.[0]?.id } },
         { actionType: 'CREATE_TASK', config: { title: 'Tư vấn Lead mới', due_in_hours: 2, priority: 'HIGH' } },
       ],
     });
@@ -169,14 +213,21 @@ export const AutomationListPage: React.FC = () => {
             entityType: values.entityType,
           },
         ],
-        actions: (values.actions || []).map((act: any) => ({
-          actionType: act.actionType,
-          config: {
-            title: act.config?.title || (act.actionType === 'CREATE_TASK' ? 'Tư vấn Lead mới' : undefined),
-            due_in_hours: act.config?.due_in_hours ? Number(act.config.due_in_hours) : 2,
-            priority: act.config?.priority || 'HIGH',
-          },
-        })),
+        actions: (values.actions || []).map((act: any) => {
+          const baseConfig: Record<string, any> = {};
+          if (act.actionType === 'CREATE_TASK') {
+            baseConfig.title = act.config?.title || 'Tư vấn Lead mới';
+            baseConfig.due_in_hours = act.config?.due_in_hours ? Number(act.config.due_in_hours) : 2;
+            baseConfig.priority = act.config?.priority || 'HIGH';
+          } else if (act.actionType === 'CREATE_OPPORTUNITY') {
+            if (act.config?.pipeline_id) baseConfig.pipeline_id = act.config.pipeline_id;
+            if (act.config?.stage_id) baseConfig.stage_id = act.config.stage_id;
+            baseConfig.amount = act.config?.amount ? Number(act.config.amount) : 0;
+          } else if (act.actionType === 'ASSIGN_OWNER') {
+            baseConfig.role = act.config?.role || 'SALES';
+          }
+          return { actionType: act.actionType, config: baseConfig };
+        }),
       });
 
       notification.success({ message: 'Cập nhật quy trình tự động hóa thành công!' });
@@ -262,6 +313,56 @@ export const AutomationListPage: React.FC = () => {
     },
   ];
 
+  const handleCreateQualifiedOpportunityRule = async () => {
+    try {
+      const defPipeline = pipelines.find((p) => p.isDefault) || pipelines[0];
+      const firstStageId = defPipeline?.stages?.[0]?.id;
+
+      const res: any = await crmService.createAutomation({
+        name: 'Tự động mở Cơ hội bán hàng khi Khách đã được tư vấn (QUALIFIED)',
+        description: 'Khi trạng thái Lead chuyển sang QUALIFIED, tự động mở Cơ hội ở cột đầu tiên của Kanban & tạo Task công việc',
+        triggers: [
+          {
+            triggerEvent: 'STATUS_CHANGED',
+            entityType: 'LEAD',
+            config: { to_status: 'QUALIFIED' },
+          },
+        ],
+        actions: [
+          {
+            actionType: 'CREATE_OPPORTUNITY',
+            config: {
+              pipeline_id: defPipeline?.id,
+              stage_id: firstStageId,
+              amount: 0,
+            },
+          },
+          {
+            actionType: 'CREATE_TASK',
+            config: {
+              title: 'Liên hệ tư vấn chuyên sâu & báo giá cho Lead QUALIFIED',
+              due_in_hours: 2,
+              priority: 'HIGH',
+            },
+          },
+        ],
+      });
+
+      if (res.success) {
+        notification.success({
+          message: 'Tạo kịch bản thành công!',
+          description: 'Đã tạo kịch bản tự động mở Cơ hội ở cột đầu tiên của Kanban khi Lead QUALIFIED.',
+        });
+        await fetchAutomations();
+        if (res.data) {
+          handleOpenEdit(res.data);
+        }
+      }
+    } catch (err: any) {
+      notification.error({ message: t('common.error'), description: err.message });
+    }
+  };
+
   return (
     <div className="space-y-4">
       {/* Hidden file input for import JSON */}
@@ -274,6 +375,9 @@ export const AutomationListPage: React.FC = () => {
         </div>
 
         <div className="flex gap-2">
+          <Button icon={<RobotOutlined className="text-indigo-600" />} onClick={handleCreateQualifiedOpportunityRule}>
+            + Mẫu: Lead QUALIFIED ➔ Mở Cơ hội Kanban
+          </Button>
           <Button icon={<UploadOutlined />} onClick={handleImportClick}>
             Nhập JSON
           </Button>
@@ -372,6 +476,55 @@ export const AutomationListPage: React.FC = () => {
                                     <Select.Option value="MEDIUM">MEDIUM</Select.Option>
                                     <Select.Option value="LOW">LOW</Select.Option>
                                   </Select>
+                                </Form.Item>
+                              </div>
+                            );
+                          }
+                          if (actionType === 'CREATE_OPPORTUNITY') {
+                            const stages: PipelineStage[] = actionStages[name] || pipelines.find((p) => p.isDefault)?.stages || pipelines[0]?.stages || [];
+                            return (
+                              <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-100">
+                                <Form.Item
+                                  {...restField}
+                                  name={[name, 'config', 'pipeline_id']}
+                                  label="Pipeline (Kanban)"
+                                  className="mb-0"
+                                  extra={<span className="text-xs text-slate-400">Dùng Pipeline mặc định nếu để trống</span>}
+                                >
+                                  <Select
+                                    allowClear
+                                    placeholder="Pipeline mặc định"
+                                    onChange={(val) => handlePipelineChange(val, name)}
+                                    options={pipelines.map((p) => ({
+                                      value: p.id,
+                                      label: `${p.name}${p.isDefault ? ' ⭐ (mặc định)' : ''}`,
+                                    }))}
+                                  />
+                                </Form.Item>
+                                <Form.Item
+                                  {...restField}
+                                  name={[name, 'config', 'stage_id']}
+                                  label="Cột trong Kanban (Stage)"
+                                  className="mb-0"
+                                  extra={<span className="text-xs text-slate-400">Tự động vào Cột đầu tiên của Kanban nếu để trống</span>}
+                                >
+                                  <Select
+                                    allowClear
+                                    placeholder={stages.length > 0 ? `Cột đầu tiên: ${stages[0]?.name}` : 'Chọn Pipeline trước'}
+                                    disabled={stages.length === 0}
+                                    options={stages.map((s, idx) => ({
+                                      value: s.id,
+                                      label: `${s.name}${idx === 0 ? ' (Cột đầu tiên 📌)' : ''}`,
+                                    }))}
+                                  />
+                                </Form.Item>
+                                <Form.Item
+                                  {...restField}
+                                  name={[name, 'config', 'amount']}
+                                  label="Giá trị cơ hội ban đầu"
+                                  className="mb-0 col-span-2"
+                                >
+                                  <InputNumber min={0} className="w-full" placeholder="0" addonAfter="₫" />
                                 </Form.Item>
                               </div>
                             );

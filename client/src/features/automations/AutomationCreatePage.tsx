@@ -300,7 +300,7 @@ export const AutomationCreatePage: React.FC = () => {
                           }
 
                           if (actionType === 'CREATE_OPPORTUNITY') {
-                            const stages: PipelineStage[] = actionStages[name] || [];
+                            const stages: PipelineStage[] = actionStages[name] || pipelines.find((p) => p.isDefault)?.stages || pipelines[0]?.stages || [];
                             return (
                               <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-100">
                                 <Form.Item
@@ -331,19 +331,19 @@ export const AutomationCreatePage: React.FC = () => {
                                   className="mb-0"
                                   extra={
                                     <span className="text-xs text-slate-400">
-                                      Để trống = cột đầu tiên của Pipeline
+                                      Để trống = Tự động vào Cột đầu tiên của Kanban
                                     </span>
                                   }
                                 >
                                   <Select
                                     allowClear
                                     placeholder={
-                                      stages.length > 0 ? 'Cột đầu tiên (mặc định)' : 'Chọn Pipeline trước'
+                                      stages.length > 0 ? `Cột đầu tiên: ${stages[0]?.name}` : 'Chọn Pipeline trước'
                                     }
                                     disabled={stages.length === 0}
-                                    options={stages.map((s) => ({
+                                    options={stages.map((s, idx) => ({
                                       value: s.id,
-                                      label: s.name,
+                                      label: `${s.name}${idx === 0 ? ' (Cột đầu tiên 📌)' : ''}`,
                                     }))}
                                   />
                                 </Form.Item>
