@@ -9,6 +9,9 @@ export const crmService = {
   // Identity Resolution & Check
   checkIdentity: (data: { phone?: string; email?: string; name?: string; fbPsid?: string; zaloUid?: string; webVisitorId?: string }) =>
     api.post('/leads/check-identity', data),
+  fetchSmaxThread: (url: string) => api.post('/leads/fetch-smax-thread', { url }),
+  getSmaxToken: () => api.get('/system/smax-token'),
+  updateSmaxToken: (token: string) => api.post('/system/smax-token', { token }),
   resolveLeadIdentity: (leadId: string, action: 'ATTACH_TO_EXISTING' | 'CREATE_SEPARATE_CUSTOMER', targetCustomerId?: string) =>
     api.post(`/leads/${leadId}/resolve-identity`, { action, targetCustomerId }),
 

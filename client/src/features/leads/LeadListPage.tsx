@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Table, Button, Input, Select, Tag, Drawer, Form, Popconfirm, notification, Alert, Space, Radio, DatePicker, Tooltip } from 'antd';
 import { PlusOutlined, SearchOutlined, EyeOutlined, EditOutlined, SwapOutlined, DeleteOutlined, WarningOutlined, CheckCircleOutlined } from '@ant-design/icons';
 import { useBizNavigate } from '../../hooks/useBizNavigate';
@@ -35,6 +35,48 @@ export const LeadListPage: React.FC = () => {
   const navigate = useBizNavigate();
   const [products, setProducts] = useState<any[]>([]);
   const { t } = useTranslation();
+  const [fetchingSmax, setFetchingSmax] = useState(false);
+  const lastFetchedSmaxUrlRef = useRef<string>('');
+
+  const handleFetchSmaxThread = async (url: string) => {
+    if (!url || !url.trim().includes('smax.ai')) return;
+    const trimmed = url.trim();
+    if (trimmed === lastFetchedSmaxUrlRef.current) return;
+
+    lastFetchedSmaxUrlRef.current = trimmed;
+    setFetchingSmax(true);
+    try {
+      const res: any = await crmService.fetchSmaxThread(trimmed);
+      if (res.success && res.data) {
+        const { name, phone, fbPsid } = res.data;
+        const currentPhone = form.getFieldValue('phone');
+        const currentFbPsid = form.getFieldValue('fbPsid');
+
+        form.setFieldsValue({
+          firstName: name || form.getFieldValue('firstName'),
+          phone: phone || currentPhone,
+          fbPsid: fbPsid || currentFbPsid,
+          source: 'FACEBOOK',
+        });
+
+        notification.success({
+          message: 'Đã tự động lấy thông tin từ Smax.ai!',
+          description: `Tên: ${name || '—'} | SĐT: ${phone || '—'} | PSID: ${fbPsid || '—'}`,
+        });
+
+        setTimeout(() => {
+          handleIdentityBlur();
+        }, 200);
+      }
+    } catch (err: any) {
+      notification.error({
+        message: 'Lỗi lấy dữ liệu từ Smax.ai',
+        description: err.message || 'Vui lòng kiểm tra lại đường dẫn hội thoại Smax.ai',
+      });
+    } finally {
+      setFetchingSmax(false);
+    }
+  };
 
   const fetchLeads = async () => {
     setLoading(true);
@@ -519,16 +561,28 @@ export const LeadListPage: React.FC = () => {
             />
           )}
 
+          <Form.Item
+            name="smaxUrl"
+            label="💬 Link hội thoại Chat Smax.ai (Tự động điền)"
+            extra="Dán link hội thoại Smax.ai (VD: https://smax.ai/bizs/.../chats/...) để tự động lấy Tên, SĐT & PSID"
+          >
+            <Input
+              placeholder="https://smax.ai/bizs/xe-dien-move/chats/fb760420303821103?tid=fb27040617945611633"
+              onChange={(e) => handleFetchSmaxThread(e.target.value)}
+              allowClear
+            />
+          </Form.Item>
+
           <Form.Item name="receivedAt" label="📅 Ngày tiếp cận / Phát sinh Lead" tooltip="Nếu bạn đang nhập bù danh sách Lead cũ đã tiếp cận trước đó, hãy chọn ngày thực tế phát sinh tại đây. Mặc định là thời gian hiện tại.">
             <DatePicker showTime format="DD/MM/YYYY HH:mm" className="w-full" placeholder="Chọn ngày giờ tiếp cận..." />
           </Form.Item>
 
           <div className="grid grid-cols-2 gap-3">
-            <Form.Item name="firstName" label={t('leads.form.firstName')} rules={[{ required: true, message: 'Vui lòng nhập họ' }]}>
-              <Input placeholder="Văn A" onBlur={handleIdentityBlur} />
+            <Form.Item name="firstName" label="Tên khách hàng" rules={[{ required: true, message: 'Vui lòng nhập tên khách hàng' }]}>
+              <Input placeholder="Ví dụ: Phúc Kính" onBlur={handleIdentityBlur} />
             </Form.Item>
-            <Form.Item name="lastName" label={t('leads.form.lastName')} rules={[{ required: true, message: 'Vui lòng nhập tên' }]}>
-              <Input placeholder="Nguyễn" onBlur={handleIdentityBlur} />
+            <Form.Item name="lastName" label="Họ & Tên đệm (Tùy chọn)">
+              <Input placeholder="Tùy chọn" onBlur={handleIdentityBlur} />
             </Form.Item>
           </div>
 

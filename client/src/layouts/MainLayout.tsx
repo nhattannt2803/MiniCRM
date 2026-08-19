@@ -178,7 +178,7 @@ export const MainLayout: React.FC = () => {
       children: [
         { key: `/${currentBizSlug}/staff`, icon: <IdcardOutlined />, label: t('nav.staff') },
         { key: `/${currentBizSlug}/users`, icon: <UserSwitchOutlined />, label: t('nav.users') },
-        { key: '/system/users', icon: <SafetyCertificateOutlined />, label: 'Tài Khoản Hệ Thống' },
+        ...(user?.isSuperAdmin ? [{ key: '/system/users', icon: <SafetyCertificateOutlined />, label: 'Tài Khoản Hệ Thống' }] : []),
         { key: `/${currentBizSlug}/teams`, icon: <ClusterOutlined />, label: t('nav.teams') },
         { key: `/${currentBizSlug}/roles`, icon: <LockOutlined />, label: t('nav.roles') },
       ],

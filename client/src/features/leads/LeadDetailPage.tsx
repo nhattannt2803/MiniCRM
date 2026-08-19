@@ -724,11 +724,11 @@ export const LeadDetailPage: React.FC = () => {
       >
         <Form form={editForm} layout="vertical" onFinish={handleUpdateLead}>
           <div className="grid grid-cols-2 gap-3">
-            <Form.Item name="firstName" label="Tên" rules={[{ required: true }]}>
-              <Input />
+            <Form.Item name="firstName" label="Tên khách hàng" rules={[{ required: true, message: 'Vui lòng nhập tên khách hàng' }]}>
+              <Input placeholder="Ví dụ: Phúc Kính" />
             </Form.Item>
-            <Form.Item name="lastName" label="Họ" rules={[{ required: true }]}>
-              <Input />
+            <Form.Item name="lastName" label="Họ & Tên đệm (Tùy chọn)">
+              <Input placeholder="Tùy chọn" />
             </Form.Item>
           </div>
 

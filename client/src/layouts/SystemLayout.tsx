@@ -1,7 +1,7 @@
 import React from 'react';
 import { Layout, Button, Avatar, Dropdown, Typography, Tag } from 'antd';
 import { SafetyCertificateOutlined, LogoutOutlined, UserOutlined, ShopOutlined, AppstoreOutlined } from '@ant-design/icons';
-import { useNavigate, useLocation, Outlet } from 'react-router-dom';
+import { useNavigate, useLocation, Outlet, Navigate } from 'react-router-dom';
 import { useAuthStore } from '../stores/authStore';
 
 const { Header, Content } = Layout;
@@ -11,6 +11,11 @@ export const SystemLayout: React.FC = () => {
   const { user, logout, businesses } = useAuthStore();
   const navigate = useNavigate();
   const location = useLocation();
+
+  if (!user?.isSuperAdmin) {
+    const defaultSlug = businesses[0]?.slug;
+    return <Navigate to={defaultSlug ? `/${defaultSlug}/dashboard` : '/no-business'} replace />;
+  }
 
   const userMenu = {
     items: [

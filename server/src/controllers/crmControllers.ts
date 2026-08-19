@@ -167,6 +167,34 @@ export const createLead = async (req: AuthenticatedRequest, res: Response, next:
   }
 };
 
+export const fetchSmaxThread = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  try {
+    const result = await LeadService.fetchSmaxThread(req.body.url, req.bizId);
+    res.json({ success: true, data: result });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const getSmaxToken = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  try {
+    const token = await SystemSettingService.getSmaxApiToken(req.bizId);
+    res.json({ success: true, data: { token } });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const updateSmaxToken = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  try {
+    const { token } = req.body;
+    const result = await SystemSettingService.setSmaxApiToken(token, req.bizId);
+    res.json({ success: true, data: { token: result } });
+  } catch (err) {
+    next(err);
+  }
+};
+
 export const updateLead = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
     const lead = await LeadService.updateLead(req.bizId!, req.params.id, req.body);

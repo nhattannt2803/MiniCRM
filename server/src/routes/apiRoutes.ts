@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { authenticate, authorize } from '../middleware/authMiddleware';
+import { authenticate, authorize, requireSuperAdmin } from '../middleware/authMiddleware';
 import { tenantGuard } from '../middleware/tenantMiddleware';
 import { apiLimiter, authLimiter } from '../middleware/rateLimitMiddleware';
 import * as crm from '../controllers/crmControllers';
@@ -19,14 +19,14 @@ router.use(authenticate);
 // Auth Me (before tenantGuard — returns all memberships)
 router.get('/auth/me', crm.getMe);
 
-// System-wide Management (across all Bizs, before tenantGuard)
-router.get('/system/all-users', crm.getAllSystemUsers);
-router.patch('/users/:id/toggle-status', crm.toggleUserStatus);
-router.patch('/users/:id/toggle-superadmin', crm.toggleSuperAdminStatus);
+// System-wide Management (across all Bizs, before tenantGuard - Strictly Super Admin)
+router.get('/system/all-users', requireSuperAdmin, crm.getAllSystemUsers);
+router.patch('/users/:id/toggle-status', requireSuperAdmin, crm.toggleUserStatus);
+router.patch('/users/:id/toggle-superadmin', requireSuperAdmin, crm.toggleSuperAdminStatus);
 
-router.get('/system/all-businesses', crm.getAllSystemBusinesses);
-router.post('/system/businesses', crm.createBusiness);
-router.patch('/system/businesses/:id/status', crm.toggleBusinessStatus);
+router.get('/system/all-businesses', requireSuperAdmin, crm.getAllSystemBusinesses);
+router.post('/system/businesses', requireSuperAdmin, crm.createBusiness);
+router.patch('/system/businesses/:id/status', requireSuperAdmin, crm.toggleBusinessStatus);
 
 // Business management (after authenticate, before tenantGuard)
 router.get('/businesses', crm.getMyBusinesses);
@@ -46,6 +46,7 @@ router.delete('/businesses/current/members/:userId', crm.removeMember);
 router.get('/leads', crm.getLeads);
 router.post('/leads', crm.createLead);
 router.post('/leads/check-identity', crm.checkIdentity);
+router.post('/leads/fetch-smax-thread', crm.fetchSmaxThread);
 router.get('/leads/:id', crm.getLeadById);
 router.patch('/leads/:id', crm.updateLead);
 router.delete('/leads/:id', crm.deleteLead);
@@ -159,5 +160,7 @@ router.post('/demo/switch-industry', crm.switchDemoIndustry);
 // System Settings (Lead duplicate rules & config)
 router.get('/settings/lead-duplicate-rules', crm.getLeadDuplicateRule);
 router.put('/settings/lead-duplicate-rules', crm.updateLeadDuplicateRule);
+router.get('/system/smax-token', requireSuperAdmin, crm.getSmaxToken);
+router.post('/system/smax-token', requireSuperAdmin, crm.updateSmaxToken);
 
 export default router;

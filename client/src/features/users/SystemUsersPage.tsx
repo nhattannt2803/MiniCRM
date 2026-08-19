@@ -9,6 +9,8 @@ export const SystemUsersPage: React.FC = () => {
   const [users, setUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [searchText, setSearchText] = useState('');
+  const [smaxToken, setSmaxToken] = useState('');
+  const [savingToken, setSavingToken] = useState(false);
 
   const fetchUsers = async () => {
     setLoading(true);
@@ -24,9 +26,39 @@ export const SystemUsersPage: React.FC = () => {
     }
   };
 
+  const fetchSmaxToken = async () => {
+    try {
+      const res: any = await crmService.getSmaxToken();
+      if (res.success && res.data?.token) {
+        setSmaxToken(res.data.token);
+      }
+    } catch (err) {
+      console.error('Error fetching Smax token:', err);
+    }
+  };
+
   useEffect(() => {
     fetchUsers();
+    fetchSmaxToken();
   }, []);
+
+  const handleSaveSmaxToken = async () => {
+    if (!smaxToken.trim()) {
+      message.warning('Vui lòng nhập Token Smax.ai API');
+      return;
+    }
+    setSavingToken(true);
+    try {
+      const res: any = await crmService.updateSmaxToken(smaxToken.trim());
+      if (res.success) {
+        message.success('Đã lưu Smax.ai Authorization Bearer Token thành công!');
+      }
+    } catch (err: any) {
+      message.error(err?.message || 'Không thể lưu Smax Token');
+    } finally {
+      setSavingToken(false);
+    }
+  };
 
   const handleToggleStatus = async (userId: string, currentStatus: boolean) => {
     try {
@@ -180,6 +212,36 @@ export const SystemUsersPage: React.FC = () => {
           Làm mới
         </Button>
       </div>
+
+      {/* Smax.ai API Integration Token Config */}
+      <Card className="rounded-2xl border border-slate-200 shadow-sm p-4 bg-gradient-to-r from-blue-50/50 to-indigo-50/30">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <div className="font-bold text-slate-900 text-base flex items-center gap-2">
+              <span className="text-xl">⚡</span> Cấu Hình Tích Hợp Smax.ai Chat API Token
+            </div>
+            <p className="text-xs text-slate-500 mt-1">
+              Token Authorization (Bearer token) dùng để truy vấn dữ liệu tên khách, SĐT & FB PSID tự động khi dán link hội thoại Smax.ai.
+            </p>
+          </div>
+          <div className="flex gap-2 items-center flex-1 max-w-xl">
+            <Input.Password
+              placeholder="Nhập Bearer Token Smax.ai..."
+              value={smaxToken}
+              onChange={(e) => setSmaxToken(e.target.value)}
+              className="rounded-xl h-10 font-mono text-xs"
+            />
+            <Button
+              type="primary"
+              onClick={handleSaveSmaxToken}
+              loading={savingToken}
+              className="bg-indigo-600 rounded-xl h-10 px-5 font-semibold shrink-0"
+            >
+              Lưu Token
+            </Button>
+          </div>
+        </div>
+      </Card>
 
       <Card className="rounded-2xl border border-slate-200 shadow-sm p-2">
         <div className="flex justify-between items-center mb-4 px-2 pt-2">

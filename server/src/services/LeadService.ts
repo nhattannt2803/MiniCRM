@@ -264,7 +264,7 @@ export class LeadService {
           data: {
             bizId,
             firstName: data.firstName,
-            lastName: data.lastName,
+            lastName: data.lastName || '',
             email: data.email || null,
             phone: data.phone || null,
             position: data.jobTitle || null,
@@ -294,7 +294,7 @@ export class LeadService {
         data: {
           bizId,
           firstName: data.firstName,
-          lastName: data.lastName,
+          lastName: data.lastName || '',
           email: data.email || null,
           phone: data.phone || null,
           companyName: data.companyName || null,
@@ -447,5 +447,102 @@ export class LeadService {
       data: { deletedAt: new Date() },
     });
     return { success: true };
+  }
+
+  public static parseSmaxUrl(url: string) {
+    if (!url) return null;
+
+    const bizMatch = url.match(/bizs\/([^\/]+)/);
+    const biz = bizMatch ? bizMatch[1] : null;
+
+    const pageMatch = url.match(/(?:pages|chats)\/([^\/?#]+)/);
+    let pageId = pageMatch ? pageMatch[1] : null;
+
+    let threadId = null;
+    const tidQueryMatch = url.match(/[?&]tid=([^&]+)/);
+    if (tidQueryMatch) {
+      threadId = tidQueryMatch[1];
+    } else {
+      const threadPathMatch = url.match(/threads\/([^\/?#]+)/);
+      if (threadPathMatch) {
+        threadId = threadPathMatch[1];
+      }
+    }
+
+    if (!biz || !pageId || !threadId) return null;
+
+    if (!pageId.startsWith('fb') && /^\d+$/.test(pageId)) {
+      pageId = `fb${pageId}`;
+    }
+    if (!threadId.startsWith('fb') && /^\d+$/.test(threadId)) {
+      threadId = `fb${threadId}`;
+    }
+
+    return { biz, pageId, threadId };
+  }
+
+  public static async fetchSmaxThread(smaxUrl: string, bizId?: bigint) {
+    if (!smaxUrl || !smaxUrl.trim()) {
+      throw new AppError('Vui lòng cung cấp link hội thoại Smax.ai', 400, 'INVALID_SMAX_URL');
+    }
+
+    const parsed = this.parseSmaxUrl(smaxUrl.trim());
+    if (!parsed) {
+      throw new AppError(
+        'Link hội thoại Smax.ai không hợp lệ. Ví dụ: https://smax.ai/bizs/xe-dien-move/chats/fb760420303821103?tid=fb27040617945611633',
+        400,
+        'INVALID_SMAX_URL_FORMAT'
+      );
+    }
+
+    const targetApi = `https://api.smax.ai/bizs/${parsed.biz}/pages/${parsed.pageId}/threads/${parsed.threadId}`;
+    const token = await SystemSettingService.getSmaxApiToken(bizId);
+
+    try {
+      const response = await fetch(targetApi, {
+        headers: {
+          authorization: `Bearer ${token}`,
+          'Accept-Encoding': 'gzip, deflate, br',
+        },
+      });
+
+      if (!response.ok) {
+        throw new AppError(`Không thể lấy dữ liệu từ Smax.ai API (Status ${response.status})`, 400, 'SMAX_API_ERROR');
+      }
+
+      const json: any = await response.json();
+      const customer = json.data?.customers?.[0] || json.data?.customer || json.data?.facebook;
+
+      if (!customer && !json.data) {
+        throw new AppError('Không tìm thấy thông tin khách hàng trong hội thoại Smax.ai', 404, 'SMAX_CUSTOMER_NOT_FOUND');
+      }
+
+      const name = customer?.name || customer?.profile_name || json.data?.facebook?.name || '';
+      let phone = customer?.phone || customer?.phones?.[0]?.value || '';
+      if (!phone && json.data?.tag_aliases) {
+        const foundPhone = json.data.tag_aliases.find((t: string) => /^\d{9,11}$/.test(t));
+        if (foundPhone) phone = foundPhone;
+      }
+      if (!phone && json.data?.last_content_by_user && /^\d{9,11}$/.test(json.data.last_content_by_user)) {
+        phone = json.data.last_content_by_user;
+      }
+
+      const rawPageId = json.data?.facebook?.page_id || parsed.pageId || '';
+      const rawThreadId = json.data?.facebook?.id || parsed.threadId || '';
+      const cleanPageId = rawPageId.replace(/^fb/, '');
+      const cleanThreadId = rawThreadId.replace(/^fb/, '');
+
+      const fbPsid = `fb${cleanPageId}_${cleanThreadId}`;
+
+      return {
+        name,
+        phone,
+        fbPsid,
+        source: 'FACEBOOK',
+      };
+    } catch (err: any) {
+      if (err instanceof AppError) throw err;
+      throw new AppError(`Lỗi kết nối tới Smax.ai: ${err.message}`, 500, 'SMAX_FETCH_ERROR');
+    }
   }
 }

@@ -53,8 +53,15 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
     return <Navigate to="/login" replace />;
   }
 
-  // Super Admins can access /system/* routes even without belonging to any Business
-  if (user?.isSuperAdmin && location.pathname.startsWith('/system')) {
+  // Strict Super Admin Access Control for /system/* routes
+  if (location.pathname.startsWith('/system')) {
+    if (!user?.isSuperAdmin) {
+      const activeSlug = businesses[0]?.slug;
+      if (activeSlug) {
+        return <Navigate to={`/${activeSlug}/dashboard`} replace />;
+      }
+      return <Navigate to="/no-business" replace />;
+    }
     return <>{children}</>;
   }
 

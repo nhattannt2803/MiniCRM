@@ -69,4 +69,33 @@ export class SystemSettingService {
       'Cấu hình quy tắc Gộp hoặc Tạo mới Lead khi phát sinh sản phẩm quan tâm mới'
     );
   }
+
+  static async getSmaxApiToken(bizId?: bigint): Promise<string> {
+    const defaultToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjYyYzI4OTMyM2YwZjIzMmRjNmMxMjk5OSIsImlzX3VzZXIiOnRydWUsImRldmljZV9pZCI6IjgwOTc3OGJhLTdkYTYtNDEyZS1hMjNjLTdmODI2ZTlkZmQzMSIsImlhdCI6MTc4NzExMjE5NywiZXhwIjoxNzg5NzA0MTk3fQ.1QEZIv8aos7iqDnn8Lwk2LHU3rkSh8OjI3pV76cBJWk';
+    
+    // Check if system setting exists globally or for target biz
+    const targetBizId = bizId || BigInt(1);
+    const saved = await this.getSetting<string>(targetBizId, 'SMAX_API_TOKEN', '');
+    if (saved && saved.trim()) return saved.trim();
+
+    // Fallback search for any biz setting
+    const anySetting = await prisma.systemSetting.findFirst({
+      where: { key: 'SMAX_API_TOKEN' },
+    });
+    if (anySetting && anySetting.value) {
+      return (anySetting.value as string).trim();
+    }
+
+    return defaultToken;
+  }
+
+  static async setSmaxApiToken(token: string, bizId?: bigint): Promise<string> {
+    const targetBizId = bizId || BigInt(1);
+    return this.setSetting<string>(
+      targetBizId,
+      'SMAX_API_TOKEN',
+      token.trim(),
+      'Authorization Bearer Token cho Smax.ai API'
+    );
+  }
 }

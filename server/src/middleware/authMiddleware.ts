@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { verifyToken, TokenPayload } from '../utils/jwt';
+import prisma from '../config/database';
 
 export interface AuthenticatedRequest extends Request {
   user?: TokenPayload;
@@ -54,3 +55,31 @@ export const authorize = (allowedRoles: string[]) => {
     next();
   };
 };
+
+export const requireSuperAdmin = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  if (!req.user) {
+    return res.status(401).json({
+      success: false,
+      error: { code: 'UNAUTHORIZED', message: 'User not authenticated' },
+    });
+  }
+
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: BigInt(req.user.userId) },
+      select: { isSuperAdmin: true, isActive: true, deletedAt: true },
+    });
+
+    if (!user || !user.isActive || user.deletedAt || !user.isSuperAdmin) {
+      return res.status(403).json({
+        success: false,
+        error: { code: 'FORBIDDEN', message: 'Yêu cầu quyền Super Admin hệ thống' },
+      });
+    }
+
+    next();
+  } catch (error) {
+    next(error);
+  }
+};
+
