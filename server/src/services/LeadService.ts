@@ -507,10 +507,26 @@ export class LeadService {
       });
 
       if (!response.ok) {
+        if (response.status === 401 || response.status === 403) {
+          throw new AppError(
+            'Smax API Token không hợp lệ hoặc đã hết hạn. Vui lòng kiểm tra và cập nhật Token mới trong Cài đặt hệ thống.',
+            401,
+            'SMAX_TOKEN_EXPIRED'
+          );
+        }
         throw new AppError(`Không thể lấy dữ liệu từ Smax.ai API (Status ${response.status})`, 400, 'SMAX_API_ERROR');
       }
 
       const json: any = await response.json();
+
+      if (json.code === 401 || json.status === 401 || json.error === 'Unauthorized' || json.message?.toLowerCase()?.includes('token') || json.error?.message?.toLowerCase()?.includes('token')) {
+        throw new AppError(
+          'Smax API Token không hợp lệ hoặc đã hết hạn. Vui lòng kiểm tra và cập nhật Token mới trong Cài đặt hệ thống.',
+          401,
+          'SMAX_TOKEN_EXPIRED'
+        );
+      }
+
       const customer = json.data?.customers?.[0] || json.data?.customer || json.data?.facebook;
 
       if (!customer && !json.data) {

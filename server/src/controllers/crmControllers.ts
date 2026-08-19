@@ -178,7 +178,7 @@ export const fetchSmaxThread = async (req: AuthenticatedRequest, res: Response, 
 
 export const getSmaxToken = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
-    const token = await SystemSettingService.getSmaxApiToken(req.bizId);
+    const token = await SystemSettingService.getSmaxApiToken(req.bizId, false);
     res.json({ success: true, data: { token } });
   } catch (err) {
     next(err);

@@ -1,5 +1,6 @@
 import { parseFbPsidInput, parseZaloUidInput } from '../src/utils/identityHelper';
 import { LeadService } from '../src/services/LeadService';
+import { SystemSettingService } from '../src/services/SystemSettingService';
 
 describe('IdentityHelper & Smax Parsing', () => {
   describe('parseFbPsidInput', () => {
@@ -32,6 +33,19 @@ describe('IdentityHelper & Smax Parsing', () => {
         pageId: 'fb760420303821103',
         threadId: 'fb37071884289124847',
       });
+    });
+  });
+
+  describe('SystemSettingService.getSmaxApiToken', () => {
+    it('should throw AppError when token is missing and throwOnMissing is true', async () => {
+      delete process.env.SMAX_API_TOKEN;
+      await expect(SystemSettingService.getSmaxApiToken(BigInt(999999999), true)).rejects.toThrow('Chưa cấu hình Smax API Token');
+    });
+
+    it('should return empty string when token is missing and throwOnMissing is false', async () => {
+      delete process.env.SMAX_API_TOKEN;
+      const res = await SystemSettingService.getSmaxApiToken(BigInt(999999999), false);
+      expect(res).toBe('');
     });
   });
 });

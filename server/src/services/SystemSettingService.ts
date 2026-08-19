@@ -1,4 +1,5 @@
 import prisma from '../config/database';
+import { AppError } from '../middleware/errorMiddleware';
 
 export interface LeadDuplicateRuleConfig {
   mode: 'LEVEL_1_STAGE_FLAG' | 'LEVEL_2_STAGE_CATEGORY' | 'ALWAYS_MERGE' | 'ALWAYS_NEW';
@@ -70,23 +71,36 @@ export class SystemSettingService {
     );
   }
 
-  static async getSmaxApiToken(bizId?: bigint): Promise<string> {
-    const defaultToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjYyYzI4OTMyM2YwZjIzMmRjNmMxMjk5OSIsImlzX3VzZXIiOnRydWUsImRldmljZV9pZCI6IjgwOTc3OGJhLTdkYTYtNDEyZS1hMjNjLTdmODI2ZTlkZmQzMSIsImlhdCI6MTc4NzExMjE5NywiZXhwIjoxNzg5NzA0MTk3fQ.1QEZIv8aos7iqDnn8Lwk2LHU3rkSh8OjI3pV76cBJWk';
-    
-    // Check if system setting exists globally or for target biz
+  static async getSmaxApiToken(bizId?: bigint, throwOnMissing: boolean = true): Promise<string> {
+    // 1. Check process.env if provided
+    if (process.env.SMAX_API_TOKEN && process.env.SMAX_API_TOKEN.trim()) {
+      return process.env.SMAX_API_TOKEN.trim();
+    }
+
+    // 2. Check if system setting exists globally or for target biz
     const targetBizId = bizId || BigInt(1);
     const saved = await this.getSetting<string>(targetBizId, 'SMAX_API_TOKEN', '');
-    if (saved && saved.trim()) return saved.trim();
+    if (saved && typeof saved === 'string' && saved.trim()) {
+      return saved.trim();
+    }
 
-    // Fallback search for any biz setting
+    // 3. Fallback search for any biz setting in DB
     const anySetting = await prisma.systemSetting.findFirst({
       where: { key: 'SMAX_API_TOKEN' },
     });
-    if (anySetting && anySetting.value) {
+    if (anySetting && anySetting.value && typeof anySetting.value === 'string' && (anySetting.value as string).trim()) {
       return (anySetting.value as string).trim();
     }
 
-    return defaultToken;
+    if (!throwOnMissing) {
+      return '';
+    }
+
+    throw new AppError(
+      'Chưa cấu hình Smax API Token trong hệ thống. Vui lòng vào Cài đặt hệ thống để cập nhật Token.',
+      400,
+      'SMAX_TOKEN_MISSING'
+    );
   }
 
   static async setSmaxApiToken(token: string, bizId?: bigint): Promise<string> {
