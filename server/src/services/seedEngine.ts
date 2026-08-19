@@ -95,7 +95,14 @@ export async function runSeedEngine(bizIdInput?: bigint | string, industryKeyPar
   // 4. System Users & Business Memberships
   const passwordHash = await bcrypt.hash('password123', 10);
 
-  const upsertUserWithMember = async (email: string, firstName: string, lastName: string, phone: string, roleId: bigint) => {
+  const upsertUserWithMember = async (
+    email: string,
+    firstName: string,
+    lastName: string,
+    phone: string,
+    roleId: bigint,
+    isSuperAdmin: boolean = false
+  ) => {
     let user = await prisma.user.findUnique({ where: { email } });
     if (!user) {
       user = await prisma.user.create({
@@ -105,7 +112,13 @@ export async function runSeedEngine(bizIdInput?: bigint | string, industryKeyPar
           firstName,
           lastName,
           phone,
+          isSuperAdmin,
         },
+      });
+    } else if (isSuperAdmin && !user.isSuperAdmin) {
+      user = await prisma.user.update({
+        where: { id: user.id },
+        data: { isSuperAdmin: true },
       });
     }
     // Ensure membership in this biz
@@ -123,7 +136,7 @@ export async function runSeedEngine(bizIdInput?: bigint | string, industryKeyPar
     return user;
   };
 
-  const adminUser = await upsertUserWithMember('admin@example.com', 'Quản trị', 'Hệ Thống', '0901000001', adminRole.id);
+  const adminUser = await upsertUserWithMember('admin@example.com', 'Quản trị', 'Hệ Thống', '0901000001', adminRole.id, true);
   const sales1User = await upsertUserWithMember('sales1@example.com', 'Sale', 'Minh', '0901000002', salesRole.id);
   const sales2User = await upsertUserWithMember('sales2@example.com', 'Sale', 'Lan', '0901000003', salesRole.id);
   const managerUser = await upsertUserWithMember('manager@example.com', 'Sale', 'Nam', '0901000004', managerRole.id);
