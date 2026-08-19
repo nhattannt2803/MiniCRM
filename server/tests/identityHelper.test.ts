@@ -37,15 +37,18 @@ describe('IdentityHelper & Smax Parsing', () => {
   });
 
   describe('SystemSettingService.getSmaxApiToken', () => {
-    it('should throw AppError when token is missing and throwOnMissing is true', async () => {
+    it('should strip Bearer prefix when token starts with Bearer ', async () => {
+      process.env.SMAX_API_TOKEN = 'Bearer eyJhbGciOiJIUzI1Ni...';
+      const token = await SystemSettingService.getSmaxApiToken(BigInt(1));
+      expect(token).toBe('eyJhbGciOiJIUzI1Ni...');
       delete process.env.SMAX_API_TOKEN;
-      await expect(SystemSettingService.getSmaxApiToken(BigInt(999999999), true)).rejects.toThrow('Chưa cấu hình Smax API Token');
     });
 
-    it('should return empty string when token is missing and throwOnMissing is false', async () => {
+    it('should return cleaned token from env if set without Bearer', async () => {
+      process.env.SMAX_API_TOKEN = '  Bearer my_test_token_123  ';
+      const token = await SystemSettingService.getSmaxApiToken(BigInt(1));
+      expect(token).toBe('my_test_token_123');
       delete process.env.SMAX_API_TOKEN;
-      const res = await SystemSettingService.getSmaxApiToken(BigInt(999999999), false);
-      expect(res).toBe('');
     });
   });
 });

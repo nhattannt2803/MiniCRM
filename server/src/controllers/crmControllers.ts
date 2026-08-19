@@ -176,6 +176,17 @@ export const fetchSmaxThread = async (req: AuthenticatedRequest, res: Response, 
   }
 };
 
+export const fetchSmaxMessages = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  try {
+    const { url, psid, forceRefresh, smaxBizSlug } = req.body;
+    const inputStr = url || psid;
+    const result = await LeadService.fetchSmaxMessages(inputStr, req.bizId, !!forceRefresh, smaxBizSlug);
+    res.json({ success: true, data: result });
+  } catch (err) {
+    next(err);
+  }
+};
+
 export const getSmaxToken = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
     const token = await SystemSettingService.getSmaxApiToken(req.bizId, false);

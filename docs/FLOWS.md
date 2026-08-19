@@ -217,12 +217,49 @@ Luồng quản trị dành riêng cho Super Admin quản lý toàn bộ hệ th�
 
 ---
 
-## 8. Key Files Index
+## 8. Flow 8: Smax.ai Multichannel Chat Integration & Token Protection Flow
+
+Luồng xử lý trích xuất PSID, tự động hóa lấy lịch sử tin nhắn tư vấn và bảo vệ Token Smax.ai:
+
+```text
+[User creates/views Lead with Smax URL]
+ (VD: https://smax.ai/bizs/xe-dien-move/chats/fb726248080568145?tid=fb25251628287812733)
+          │
+          ▼
+[LeadService.parseSmaxUrl] ➔ Extract: smaxBizSlug = "xe-dien-move", pageId = "fb726248080568145", threadId = "fb25251628287812733"
+          │
+          ├── 1. Generate Clean PSID = "fb726248080568145_25251628287812733" (Stripping t_ / duplicate fb prefixes)
+          ├── 2. Save `smaxBizSlug` into `lead.smax_biz_slug` & `CustomerIdentity` (FB_PSID)
+          └── 3. Clean Smax Token in SystemSetting (Strip leading "Bearer " to avoid double "Bearer Bearer ...")
+          │
+          ▼
+[User opens "Hội thoại đa kênh" Tab in Lead Detail]
+          │ (Default tab on page load is Tasks 'tasks' to prevent API spam)
+          ▼
+[LeadDetailPage.tsx] (Lazy triggers handleFetchSmaxMessages)
+          │
+          ├── 1. Checks 15-Minute Cache (Redis & In-Memory Map)
+          ├── 2. If Cache Hit ➔ Return cached messages immediately (fromCache = true)
+          └── 3. If Cache Miss / User clicks "Làm mới (Clear Cache)"
+                  │
+                  ▼
+         [Call Smax Messages API Endpoint]
+         GET https://api.smax.ai/bizs/{smaxBizSlug}/pages/{pageId}/threads/{threadId}/messages?sort=-created_at&limit=20
+                  │
+                  ▼
+         [Format Chronological Messages & Return] ➔ Cache for 15 Minutes
+```
+
+---
+
+## 9. Key Files Index
 
 - Auth & Tenant Middleware: [tenantMiddleware.ts](file:///Volumes/ChanCuu/Projects/MiniCRM/server/src/middleware/tenantMiddleware.ts), [authMiddleware.ts](file:///Volumes/ChanCuu/Projects/MiniCRM/server/src/middleware/authMiddleware.ts)
 - Business Service: [BusinessService.ts](file:///Volumes/ChanCuu/Projects/MiniCRM/server/src/services/BusinessService.ts)
 - Auth Service: [AuthService.ts](file:///Volumes/ChanCuu/Projects/MiniCRM/server/src/services/AuthService.ts)
 - User Service: [UserService.ts](file:///Volumes/ChanCuu/Projects/MiniCRM/server/src/services/UserService.ts)
+- System Setting & Smax Token Service: [SystemSettingService.ts](file:///Volumes/ChanCuu/Projects/MiniCRM/server/src/services/SystemSettingService.ts)
+- Lead & Smax Integration Service: [LeadService.ts](file:///Volumes/ChanCuu/Projects/MiniCRM/server/src/services/LeadService.ts)
 - Standalone System Layout: [SystemLayout.tsx](file:///Volumes/ChanCuu/Projects/MiniCRM/client/src/layouts/SystemLayout.tsx)
 - System Businesses Management: [SystemBusinessesPage.tsx](file:///Volumes/ChanCuu/Projects/MiniCRM/client/src/features/businesses/SystemBusinessesPage.tsx)
 - Secret Register Page: [RegisterPage.tsx](file:///Volumes/ChanCuu/Projects/MiniCRM/client/src/features/auth/RegisterPage.tsx)

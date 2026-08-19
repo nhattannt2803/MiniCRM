@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useBizNavigate } from '../../hooks/useBizNavigate';
 import { Card, Tag, Button, Select, Tabs, Modal, Form, Input, DatePicker, notification, Spin, Alert, Radio, Popconfirm, Tooltip } from 'antd';
-import { ArrowLeftOutlined, SwapOutlined, PlusOutlined, PhoneOutlined, EditOutlined, WarningOutlined, MessageOutlined, SendOutlined, CheckOutlined, CheckCircleOutlined } from '@ant-design/icons';
+import { ArrowLeftOutlined, SwapOutlined, PlusOutlined, PhoneOutlined, EditOutlined, WarningOutlined, MessageOutlined, SendOutlined, CheckOutlined, CheckCircleOutlined, SyncOutlined, LinkOutlined, UserOutlined, CustomerServiceOutlined, ClockCircleOutlined } from '@ant-design/icons';
 import { crmService } from '../../services/crmService';
 import { Lead, User, Conversation, Customer } from '../../types';
 import { ActivityTimeline } from '../../components/Timeline/ActivityTimeline';
@@ -23,11 +23,15 @@ export const LeadDetailPage: React.FC = () => {
   const [taskModalVisible, setTaskModalVisible] = useState(false);
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [resolveModalVisible, setResolveModalVisible] = useState(false);
-  const [activeTabKey, setActiveTabKey] = useState('conversations');
+  
+  // Default tab is 'tasks' as requested
+  const [activeTabKey, setActiveTabKey] = useState('tasks');
 
-  // New message state
-  const [newMessage, setNewMessage] = useState('');
-  const [sendingMsg, setSendingMsg] = useState(false);
+  // Smax.ai Conversation state
+  const [smaxUrlInput, setSmaxUrlInput] = useState('');
+  const [smaxConvData, setSmaxConvData] = useState<any>(null);
+  const [smaxLoading, setSmaxLoading] = useState(false);
+  const [hasFetchedSmax, setHasFetchedSmax] = useState(false);
 
   const [activityForm] = Form.useForm();
   const [taskForm] = Form.useForm();
@@ -39,7 +43,33 @@ export const LeadDetailPage: React.FC = () => {
     try {
       const res: any = await crmService.getLeadById(id);
       if (res.success) {
-        setLead(res.data);
+        const leadData = res.data;
+        setLead(leadData);
+
+        // Auto-detect Smax.ai URL or PSID if present in notes, smaxBizSlug or conversations
+        let detectedUrl = '';
+        if (leadData.notes) {
+          const match = leadData.notes.match(/https?:\/\/[^\s]*smax\.ai[^\s]*/i);
+          if (match) detectedUrl = match[0];
+        }
+        if (!detectedUrl && leadData.conversations && leadData.conversations.length > 0) {
+          for (const c of leadData.conversations) {
+            if (c.channelThreadId && (c.channelThreadId.includes('smax.ai') || c.channelThreadId.includes('_'))) {
+              detectedUrl = c.channelThreadId;
+              break;
+            }
+          }
+        }
+        if (!detectedUrl && (leadData as any).fbPsid) {
+          detectedUrl = (leadData as any).fbPsid;
+        }
+        if (!detectedUrl && leadData.customer?.identities) {
+          const psidIdentity = leadData.customer.identities.find((i: any) => i.type === 'FB_PSID')?.identityValue;
+          if (psidIdentity) detectedUrl = psidIdentity;
+        }
+        if (detectedUrl) {
+          setSmaxUrlInput(detectedUrl);
+        }
       }
     } catch (err) {
       notification.error({ message: 'Error', description: 'Lead not found' });
@@ -107,34 +137,62 @@ export const LeadDetailPage: React.FC = () => {
     }
   };
 
-  const handleSendMessage = async (convId: string) => {
-    if (!newMessage.trim()) return;
-    setSendingMsg(true);
+  const handleFetchSmaxMessages = async (forceRefresh: boolean = false, overrideUrl?: string) => {
+    const urlToUse = (
+      overrideUrl ||
+      smaxUrlInput ||
+      (lead as any)?.fbPsid ||
+      (lead as any)?.customer?.identities?.find((i: any) => i.type === 'FB_PSID')?.identityValue ||
+      ''
+    ).trim();
+
+    if (!urlToUse) {
+      notification.warning({
+        message: 'Chưa có đường dẫn hội thoại hoặc mã PSID',
+        description: 'Vui lòng dán link hội thoại Smax.ai (https://smax.ai/bizs/.../chats/...) hoặc mã PSID để lấy dữ liệu tin nhắn.',
+      });
+      return;
+    }
+
+    setSmaxLoading(true);
     try {
-      await crmService.addMessage(convId, { content: newMessage, senderType: 'AGENT' });
-      setNewMessage('');
-      fetchLeadDetails();
+      const res: any = await crmService.fetchSmaxMessages({
+        url: urlToUse,
+        psid: urlToUse,
+        forceRefresh,
+        smaxBizSlug: (lead as any)?.smaxBizSlug,
+      });
+      if (res.success && res.data) {
+        setSmaxConvData(res.data);
+        setHasFetchedSmax(true);
+        if (forceRefresh) {
+          notification.success({
+            message: 'Đã làm mới dữ liệu hội thoại Smax.ai',
+            description: 'Dữ liệu tin nhắn mới nhất đã được lưu cache trong 15 phút.',
+          });
+        }
+      }
     } catch (err: any) {
-      notification.error({ message: 'Error sending message', description: err.message });
+      notification.error({
+        message: 'Lỗi tải hội thoại Smax.ai',
+        description: err.message || 'Vui lòng kiểm tra lại đường dẫn hội thoại Smax.ai hoặc Smax API Token.',
+      });
     } finally {
-      setSendingMsg(false);
+      setSmaxLoading(false);
     }
   };
 
-  const handleCreateConversation = async () => {
-    if (!id) return;
-    try {
-      await crmService.createConversation({
-        leadId: id,
-        channelType: lead?.source === 'FACEBOOK' ? 'FACEBOOK' : lead?.source === 'ZALO' ? 'ZALO' : 'WEBCHAT',
-        initialMessage: 'Bắt đầu cuộc trò chuyện tư vấn mới...',
-        senderType: 'SYSTEM',
-      });
-      fetchLeadDetails();
-    } catch (err: any) {
-      notification.error({ message: 'Thất bại', description: err.message });
+  useEffect(() => {
+    if (activeTabKey === 'conversations' && !hasFetchedSmax) {
+      const urlOrPsidToUse =
+        smaxUrlInput.trim() ||
+        (lead as any)?.fbPsid ||
+        (lead as any)?.customer?.identities?.find((i: any) => i.type === 'FB_PSID')?.identityValue;
+      if (urlOrPsidToUse) {
+        handleFetchSmaxMessages(false, urlOrPsidToUse);
+      }
     }
-  };
+  }, [activeTabKey, smaxUrlInput, hasFetchedSmax, lead]);
 
   const handleStatusChange = async (newStatus: string) => {
     if (!id) return;
@@ -408,78 +466,8 @@ export const LeadDetailPage: React.FC = () => {
               onChange={(k) => setActiveTabKey(k)}
               items={[
                 {
-                  key: 'conversations',
-                  label: `💬 Hội thoại Đa kênh (${lead.conversations?.length || 0})`,
-                  children: (
-                    <div className="space-y-4 py-2">
-                      {activeConv ? (
-                        <div className="border border-slate-200 rounded-xl p-4 space-y-3 bg-slate-50">
-                          <div className="flex items-center justify-between border-b border-slate-200 pb-2">
-                            <span className="font-bold text-slate-800 text-sm">
-                              Kênh: <Tag color="purple">{activeConv.channelType}</Tag>
-                            </span>
-                            <span className="text-xs text-slate-400">Thread ID: {activeConv.id}</span>
-                          </div>
-
-                          <div className="max-h-64 overflow-y-auto space-y-2 p-2">
-                            {activeConv.messages && activeConv.messages.length > 0 ? (
-                              activeConv.messages.map((m) => (
-                                <div
-                                  key={m.id}
-                                  className={`p-2.5 rounded-lg text-xs max-w-md ${
-                                    m.senderType === 'AGENT'
-                                      ? 'bg-indigo-600 text-white ml-auto text-right'
-                                      : 'bg-white text-slate-800 border border-slate-200'
-                                  }`}
-                                >
-                                  <div>{m.content}</div>
-                                  <div className="text-[10px] opacity-70 mt-1">
-                                    {new Date(m.sentAt).toLocaleTimeString('vi-VN')} ({m.senderType})
-                                  </div>
-                                </div>
-                              ))
-                            ) : (
-                              <div className="text-slate-400 text-xs text-center py-4">Chưa có tin nhắn</div>
-                            )}
-                          </div>
-
-                          <div className="flex items-center gap-2 pt-2 border-t border-slate-200">
-                            <Input
-                              placeholder="Nhập tin nhắn trả lời..."
-                              value={newMessage}
-                              onChange={(e) => setNewMessage(e.target.value)}
-                              onPressEnter={() => handleSendMessage(activeConv.id)}
-                            />
-                            <Button
-                              type="primary"
-                              icon={<SendOutlined />}
-                              loading={sendingMsg}
-                              onClick={() => handleSendMessage(activeConv.id)}
-                              className="bg-indigo-600"
-                            >
-                              Gửi
-                            </Button>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="text-center py-8 bg-slate-50 rounded-xl border border-dashed border-slate-300">
-                          <p className="text-slate-500 text-sm mb-3">Chưa có luồng hội thoại đa kênh cho Lead này</p>
-                          <Button icon={<MessageOutlined />} type="primary" onClick={handleCreateConversation} className="bg-indigo-600">
-                            Tạo cuộc hội thoại mới
-                          </Button>
-                        </div>
-                      )}
-                    </div>
-                  ),
-                },
-                {
-                  key: 'timeline',
-                  label: 'Activity Timeline',
-                  children: <ActivityTimeline activities={lead.activities || []} />,
-                },
-                {
                   key: 'tasks',
-                  label: `Tasks (${lead.tasks?.length || 0})`,
+                  label: `Tasks / Nhiệm vụ (${lead.tasks?.length || 0})`,
                   children: (
                     <div className="space-y-3 py-2">
                       {lead.tasks && lead.tasks.length > 0 ? (
@@ -532,6 +520,136 @@ export const LeadDetailPage: React.FC = () => {
                       )}
                     </div>
                   ),
+                },
+                {
+                  key: 'conversations',
+                  label: `💬 Hội thoại Smax.ai`,
+                  children: (
+                    <div className="space-y-4 py-2">
+                      {/* Smax URL Bar & Actions */}
+                      <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-3">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                          <div className="flex-1 flex items-center gap-2">
+                            <Input
+                              prefix={<LinkOutlined className="text-slate-400" />}
+                              placeholder="Dán link Smax.ai (https://smax.ai/bizs/.../chats/...)"
+                              value={smaxUrlInput}
+                              onChange={(e) => setSmaxUrlInput(e.target.value)}
+                              onPressEnter={() => handleFetchSmaxMessages(true)}
+                              allowClear
+                            />
+                            <Button
+                              type="primary"
+                              className="bg-indigo-600"
+                              loading={smaxLoading}
+                              onClick={() => handleFetchSmaxMessages(false)}
+                            >
+                              {smaxConvData ? 'Tải lại' : 'Lấy hội thoại'}
+                            </Button>
+                          </div>
+
+                          {smaxConvData && (
+                            <Button
+                              icon={<SyncOutlined spin={smaxLoading} />}
+                              onClick={() => handleFetchSmaxMessages(true)}
+                              className="border-indigo-500 text-indigo-600 hover:bg-indigo-50"
+                            >
+                              Làm mới (Clear Cache)
+                            </Button>
+                          )}
+                        </div>
+
+                        {/* Cache status & Customer Info */}
+                        {smaxConvData && (
+                          <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-200 text-xs">
+                            <div className="flex items-center gap-2">
+                              <span className="font-semibold text-slate-700">Khách hàng:</span>
+                              <span className="text-slate-900 font-bold">{smaxConvData.customerInfo?.name || '—'}</span>
+                              {smaxConvData.customerInfo?.phone && (
+                                <Tag color="blue" className="font-mono">{smaxConvData.customerInfo.phone}</Tag>
+                              )}
+                              {smaxConvData.customerInfo?.fbPsid && (
+                                <Tag color="purple" className="font-mono">PSID: {smaxConvData.customerInfo.fbPsid}</Tag>
+                              )}
+                              {smaxConvData.customerInfo?.smaxBizSlug && (
+                                <Tag color="cyan" className="font-mono">Biz: {smaxConvData.customerInfo.smaxBizSlug}</Tag>
+                              )}
+                            </div>
+
+                            <div>
+                              {smaxConvData.fromCache ? (
+                                <Tag color="blue" icon={<ClockCircleOutlined />}>
+                                  ⚡ Cache 15 phút (Cập nhật: {new Date(smaxConvData.cachedAt).toLocaleTimeString('vi-VN')})
+                                </Tag>
+                              ) : (
+                                <Tag color="green" icon={<CheckCircleOutlined />}>
+                                  🟢 Mới nhất ({new Date(smaxConvData.cachedAt).toLocaleTimeString('vi-VN')})
+                                </Tag>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Messages list */}
+                      {smaxLoading && !smaxConvData ? (
+                        <div className="text-center py-12 bg-slate-50 rounded-xl border border-slate-200">
+                          <Spin tip="Đang tải dữ liệu hội thoại Smax.ai..." />
+                        </div>
+                      ) : smaxConvData && smaxConvData.messages?.length > 0 ? (
+                        <div className="border border-slate-200 rounded-xl p-4 bg-slate-50 space-y-3 max-h-[500px] overflow-y-auto">
+                          {smaxConvData.messages.map((m: any) => {
+                            const isCustomer = m.senderType === 'CUSTOMER';
+                            return (
+                              <div
+                                key={m.id}
+                                className={`flex items-start gap-2 max-w-xl ${isCustomer ? 'mr-auto' : 'ml-auto flex-row-reverse'}`}
+                              >
+                                <div
+                                  className={`w-7 h-7 rounded-full flex items-center justify-center text-xs text-white shrink-0 ${
+                                    isCustomer ? 'bg-blue-500' : 'bg-indigo-600'
+                                  }`}
+                                >
+                                  {isCustomer ? <UserOutlined /> : <CustomerServiceOutlined />}
+                                </div>
+                                <div
+                                  className={`p-3 rounded-2xl text-xs space-y-1 shadow-sm ${
+                                    isCustomer
+                                      ? 'bg-white text-slate-800 border border-slate-200 rounded-tl-none'
+                                      : 'bg-indigo-600 text-white rounded-tr-none'
+                                  }`}
+                                >
+                                  <div className={`font-semibold text-[11px] ${isCustomer ? 'text-blue-600' : 'text-indigo-200'}`}>
+                                    {m.senderName}
+                                  </div>
+                                  <div className="whitespace-pre-wrap leading-relaxed">{m.content}</div>
+                                  <div className={`text-[10px] ${isCustomer ? 'text-slate-400' : 'text-indigo-200'} text-right mt-1`}>
+                                    {new Date(m.sentAt).toLocaleString('vi-VN')}
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      ) : smaxConvData ? (
+                        <div className="text-center py-8 bg-slate-50 rounded-xl border border-dashed border-slate-300 text-slate-400 text-xs">
+                          Hội thoại chưa có tin nhắn nào
+                        </div>
+                      ) : (
+                        <div className="text-center py-10 bg-slate-50 rounded-xl border border-dashed border-slate-300 space-y-2">
+                          <p className="text-slate-500 text-sm font-medium">Chưa tải lịch sử hội thoại Smax.ai</p>
+                          <p className="text-slate-400 text-xs">
+                            Dán link hội thoại Smax.ai của Lead này và bấm <strong>"Lấy hội thoại"</strong> để xem tin nhắn.
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  ),
+                },
+                {
+                  key: 'timeline',
+                  label: 'Activity Timeline',
+                  children: <ActivityTimeline activities={lead.activities || []} />,
                 },
               ]}
             />

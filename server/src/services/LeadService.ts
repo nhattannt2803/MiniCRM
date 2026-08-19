@@ -1,9 +1,12 @@
 import prisma from '../config/database';
+import redisClient from '../config/redis';
 import { publishOutboxEvent } from '../events/outboxPublisher';
 import { AppError } from '../middleware/errorMiddleware';
 import { IdentityResolutionService } from './IdentityResolutionService';
 import { SystemSettingService } from './SystemSettingService';
 import { parseFbPsidInput, parseZaloUidInput } from '../utils/identityHelper';
+
+const smaxMemoryCache = new Map<string, { data: any; expiresAt: number }>();
 
 export class LeadService {
   public static async getLeads(bizId: bigint, params: {
@@ -122,6 +125,8 @@ export class LeadService {
       }),
     ]);
 
+    const fbPsidIdentity = lead.customer?.identities?.find((i) => i.type === 'FB_PSID')?.identityValue || null;
+
     return {
       ...lead,
       id: lead.id.toString(),
@@ -130,6 +135,8 @@ export class LeadService {
       customerId: lead.customerId?.toString(),
       campaignId: lead.campaignId?.toString(),
       ownerId: lead.ownerId?.toString(),
+      fbPsid: fbPsidIdentity,
+      smaxBizSlug: lead.smaxBizSlug || null,
       customer: lead.customer
         ? {
             ...lead.customer,
@@ -510,7 +517,7 @@ export class LeadService {
         if (response.status === 401 || response.status === 403) {
           throw new AppError(
             'Smax API Token không hợp lệ hoặc đã hết hạn. Vui lòng kiểm tra và cập nhật Token mới trong Cài đặt hệ thống.',
-            401,
+            400,
             'SMAX_TOKEN_EXPIRED'
           );
         }
@@ -522,7 +529,7 @@ export class LeadService {
       if (json.code === 401 || json.status === 401 || json.error === 'Unauthorized' || json.message?.toLowerCase()?.includes('token') || json.error?.message?.toLowerCase()?.includes('token')) {
         throw new AppError(
           'Smax API Token không hợp lệ hoặc đã hết hạn. Vui lòng kiểm tra và cập nhật Token mới trong Cài đặt hệ thống.',
-          401,
+          400,
           'SMAX_TOKEN_EXPIRED'
         );
       }
@@ -543,8 +550,8 @@ export class LeadService {
         phone = json.data.last_content_by_user;
       }
 
-      const rawPageId = json.data?.facebook?.page_id || parsed.pageId || '';
-      const rawThreadId = json.data?.facebook?.id || parsed.threadId || '';
+      const rawPageId = parsed.pageId || json.data?.page_pid || json.data?.page_id || json.data?.facebook?.page_id || '';
+      const rawThreadId = parsed.threadId || json.data?.tid || json.data?.thread_id || '';
       const cleanPageId = String(rawPageId).replace(/^(?:fb|t_)+/gi, '').replace(/\D+/g, '');
       const cleanThreadId = String(rawThreadId).replace(/^(?:fb|t_)+/gi, '').replace(/\D+/g, '');
 
@@ -561,11 +568,220 @@ export class LeadService {
         name,
         phone,
         fbPsid,
+        smaxBizSlug: parsed.biz,
         source: 'FACEBOOK',
       };
     } catch (err: any) {
       if (err instanceof AppError) throw err;
       throw new AppError(`Lỗi kết nối tới Smax.ai: ${err.message}`, 500, 'SMAX_FETCH_ERROR');
+    }
+  }
+
+  public static async fetchSmaxMessages(
+    smaxUrlOrPsid: string,
+    bizId?: bigint,
+    forceRefresh: boolean = false,
+    inputBizSlug?: string
+  ) {
+    if (!smaxUrlOrPsid || !smaxUrlOrPsid.trim()) {
+      throw new AppError('Vui lòng cung cấp link hội thoại Smax.ai hoặc PSID', 400, 'INVALID_SMAX_URL');
+    }
+
+    let smaxBizSlug = inputBizSlug || '';
+    let pageId = '';
+    let threadId = '';
+    let fullSmaxUrl = smaxUrlOrPsid.trim();
+
+    if (fullSmaxUrl.includes('smax.ai') || fullSmaxUrl.startsWith('http://') || fullSmaxUrl.startsWith('https://')) {
+      const parsed = this.parseSmaxUrl(fullSmaxUrl);
+      if (!parsed) {
+        throw new AppError('Link hội thoại Smax.ai không hợp lệ', 400, 'INVALID_SMAX_URL_FORMAT');
+      }
+      smaxBizSlug = parsed.biz;
+      pageId = parsed.pageId;
+      threadId = parsed.threadId;
+    } else {
+      // PSID input, e.g. "fb760420303821103_28029744610001629"
+      const cleanedPsid = parseFbPsidInput(fullSmaxUrl);
+      if (!cleanedPsid || !cleanedPsid.includes('_')) {
+        throw new AppError('Mã PSID không hợp lệ (ví dụ: fb760420303821103_28029744610001629)', 400, 'INVALID_PSID_FORMAT');
+      }
+      const parts = cleanedPsid.replace(/^fb/, '').split('_');
+      pageId = `fb${parts[0]}`;
+      threadId = `fb${parts[1]}`;
+
+      if (!smaxBizSlug && bizId) {
+        const leadWithSlug = await prisma.lead.findFirst({
+          where: { bizId, smaxBizSlug: { not: null } },
+          select: { smaxBizSlug: true },
+        });
+        if (leadWithSlug && leadWithSlug.smaxBizSlug) {
+          smaxBizSlug = leadWithSlug.smaxBizSlug;
+        }
+      }
+      if (!smaxBizSlug) smaxBizSlug = 'xe-dien-move';
+
+      fullSmaxUrl = `https://smax.ai/bizs/${smaxBizSlug}/chats/${pageId}?tid=${threadId}`;
+    }
+
+    const cleanPageId = pageId.replace(/^(?:fb|t_)+/gi, '').replace(/\D+/g, '');
+    const cleanThreadId = threadId.replace(/^(?:fb|t_)+/gi, '').replace(/\D+/g, '');
+    const cacheKey = `smax_messages:${smaxBizSlug}:${cleanPageId}:${cleanThreadId}`;
+
+    // 1. Check Cache if not forcing refresh
+    if (!forceRefresh) {
+      try {
+        const cachedStr = await redisClient.get(cacheKey);
+        if (cachedStr) {
+          const cachedJson = JSON.parse(cachedStr);
+          return { ...cachedJson, fromCache: true };
+        }
+      } catch (redisErr) {}
+
+      const mem = smaxMemoryCache.get(cacheKey);
+      if (mem && mem.expiresAt > Date.now()) {
+        return { ...mem.data, fromCache: true };
+      }
+    }
+
+    // 2. Fetch from Smax APIs
+    const token = await SystemSettingService.getSmaxApiToken(bizId);
+    const threadApi = `https://api.smax.ai/bizs/${smaxBizSlug}/pages/${pageId}/threads/${threadId}`;
+    const messagesApi = `https://api.smax.ai/bizs/${smaxBizSlug}/pages/${pageId}/threads/${threadId}/messages?sort=-created_at&limit=25`;
+
+    try {
+      const [threadRes, msgsRes] = await Promise.all([
+        fetch(threadApi, { headers: { authorization: `Bearer ${token}`, 'Accept-Encoding': 'gzip, deflate, br' } }),
+        fetch(messagesApi, { headers: { authorization: `Bearer ${token}`, 'Accept-Encoding': 'gzip, deflate, br' } }),
+      ]);
+
+      if (!threadRes.ok && !msgsRes.ok) {
+        if (threadRes.status === 401 || msgsRes.status === 401 || threadRes.status === 403 || msgsRes.status === 403) {
+          throw new AppError(
+            'Smax API Token không hợp lệ hoặc đã hết hạn. Vui lòng kiểm tra và cập nhật Token mới trong Cài đặt hệ thống.',
+            400,
+            'SMAX_TOKEN_EXPIRED'
+          );
+        }
+        throw new AppError(`Không thể lấy dữ liệu từ Smax.ai API`, 400, 'SMAX_API_ERROR');
+      }
+
+      let threadJson: any = {};
+      if (threadRes.ok) {
+        threadJson = await threadRes.json();
+      }
+
+      let msgsJson: any = {};
+      if (msgsRes.ok) {
+        msgsJson = await msgsRes.json();
+      }
+
+      const customerObj = threadJson.data?.customer || threadJson.data?.customers?.[0] || threadJson.data?.facebook;
+      const customerName = customerObj?.name || customerObj?.profile_name || threadJson.data?.facebook?.name || 'Khách hàng';
+      let phone = customerObj?.phone || customerObj?.phones?.[0] || threadJson.data?.phones?.[0] || '';
+      if (!phone && threadJson.data?.tag_aliases) {
+        const foundPhone = threadJson.data.tag_aliases.find((t: string) => /^\d{9,11}$/.test(t));
+        if (foundPhone) phone = foundPhone;
+      }
+
+      const fbPsid = `fb${cleanPageId}_${cleanThreadId}`;
+
+      let rawMsgs: any[] = [];
+      if (Array.isArray(msgsJson.data)) {
+        rawMsgs = msgsJson.data;
+      } else if (Array.isArray(threadJson.data?.messages)) {
+        rawMsgs = threadJson.data.messages;
+      }
+
+      let formattedMessages: any[] = rawMsgs
+        .map((m: any, idx: number) => {
+          const content = m.message || m.text || m.content || m.facebook?.message || (m.facebook?.attachments?.length ? '[File/Hình ảnh đính kèm]' : '');
+          const senderPid = String(m.sender_pid || m.from || m.by || '');
+          const isPageSender = senderPid.includes(cleanPageId) || m.is_page === true || m.is_bot === true || m.sender_type === 'AGENT';
+          const isCustomerSender = !isPageSender;
+
+          let senderType: 'CUSTOMER' | 'AGENT' | 'SYSTEM' = 'SYSTEM';
+          let senderName = 'Hệ thống';
+
+          if (isCustomerSender) {
+            senderType = 'CUSTOMER';
+            senderName = customerName;
+          } else {
+            senderType = 'AGENT';
+            senderName = m.page_name || 'Tư vấn viên (Smax.ai)';
+          }
+
+          const rawTime = m.created_at || m.createdAt || m.time || m._created_at;
+          let sentAt = new Date().toISOString();
+          if (rawTime) {
+            try {
+              const num = Number(rawTime);
+              sentAt = new Date(!isNaN(num) && num < 10000000000 ? num * 1000 : rawTime).toISOString();
+            } catch (e) {}
+          }
+
+          return {
+            id: String(m.id || m._id || m.pid || `msg_${idx}`),
+            content: content || '—',
+            senderType,
+            senderName,
+            sentAt,
+            attachments: m.facebook?.attachments || m.attachments || undefined,
+          };
+        })
+        .reverse();
+
+      if (formattedMessages.length === 0) {
+        if (customerObj?.last_content_by_user || threadJson.data?.last_content_by_user) {
+          formattedMessages.push({
+            id: 'last_user_msg',
+            content: customerObj?.last_content_by_user || threadJson.data?.last_content_by_user,
+            senderType: 'CUSTOMER',
+            senderName: customerName,
+            sentAt: customerObj?.last_message_by_customer_at || new Date().toISOString(),
+          });
+        }
+        if (customerObj?.last_content_by_page || threadJson.data?.last_content_by_page) {
+          formattedMessages.push({
+            id: 'last_page_msg',
+            content: customerObj?.last_content_by_page || threadJson.data?.last_content_by_page,
+            senderType: 'AGENT',
+            senderName: 'Tư vấn viên (Smax.ai)',
+            sentAt: customerObj?.last_message_at || new Date().toISOString(),
+          });
+        }
+      }
+
+      const cachedAt = new Date().toISOString();
+      const expiresAt = new Date(Date.now() + 15 * 60 * 1000).toISOString();
+
+      const result = {
+        customerInfo: {
+          name: customerName,
+          phone,
+          fbPsid,
+          smaxBizSlug,
+          smaxUrl: fullSmaxUrl,
+        },
+        messages: formattedMessages,
+        cachedAt,
+        expiresAt,
+        fromCache: false,
+      };
+
+      try {
+        await redisClient.set(cacheKey, JSON.stringify(result), 'EX', 900);
+      } catch (redisErr) {}
+
+      smaxMemoryCache.set(cacheKey, {
+        data: result,
+        expiresAt: Date.now() + 15 * 60 * 1000,
+      });
+
+      return result;
+    } catch (err: any) {
+      if (err instanceof AppError) throw err;
+      throw new AppError(`Lỗi kết nối tới Smax.ai API: ${err.message}`, 500, 'SMAX_FETCH_ERROR');
     }
   }
 }

@@ -10,6 +10,12 @@ export const crmService = {
   checkIdentity: (data: { phone?: string; email?: string; name?: string; fbPsid?: string; zaloUid?: string; webVisitorId?: string }) =>
     api.post('/leads/check-identity', data),
   fetchSmaxThread: (url: string) => api.post('/leads/fetch-smax-thread', { url }),
+  fetchSmaxMessages: (params: { url?: string; psid?: string; forceRefresh?: boolean; smaxBizSlug?: string } | string, forceRefresh?: boolean) => {
+    if (typeof params === 'string') {
+      return api.post('/leads/fetch-smax-messages', { url: params, forceRefresh });
+    }
+    return api.post('/leads/fetch-smax-messages', params);
+  },
   getSmaxToken: () => api.get('/system/smax-token'),
   updateSmaxToken: (token: string) => api.post('/system/smax-token', { token }),
   resolveLeadIdentity: (leadId: string, action: 'ATTACH_TO_EXISTING' | 'CREATE_SEPARATE_CUSTOMER', targetCustomerId?: string) =>

@@ -72,43 +72,53 @@ export class SystemSettingService {
   }
 
   static async getSmaxApiToken(bizId?: bigint, throwOnMissing: boolean = true): Promise<string> {
+    let token = '';
+
     // 1. Check process.env if provided
     if (process.env.SMAX_API_TOKEN && process.env.SMAX_API_TOKEN.trim()) {
-      return process.env.SMAX_API_TOKEN.trim();
+      token = process.env.SMAX_API_TOKEN.trim();
+    } else {
+      // 2. Check if system setting exists globally or for target biz
+      const targetBizId = bizId || BigInt(1);
+      const saved = await this.getSetting<string>(targetBizId, 'SMAX_API_TOKEN', '');
+      if (saved && typeof saved === 'string' && saved.trim()) {
+        token = saved.trim();
+      } else {
+        // 3. Fallback search for any biz setting in DB
+        const anySetting = await prisma.systemSetting.findFirst({
+          where: { key: 'SMAX_API_TOKEN' },
+        });
+        if (anySetting && anySetting.value && typeof anySetting.value === 'string' && (anySetting.value as string).trim()) {
+          token = (anySetting.value as string).trim();
+        }
+      }
     }
 
-    // 2. Check if system setting exists globally or for target biz
-    const targetBizId = bizId || BigInt(1);
-    const saved = await this.getSetting<string>(targetBizId, 'SMAX_API_TOKEN', '');
-    if (saved && typeof saved === 'string' && saved.trim()) {
-      return saved.trim();
+    // Strip leading "Bearer " prefix if user saved token with "Bearer ..."
+    token = token.replace(/^Bearer\s+/i, '').trim();
+
+    if (!token) {
+      if (!throwOnMissing) {
+        return '';
+      }
+
+      throw new AppError(
+        'Chưa cấu hình Smax API Token trong hệ thống. Vui lòng vào Cài đặt hệ thống để cập nhật Token.',
+        400,
+        'SMAX_TOKEN_MISSING'
+      );
     }
 
-    // 3. Fallback search for any biz setting in DB
-    const anySetting = await prisma.systemSetting.findFirst({
-      where: { key: 'SMAX_API_TOKEN' },
-    });
-    if (anySetting && anySetting.value && typeof anySetting.value === 'string' && (anySetting.value as string).trim()) {
-      return (anySetting.value as string).trim();
-    }
-
-    if (!throwOnMissing) {
-      return '';
-    }
-
-    throw new AppError(
-      'Chưa cấu hình Smax API Token trong hệ thống. Vui lòng vào Cài đặt hệ thống để cập nhật Token.',
-      400,
-      'SMAX_TOKEN_MISSING'
-    );
+    return token;
   }
 
   static async setSmaxApiToken(token: string, bizId?: bigint): Promise<string> {
     const targetBizId = bizId || BigInt(1);
+    const cleanToken = token.trim().replace(/^Bearer\s+/i, '');
     return this.setSetting<string>(
       targetBizId,
       'SMAX_API_TOKEN',
-      token.trim(),
+      cleanToken,
       'Authorization Bearer Token cho Smax.ai API'
     );
   }

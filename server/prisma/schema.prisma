@@ -268,6 +268,7 @@ model Lead {
   companyName              String?      @map("company_name") @db.VarChar(200)
   jobTitle                 String?      @map("job_title") @db.VarChar(100)
   notes                    String?      @db.Text
+  smaxBizSlug              String?      @map("smax_biz_slug") @db.VarChar(100)
   convertedOpportunityId   BigInt?      @map("converted_opportunity_id") @db.UnsignedBigInt
   convertedCustomerId      BigInt?      @map("converted_customer_id") @db.UnsignedBigInt
   convertedAt              DateTime?    @map("converted_at") @db.DateTime(3)
@@ -758,6 +759,7 @@ model Conversation {
   leadId          BigInt?   @map("lead_id") @db.UnsignedBigInt
   channelType     String    @map("channel_type") @db.VarChar(30)
   channelThreadId String?   @map("channel_thread_id") @db.VarChar(191)
+  smaxBizSlug     String?   @map("smax_biz_slug") @db.VarChar(100)
   status          String    @default("OPEN") @db.VarChar(30)
   lastMessageAt   DateTime? @map("last_message_at") @db.DateTime(3)
   createdAt       DateTime  @default(now()) @map("created_at") @db.DateTime(3)

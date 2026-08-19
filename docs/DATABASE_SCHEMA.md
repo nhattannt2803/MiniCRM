@@ -22,7 +22,7 @@ Tài liệu này đóng vai trò là **từ điển dữ liệu (Data Dictionary
 - **`users`**: Tài khoản người dùng hệ thống (`email`, `password_hash`, `first_name`, `last_name`, `phone`, `is_active`, `is_super_admin`).
 
 ### Group B: Core CRM Entities (Scoped by `biz_id`)
-- **`leads`**: Khách hàng tiềm năng ban đầu chưa qualify (`biz_id`, `status` = `NEW` | `CONTACTED` | `QUALIFIED` | `UNQUALIFIED` | `CONVERTED`).
+- **`leads`**: Khách hàng tiềm năng ban đầu chưa qualify (`biz_id`, `status` = `NEW` | `CONTACTED` | `QUALIFIED` | `UNQUALIFIED` | `CONVERTED`, `smax_biz_slug`).
 - **`companies`**: Hồ sơ công ty/doanh nghiệp B2B (`biz_id`).
 - **`contacts`**: Người liên hệ cá nhân thuộc công ty hoặc B2C (`biz_id`).
 - **`customers`**: Hồ sơ Khách hàng chính thức (`biz_id`, `customer_code`). Unique constraint: `(biz_id, customer_code)`.
@@ -47,8 +47,8 @@ Tài liệu này đóng vai trò là **từ điển dữ liệu (Data Dictionary
 - **`automations`**: Cấu hình quy trình tự động hóa (`biz_id`, `is_active`, `trigger_type`, `triggers`, `conditions`, `actions`).
 - **`automation_executions`** & **`automation_execution_logs`**: Nhật ký lịch sử chạy automation.
 - **`outbox_events`**: Transactional Outbox Queue (`biz_id`, `event_type`, `payload`, `status` = `PENDING` | `PROCESSED` | `FAILED`).
-- **`conversations`** & **`messages`**: Hội thoại & Tin nhắn tư vấn đa kênh (`biz_id`, `channel_type`).
-- **`system_settings`**: Cấu hình hệ thống theo Doanh nghiệp (`biz_id`, `key`, `value`). Unique constraint: `(biz_id, key)`.
+- **`conversations`** & **`messages`**: Hội thoại & Tin nhắn tư vấn đa kênh Smax.ai (`biz_id`, `channel_type`, `channel_thread_id`, `smax_biz_slug`).
+- **`system_settings`**: Cấu hình hệ thống theo Doanh nghiệp (`biz_id`, `key` = `SMAX_API_TOKEN`, `value`). Unique constraint: `(biz_id, key)`.
 
 ---
 

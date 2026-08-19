@@ -47,6 +47,7 @@ router.get('/leads', crm.getLeads);
 router.post('/leads', crm.createLead);
 router.post('/leads/check-identity', crm.checkIdentity);
 router.post('/leads/fetch-smax-thread', crm.fetchSmaxThread);
+router.post('/leads/fetch-smax-messages', crm.fetchSmaxMessages);
 router.get('/leads/:id', crm.getLeadById);
 router.patch('/leads/:id', crm.updateLead);
 router.delete('/leads/:id', crm.deleteLead);

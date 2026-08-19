@@ -23,9 +23,12 @@ api.interceptors.response.use(
   (response) => response.data,
   (error) => {
     if (error.response && error.response.status === 401) {
-      localStorage.removeItem('token');
-      localStorage.removeItem('activeBizId');
-      window.location.href = '/login';
+      const errCode = error.response.data?.error?.code;
+      if (errCode !== 'SMAX_TOKEN_EXPIRED' && errCode !== 'SMAX_TOKEN_MISSING') {
+        localStorage.removeItem('token');
+        localStorage.removeItem('activeBizId');
+        window.location.href = '/login';
+      }
     }
     return Promise.reject(error.response?.data?.error || { message: error.message });
   }
