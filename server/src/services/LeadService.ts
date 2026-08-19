@@ -245,6 +245,32 @@ export class LeadService {
           }
         }
 
+        // Merge Ad IDs (accumulate new ad_ids without overwriting)
+        const rawAdIds: string[] = [];
+        if (Array.isArray(data.adIds)) {
+          rawAdIds.push(...data.adIds.map((a: any) => String(a).trim()).filter(Boolean));
+        } else if (data.adId) {
+          const splitAds = String(data.adId).split(/[,;\s]+/).map((s) => s.trim()).filter(Boolean);
+          rawAdIds.push(...splitAds);
+        }
+
+        if (rawAdIds.length > 0) {
+          const uniqueAdIds = Array.from(new Set(rawAdIds));
+          for (const aId of uniqueAdIds) {
+            const exists = await prisma.leadAd.findFirst({
+              where: { leadId: activeExistingLead.id, adId: aId },
+            });
+            if (!exists) {
+              await prisma.leadAd.create({
+                data: {
+                  leadId: activeExistingLead.id,
+                  adId: aId,
+                },
+              });
+            }
+          }
+        }
+
         if (data.notes && data.notes.trim()) {
           const dateStr = new Date().toLocaleDateString('vi-VN');
           await prisma.lead.update({
@@ -721,16 +747,42 @@ export class LeadService {
         json.data?.page?.name ||
         undefined;
 
+      const extractedAdIds: string[] = [];
+      const addAdId = (val: any) => {
+        if (!val) return;
+        if (Array.isArray(val)) {
+          val.forEach((item) => addAdId(item));
+        } else if (typeof val === 'object') {
+          if (val.ad_id || val.adId || val.id) {
+            addAdId(val.ad_id || val.adId || val.id);
+          }
+        } else {
+          const str = String(val).trim();
+          if (str && !extractedAdIds.includes(str)) {
+            extractedAdIds.push(str);
+          }
+        }
+      };
+
+      addAdId(json.data?.ad_id);
+      addAdId(json.data?.adId);
+      addAdId(json.data?.ad_ids);
+      addAdId(json.data?.adIds);
+      addAdId(json.data?.ads_id);
+      addAdId(json.data?.facebook?.ad_id);
+      addAdId(json.data?.facebook?.facebook?.ad_id);
+      addAdId(json.data?.ad);
+      addAdId(json.data?.ads);
+      addAdId(json.data?.meta?.ad_id);
+      addAdId(customer?.ad_id);
+      addAdId(customer?.facebook?.ad_id);
+
       const isAdsSource =
         String(json.data?.source || '').toLowerCase().includes('ad') ||
         String(json.data?.type || '').toLowerCase().includes('ad') ||
-        !!json.data?.facebook?.ad_id ||
-        !!json.data?.facebook?.facebook?.ad_id ||
-        !!json.data?.ad_id;
+        extractedAdIds.length > 0;
 
-      const rawAdId = json.data?.facebook?.ad_id || json.data?.facebook?.facebook?.ad_id || json.data?.ad_id || '';
-      const adId = rawAdId ? String(rawAdId).trim() : undefined;
-
+      const primaryAdId = extractedAdIds[0] || undefined;
       const source = isAdsSource ? 'FB_ADS' : 'FACEBOOK';
 
       return {
@@ -741,8 +793,8 @@ export class LeadService {
         fbPageName,
         smaxBizSlug: parsed.biz,
         source,
-        adId,
-        adIds: adId ? [adId] : [],
+        adId: primaryAdId,
+        adIds: extractedAdIds,
       };
     } catch (err: any) {
       if (err instanceof AppError) throw err;

@@ -168,6 +168,44 @@ describe('External Lead Single Endpoint Ingestion & CRUD API', () => {
     expect(res.body.data.notes).toContain('[Cảnh báo] sản phẩm mã SP_UNMAPPED_999, SP_UNMAPPED_888 không có mapping');
   });
 
+  it('should merge new ad_id into existing lead when lead duplicate merging occurs', async () => {
+    if (!testApiKey) return;
+
+    const phone = `0988${Date.now().toString().slice(-6)}`;
+    const firstRes = await request(app)
+      .post('/api/leads/external')
+      .set('x-api-key', testApiKey)
+      .send({
+        name: 'Trần Merge AdID',
+        phone,
+        ad_id: 'AD_INITIAL_111',
+      });
+
+    expect([200, 201]).toContain(firstRes.status);
+    const firstLeadId = firstRes.body.data.id;
+
+    // Second call with same phone and NEW ad_id
+    const secondRes = await request(app)
+      .post('/api/leads/external')
+      .set('x-api-key', testApiKey)
+      .send({
+        name: 'Trần Merge AdID',
+        phone,
+        ad_id: 'AD_NEW_222',
+      });
+
+    expect([200, 201]).toContain(secondRes.status);
+    expect(secondRes.body.data.isMerged).toBe(true);
+
+    // Verify existing lead has both AD_INITIAL_111 and AD_NEW_222 in LeadAd table
+    const leadAds = await prisma.leadAd.findMany({
+      where: { leadId: BigInt(firstLeadId) },
+    });
+    const adIdList = leadAds.map((la) => la.adId);
+    expect(adIdList).toContain('AD_INITIAL_111');
+    expect(adIdList).toContain('AD_NEW_222');
+  });
+
   it('should fail with 400 when missing required identity fields', async () => {
     if (!testApiKey) return;
 
