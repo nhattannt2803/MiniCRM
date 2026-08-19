@@ -88,6 +88,9 @@ client/src/
 │   ├── kanbanStore.ts        # State bảng Kanban & Optimistic Stage Dragging
 │   └── leadStore.ts          # State bộ lọc & danh sách Leads
 │
+├── hooks/                    # Custom React Hooks
+│   └── useBizNavigate.ts     # Hook điều hướng an toàn tự động đính kèm tenant slug /:bizSlug/
+│
 ├── services/                 # Call REST APIs tới Backend (Axios Client)
 │   ├── api.ts                # Axios instance đính kèm X-Biz-Id header & JWT Bearer token
 │   └── crmService.ts         # API wrappers cho toàn bộ endpoints
