@@ -152,4 +152,12 @@ export const crmService = {
   createApiKey: (data: { name: string; expiresAt?: string }) => api.post('/businesses/current/api-keys', data),
   revokeApiKey: (id: string) => api.delete(`/businesses/current/api-keys/${id}`),
   toggleApiKeyStatus: (id: string) => api.patch(`/businesses/current/api-keys/${id}/toggle`),
+
+  // Product Mappings Management
+  getProductMappings: () => api.get('/businesses/current/product-mappings'),
+  createProductMapping: (data: { externalCode: string; externalName?: string; productId: string }) =>
+    api.post('/businesses/current/product-mappings', data),
+  updateProductMapping: (id: string, data: { externalCode?: string; externalName?: string; productId?: string }) =>
+    api.put(`/businesses/current/product-mappings/${id}`, data),
+  deleteProductMapping: (id: string) => api.delete(`/businesses/current/product-mappings/${id}`),
 };

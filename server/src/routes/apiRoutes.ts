@@ -51,6 +51,11 @@ router.post('/businesses/current/api-keys', crm.createBizApiKey);
 router.delete('/businesses/current/api-keys/:id', crm.revokeBizApiKey);
 router.patch('/businesses/current/api-keys/:id/toggle', crm.toggleBizApiKeyStatus);
 
+router.get('/businesses/current/product-mappings', crm.getBizProductMappings);
+router.post('/businesses/current/product-mappings', crm.createBizProductMapping);
+router.put('/businesses/current/product-mappings/:id', crm.updateBizProductMapping);
+router.delete('/businesses/current/product-mappings/:id', crm.deleteBizProductMapping);
+
 // Leads
 router.get('/leads', crm.getLeads);
 router.post('/leads', crm.createLead);

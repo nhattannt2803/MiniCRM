@@ -45,6 +45,7 @@ model Business {
   conversations   Conversation[]
   systemSettings  SystemSetting[]
   apiKeys         ApiKey[]
+  productMappings ProductMapping[]
 
   @@index([status], map: "idx_biz_status")
   @@map("businesses")
@@ -435,6 +436,7 @@ model Product {
   opportunityProducts OpportunityProduct[]
   quoteItems          QuoteItem[]
   leadProducts        LeadProduct[]
+  productMappings     ProductMapping[]
 
   @@unique([bizId, code], map: "uk_product_biz_code")
   @@index([bizId, isActive], map: "idx_products_biz_active")
@@ -872,3 +874,25 @@ model ApiKey {
   @@index([key], map: "idx_apikey_key")
   @@map("api_keys")
 }
+
+// =============================================================================
+// Product Mappings (Mapping external SKU/code to internal CRM Product)
+// =============================================================================
+
+model ProductMapping {
+  id           BigInt   @id @default(autoincrement()) @db.UnsignedBigInt
+  bizId        BigInt   @map("biz_id") @db.UnsignedBigInt
+  externalCode String   @map("external_code") @db.VarChar(100)
+  externalName String?  @map("external_name") @db.VarChar(200)
+  productId    BigInt   @map("product_id") @db.UnsignedBigInt
+  createdAt    DateTime @default(now()) @map("created_at") @db.DateTime(3)
+  updatedAt    DateTime @default(now()) @updatedAt @map("updated_at") @db.DateTime(3)
+
+  business Business @relation(fields: [bizId], references: [id], onDelete: Cascade)
+  product  Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([bizId, externalCode], map: "uk_product_mapping_biz_code")
+  @@index([bizId, externalCode], map: "idx_product_mapping_biz_code")
+  @@map("product_mappings")
+}
+

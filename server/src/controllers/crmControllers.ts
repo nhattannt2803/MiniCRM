@@ -21,6 +21,7 @@ import { IdentityResolutionService } from '../services/IdentityResolutionService
 import { ConversationService } from '../services/ConversationService';
 import { SystemSettingService } from '../services/SystemSettingService';
 import { ApiKeyService } from '../services/ApiKeyService';
+import { ProductMappingService } from '../services/ProductMappingService';
 import { parseFbPsidInput, parseZaloUidInput } from '../utils/identityHelper';
 import { runSeedEngine } from '../services/seedEngine';
 
@@ -1285,8 +1286,21 @@ export const handleExternalLead = async (req: AuthenticatedRequest, res: Respons
       source = 'FACEBOOK';
     }
 
-    // Prepare notes (only fill if explicitly passed in request body)
-    const notes = body.notes || body.ghi_chu || body.note || '';
+    // Resolve product code mapping if products array is passed in body/query
+    let notes = body.notes || body.ghi_chu || body.note || '';
+    const inputProducts = body.products || body.product_list || body.san_pham || query.products;
+    let matchedProductIds: bigint[] = [];
+
+    if (inputProducts && (Array.isArray(inputProducts) || typeof inputProducts === 'string' || typeof inputProducts === 'object')) {
+      const prodArray = Array.isArray(inputProducts) ? inputProducts : [inputProducts];
+      const resolution = await ProductMappingService.resolveProductCodes(bizId, prodArray);
+      matchedProductIds = resolution.matchedProductIds;
+
+      if (resolution.warningMessage) {
+        const warningNote = `[Cảnh báo] ${resolution.warningMessage}`;
+        notes = notes ? `${notes}\n${warningNote}` : warningNote;
+      }
+    }
 
     // Stack Priority 2: Validation constraints if no smax thread or for required fields
     if (!inputFirstName && !phone && !email && !fbPsid && !body.zaloUid && !body.zalo_uid) {
@@ -1343,8 +1357,13 @@ export const handleExternalLead = async (req: AuthenticatedRequest, res: Respons
       fbPageId: fbPageId || null,
       fbPageName: fbPageName || null,
       smaxBizSlug: smaxData?.smaxBizSlug || body.smaxBizSlug || targetBiz.slug || null,
+      productIds: Array.from(new Set([
+        ...matchedProductIds.map((id) => id.toString()),
+        ...(Array.isArray(body.productIds) ? body.productIds.map((id: any) => String(id)) : []),
+        ...(Array.isArray(body.product_ids) ? body.product_ids.map((id: any) => String(id)) : []),
+        ...(body.productId || body.product_id ? [String(body.productId || body.product_id)] : []),
+      ])),
       adIds,
-      productIds: body.productIds || body.product_ids || (body.productId || body.product_id ? [body.productId || body.product_id] : []),
       ownerId: body.ownerId || body.owner_id || null,
       receivedAt: body.receivedAt || body.received_at ? new Date(body.receivedAt || body.received_at) : new Date(),
     };
@@ -1404,4 +1423,52 @@ export const toggleBizApiKeyStatus = async (req: AuthenticatedRequest, res: Resp
     next(err);
   }
 };
+
+// --- Product Mapping Management ---
+export const getBizProductMappings = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  try {
+    const mappings = await ProductMappingService.getProductMappings(req.bizId!);
+    res.json({ success: true, data: mappings });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const createBizProductMapping = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  try {
+    const { externalCode, externalName, productId } = req.body;
+    const mapping = await ProductMappingService.createProductMapping(
+      req.bizId!,
+      externalCode,
+      externalName,
+      productId
+    );
+    res.status(201).json({ success: true, message: 'Tạo mapping sản phẩm thành công', data: mapping });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const updateBizProductMapping = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  try {
+    const mapping = await ProductMappingService.updateProductMapping(
+      req.bizId!,
+      req.params.id,
+      req.body
+    );
+    res.json({ success: true, message: 'Cập nhật mapping sản phẩm thành công', data: mapping });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const deleteBizProductMapping = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  try {
+    const result = await ProductMappingService.deleteProductMapping(req.bizId!, req.params.id);
+    res.json({ success: true, message: result.message });
+  } catch (err) {
+    next(err);
+  }
+};
+
 

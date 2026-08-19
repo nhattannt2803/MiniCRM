@@ -145,6 +145,29 @@ describe('External Lead Single Endpoint Ingestion & CRUD API', () => {
     expect(res.body.data.identityResolutionStatus).toBeDefined();
   });
 
+  it('should process products array, mapping external codes and appending unmapped warning to notes', async () => {
+    if (!testApiKey) return;
+
+    const timestamp = Date.now();
+    const res = await request(app)
+      .post('/api/leads/external')
+      .set('x-api-key', testApiKey)
+      .send({
+        ten: 'Nguyễn Văn ProductMap',
+        sdt: `0977${timestamp.toString().slice(-6)}`,
+        notes: 'Khách yêu cầu tư vấn gấp',
+        products: [
+          { code: 'SP_UNMAPPED_999', name: 'Sản phẩm không có mapping' },
+          { code: 'SP_UNMAPPED_888', name: 'Sản phẩm thử nghiệm' },
+        ],
+      });
+
+    expect([200, 201]).toContain(res.status);
+    expect(res.body.success).toBe(true);
+    expect(res.body.data.notes).toContain('Khách yêu cầu tư vấn gấp');
+    expect(res.body.data.notes).toContain('[Cảnh báo] sản phẩm mã SP_UNMAPPED_999, SP_UNMAPPED_888 không có mapping');
+  });
+
   it('should fail with 400 when missing required identity fields', async () => {
     if (!testApiKey) return;
 
