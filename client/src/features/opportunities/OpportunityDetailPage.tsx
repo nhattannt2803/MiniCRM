@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
+import { useBizNavigate } from '../../hooks/useBizNavigate';
 import { Card, Tag, Button, Tabs, Table, Modal, Form, Select, InputNumber, notification, Spin } from 'antd';
 import { ArrowLeftOutlined, PlusOutlined, FileTextOutlined, TrophyOutlined, CloseOutlined } from '@ant-design/icons';
 import { crmService } from '../../services/crmService';
@@ -8,7 +9,7 @@ import { ActivityTimeline } from '../../components/Timeline/ActivityTimeline';
 
 export const OpportunityDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
+  const navigate = useBizNavigate();
 
   const [opp, setOpp] = useState<Opportunity | null>(null);
   const [products, setProducts] = useState<Product[]>([]);

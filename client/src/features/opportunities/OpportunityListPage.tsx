@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Table, Button, Input, Tag, Drawer, Form, Select, InputNumber, notification } from 'antd';
 import { PlusOutlined, SearchOutlined, AppstoreOutlined } from '@ant-design/icons';
-import { useNavigate } from 'react-router-dom';
+import { useBizNavigate } from '../../hooks/useBizNavigate';
 import { useTranslation } from 'react-i18next';
 import { crmService } from '../../services/crmService';
 import { Opportunity, Pipeline, PipelineStage, User } from '../../types';
@@ -17,7 +17,7 @@ export const OpportunityListPage: React.FC = () => {
   const [drawerVisible, setDrawerVisible] = useState(false);
 
   const [form] = Form.useForm();
-  const navigate = useNavigate();
+  const navigate = useBizNavigate();
   const { t } = useTranslation();
 
   const fetchOpps = async () => {

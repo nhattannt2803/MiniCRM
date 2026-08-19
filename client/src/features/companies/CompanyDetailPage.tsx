@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
+import { useBizNavigate } from '../../hooks/useBizNavigate';
 import { Card, Tag, Button, Tabs, Table, Spin, Modal, Form, Input, Select, notification } from 'antd';
 import { ArrowLeftOutlined, EditOutlined } from '@ant-design/icons';
 import { crmService } from '../../services/crmService';
@@ -8,7 +9,7 @@ import { ActivityTimeline } from '../../components/Timeline/ActivityTimeline';
 
 export const CompanyDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
+  const navigate = useBizNavigate();
   const [company, setCompany] = useState<Company | null>(null);
   const [loading, setLoading] = useState(true);
   const [editModalVisible, setEditModalVisible] = useState(false);

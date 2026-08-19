@@ -15,7 +15,7 @@ import {
   CheckCircleOutlined,
   CalendarOutlined,
 } from '@ant-design/icons';
-import { useNavigate } from 'react-router-dom';
+import { useBizNavigate } from '../../hooks/useBizNavigate';
 
 interface TeamHealth {
   id: string;
@@ -84,7 +84,7 @@ const INITIAL_TEAMS: TeamHealth[] = [
 ];
 
 export const SaleManagerOverviewPage: React.FC = () => {
-  const navigate = useNavigate();
+  const navigate = useBizNavigate();
   const [teams, setTeams] = useState<TeamHealth[]>(INITIAL_TEAMS);
   const [selectedTeam, setSelectedTeam] = useState<TeamHealth | null>(null);
 

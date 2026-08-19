@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Table, Tag, Button, Modal, Spin } from 'antd';
 import { ArrowLeftOutlined, EyeOutlined } from '@ant-design/icons';
-import { useNavigate } from 'react-router-dom';
+import { useBizNavigate } from '../../hooks/useBizNavigate';
 import { useTranslation } from 'react-i18next';
 import { crmService } from '../../services/crmService';
 import { AutomationExecution } from '../../types';
@@ -11,7 +11,7 @@ export const AutomationExecutionPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [selectedExec, setSelectedExec] = useState<AutomationExecution | null>(null);
 
-  const navigate = useNavigate();
+  const navigate = useBizNavigate();
   const { t, i18n } = useTranslation();
 
   const fetchExecutions = async () => {

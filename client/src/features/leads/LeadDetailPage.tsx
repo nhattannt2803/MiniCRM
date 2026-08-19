@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
+import { useBizNavigate } from '../../hooks/useBizNavigate';
 import { Card, Tag, Button, Select, Tabs, Modal, Form, Input, DatePicker, notification, Spin, Alert, Radio, Popconfirm, Tooltip } from 'antd';
 import { ArrowLeftOutlined, SwapOutlined, PlusOutlined, PhoneOutlined, EditOutlined, WarningOutlined, MessageOutlined, SendOutlined, CheckOutlined, CheckCircleOutlined } from '@ant-design/icons';
 import { crmService } from '../../services/crmService';
@@ -9,7 +10,7 @@ import { LeadConvertModal } from './LeadConvertModal';
 
 export const LeadDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
+  const navigate = useBizNavigate();
 
   const [lead, setLead] = useState<Lead | null>(null);
   const [users, setUsers] = useState<User[]>([]);

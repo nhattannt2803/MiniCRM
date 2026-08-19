@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Table, Button, Input, Select, Tag, Drawer, Form, Popconfirm, notification, Alert, Space, Radio, DatePicker, Tooltip } from 'antd';
 import { PlusOutlined, SearchOutlined, EyeOutlined, EditOutlined, SwapOutlined, DeleteOutlined, WarningOutlined, CheckCircleOutlined } from '@ant-design/icons';
-import { useNavigate } from 'react-router-dom';
+import { useBizNavigate } from '../../hooks/useBizNavigate';
 import { useTranslation } from 'react-i18next';
 import dayjs from 'dayjs';
 import { crmService } from '../../services/crmService';
@@ -32,7 +32,7 @@ export const LeadListPage: React.FC = () => {
   const [checkingIdentity, setCheckingIdentity] = useState(false);
 
   const [form] = Form.useForm();
-  const navigate = useNavigate();
+  const navigate = useBizNavigate();
   const [products, setProducts] = useState<any[]>([]);
   const { t } = useTranslation();
 

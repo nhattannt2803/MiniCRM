@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Table, Button, Switch, Tag, Modal, Form, Input, Select, InputNumber, Popconfirm, Tooltip, notification } from 'antd';
 import { PlusOutlined, HistoryOutlined, RobotOutlined, EditOutlined, DeleteOutlined, CopyOutlined, DownloadOutlined, UploadOutlined } from '@ant-design/icons';
-import { useNavigate } from 'react-router-dom';
+import { useBizNavigate } from '../../hooks/useBizNavigate';
 import { useTranslation } from 'react-i18next';
 import { crmService } from '../../services/crmService';
 import { Automation } from '../../types';
@@ -14,7 +14,7 @@ export const AutomationListPage: React.FC = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [form] = Form.useForm();
-  const navigate = useNavigate();
+  const navigate = useBizNavigate();
   const { t } = useTranslation();
 
   const fetchAutomations = async () => {

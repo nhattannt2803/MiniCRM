@@ -14,7 +14,7 @@ import {
 import { crmService } from '../../services/crmService';
 import { useAuthStore } from '../../stores/authStore';
 import { Lead } from '../../types';
-import { useNavigate } from 'react-router-dom';
+import { useBizNavigate } from '../../hooks/useBizNavigate';
 
 const { Option } = Select;
 
@@ -24,7 +24,7 @@ export const MyLeadsPage: React.FC = () => {
   const [searchText, setSearchText] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
   const { user } = useAuthStore();
-  const navigate = useNavigate();
+  const navigate = useBizNavigate();
 
   const fetchMyLeads = async () => {
     setLoading(true);

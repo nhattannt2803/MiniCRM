@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Table, Button, Input, Tag, Drawer, Modal, Form, Select, Radio, Popconfirm, notification } from 'antd';
 import { SearchOutlined, EyeOutlined, EditOutlined, DeleteOutlined, PlusOutlined, BankOutlined, UserOutlined } from '@ant-design/icons';
-import { useNavigate } from 'react-router-dom';
+import { useBizNavigate } from '../../hooks/useBizNavigate';
 import { useTranslation } from 'react-i18next';
 import { crmService } from '../../services/crmService';
 import { Customer, User } from '../../types';
@@ -26,7 +26,7 @@ export const CustomerListPage: React.FC = () => {
 
   const [createForm] = Form.useForm();
   const [editForm] = Form.useForm();
-  const navigate = useNavigate();
+  const navigate = useBizNavigate();
   const { t } = useTranslation();
 
   const fetchCustomers = async () => {

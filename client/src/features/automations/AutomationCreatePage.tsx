@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Card, Form, Input, Select, Button, InputNumber, notification } from 'antd';
 import { ArrowLeftOutlined, PlusOutlined, DeleteOutlined } from '@ant-design/icons';
-import { useNavigate } from 'react-router-dom';
+import { useBizNavigate } from '../../hooks/useBizNavigate';
 import { crmService } from '../../services/crmService';
 
 interface PipelineStage {
@@ -19,7 +19,7 @@ interface Pipeline {
 
 export const AutomationCreatePage: React.FC = () => {
   const [form] = Form.useForm();
-  const navigate = useNavigate();
+  const navigate = useBizNavigate();
 
   const [pipelines, setPipelines] = useState<Pipeline[]>([]);
   const [actionStages, setActionStages] = useState<Record<number, PipelineStage[]>>({});

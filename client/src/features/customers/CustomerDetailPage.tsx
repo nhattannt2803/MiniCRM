@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
+import { useBizNavigate } from '../../hooks/useBizNavigate';
 import { Card, Tag, Button, Tabs, Table, Spin, Modal, Form, Input, Select, Popconfirm, notification, Divider, Badge } from 'antd';
 import { ArrowLeftOutlined, EditOutlined, DeleteOutlined, UserOutlined, BankOutlined, PhoneOutlined, MailOutlined, HomeOutlined, IdcardOutlined, PlusOutlined, CheckCircleOutlined, MessageOutlined } from '@ant-design/icons';
 import { crmService } from '../../services/crmService';
@@ -9,7 +10,7 @@ import { parseFbPsidInput, parseZaloUidInput } from '../../utils/identityHelper'
 
 export const CustomerDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
+  const navigate = useBizNavigate();
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);

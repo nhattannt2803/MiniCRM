@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Table, Button, Input, Tag, Drawer, Form, notification, Select } from 'antd';
 import { PlusOutlined, SearchOutlined, EyeOutlined, EditOutlined } from '@ant-design/icons';
-import { useNavigate } from 'react-router-dom';
+import { useBizNavigate } from '../../hooks/useBizNavigate';
 import { useTranslation } from 'react-i18next';
 import { crmService } from '../../services/crmService';
 import { Company } from '../../types';
@@ -16,7 +16,7 @@ export const CompanyListPage: React.FC = () => {
   const [editingCompany, setEditingCompany] = useState<Company | null>(null);
 
   const [form] = Form.useForm();
-  const navigate = useNavigate();
+  const navigate = useBizNavigate();
   const { t } = useTranslation();
 
   const fetchCompanies = async () => {

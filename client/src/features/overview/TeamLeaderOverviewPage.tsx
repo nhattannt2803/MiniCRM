@@ -15,7 +15,7 @@ import {
   FilterOutlined,
   CheckCircleOutlined,
 } from '@ant-design/icons';
-import { useNavigate } from 'react-router-dom';
+import { useBizNavigate } from '../../hooks/useBizNavigate';
 
 interface SaleRep {
   id: string;
@@ -94,7 +94,7 @@ const INITIAL_REPS: SaleRep[] = [
 ];
 
 export const TeamLeaderOverviewPage: React.FC = () => {
-  const navigate = useNavigate();
+  const navigate = useBizNavigate();
   const [reps, setReps] = useState<SaleRep[]>(INITIAL_REPS);
 
   // Modal States

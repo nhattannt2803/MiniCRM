@@ -14,10 +14,10 @@ import {
   PhoneOutlined,
   AppstoreOutlined,
 } from '@ant-design/icons';
-import { useNavigate } from 'react-router-dom';
+import { useBizNavigate } from '../../hooks/useBizNavigate';
 
 export const OverviewPage: React.FC = () => {
-  const navigate = useNavigate();
+  const navigate = useBizNavigate();
   const [completedTasks, setCompletedTasks] = useState<number[]>([]);
 
   const toggleTaskComplete = (taskId: number) => {

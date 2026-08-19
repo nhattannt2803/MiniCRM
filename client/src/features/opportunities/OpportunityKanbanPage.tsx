@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Button, Select, notification, Spin, Drawer, Form, Input, InputNumber } from 'antd';
 import { TableOutlined, PlusOutlined, SettingOutlined } from '@ant-design/icons';
-import { useNavigate } from 'react-router-dom';
+import { useBizNavigate } from '../../hooks/useBizNavigate';
 import { useTranslation } from 'react-i18next';
 import { crmService } from '../../services/crmService';
 import { KanbanBoard, KanbanColumn } from '../../components/Kanban/KanbanBoard';
@@ -19,7 +19,7 @@ export const OpportunityKanbanPage: React.FC = () => {
   const [formPipelineId, setFormPipelineId] = useState<string | undefined>();
 
   const [form] = Form.useForm();
-  const navigate = useNavigate();
+  const navigate = useBizNavigate();
   const { t } = useTranslation();
 
   const fetchPipelines = async (preferredId?: string) => {

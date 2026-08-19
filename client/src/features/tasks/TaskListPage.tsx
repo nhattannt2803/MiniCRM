@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useBizNavigate } from '../../hooks/useBizNavigate';
 import { Table, Button, Tag, Select, Popconfirm, Modal, Form, Input, DatePicker, Tooltip, notification } from 'antd';
 import { PlusOutlined, AlertOutlined, CheckOutlined, EditOutlined, CheckCircleOutlined, UserOutlined } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
@@ -9,7 +9,7 @@ import { useAuthStore } from '../../stores/authStore';
 import { Task, User } from '../../types';
 
 export const TaskListPage: React.FC = () => {
-  const navigate = useNavigate();
+  const navigate = useBizNavigate();
   const { user } = useAuthStore();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [users, setUsers] = useState<User[]>([]);
@@ -22,6 +22,7 @@ export const TaskListPage: React.FC = () => {
 
   const [form] = Form.useForm();
   const { t, i18n } = useTranslation();
+
 
   const fetchTasks = async () => {
     setLoading(true);
@@ -190,7 +191,7 @@ export const TaskListPage: React.FC = () => {
       key: 'related',
       render: (_: any, r: any) => {
         if (r.relatedInfo) {
-          const isLead = r.relatedInfo.type === 'LEAD';
+          const isLead = r.relatedInfo.type?.toUpperCase() === 'LEAD';
           const link = isLead ? `/leads/${r.relatedInfo.id}` : `/customers/${r.relatedInfo.id}`;
           return (
             <Tag
@@ -203,14 +204,14 @@ export const TaskListPage: React.FC = () => {
           );
         }
         if (r.relatedType && r.relatedId) {
-          const isLead = r.relatedType === 'LEAD';
+          const isLead = r.relatedType?.toUpperCase() === 'LEAD';
           return (
             <Tag
               color={isLead ? 'blue' : 'purple'}
-              className="cursor-pointer"
+              className="cursor-pointer font-medium hover:opacity-80"
               onClick={() => navigate(isLead ? `/leads/${r.relatedId}` : `/customers/${r.relatedId}`)}
             >
-              {r.relatedType} #{r.relatedId}
+              {isLead ? '👤 Lead' : '🏢 Customer'} #{r.relatedId}
             </Tag>
           );
         }
