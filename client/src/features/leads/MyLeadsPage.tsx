@@ -69,6 +69,8 @@ export const MyLeadsPage: React.FC = () => {
         return <Tag color="orange">Đã liên hệ</Tag>;
       case 'QUALIFIED':
         return <Tag color="green">Đạt yêu cầu</Tag>;
+      case 'NURTURING':
+        return <Tag color="gold">🌱 Nuôi dưỡng</Tag>;
       case 'UNQUALIFIED':
         return <Tag color="red">Không phù hợp</Tag>;
       case 'CONVERTED':
@@ -225,6 +227,7 @@ export const MyLeadsPage: React.FC = () => {
               <Option value="NEW">Mới tạo</Option>
               <Option value="CONTACTED">Đã liên hệ</Option>
               <Option value="QUALIFIED">Đạt yêu cầu</Option>
+              <Option value="NURTURING">🌱 Nuôi dưỡng</Option>
               <Option value="UNQUALIFIED">Không phù hợp</Option>
               <Option value="CONVERTED">Đã chuyển đổi</Option>
             </Select>

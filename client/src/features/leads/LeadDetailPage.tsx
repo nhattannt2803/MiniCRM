@@ -355,6 +355,7 @@ export const LeadDetailPage: React.FC = () => {
             <Select.Option value="NEW">NEW</Select.Option>
             <Select.Option value="CONTACTED">CONTACTED</Select.Option>
             <Select.Option value="QUALIFIED">QUALIFIED</Select.Option>
+            <Select.Option value="NURTURING">🌱 NURTURING (Nuôi dưỡng)</Select.Option>
             <Select.Option value="UNQUALIFIED">UNQUALIFIED</Select.Option>
             <Select.Option value="LOST">LOST</Select.Option>
           </Select>

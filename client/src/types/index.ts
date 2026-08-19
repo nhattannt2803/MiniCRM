@@ -78,7 +78,7 @@ export interface Lead {
   companyName?: string;
   jobTitle?: string;
   source: string;
-  status: 'NEW' | 'CONTACTED' | 'QUALIFIED' | 'UNQUALIFIED' | 'CONVERTED' | 'LOST';
+  status: 'NEW' | 'CONTACTED' | 'QUALIFIED' | 'UNQUALIFIED' | 'NURTURING' | 'CONVERTED' | 'LOST';
   rating: 'HOT' | 'WARM' | 'COLD';
   identityResolutionStatus?: 'MATCHED' | 'POTENTIAL_DUPLICATE' | 'PENDING_REVIEW' | 'NEW_CUSTOMER';
   notes?: string;

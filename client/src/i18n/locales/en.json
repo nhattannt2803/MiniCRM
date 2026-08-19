@@ -131,6 +131,7 @@
       "CONTACTED": "Contacted",
       "QUALIFIED": "Qualified",
       "UNQUALIFIED": "Unqualified",
+      "NURTURING": "Nurturing",
       "CONVERTED": "Converted"
     },
     "form": {

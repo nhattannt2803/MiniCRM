@@ -99,6 +99,69 @@ const QuickProductSelector: React.FC<{ record: Lead; products: any[]; onUpdated:
   );
 };
 
+const QuickStatusSelector: React.FC<{ record: Lead; onUpdated: () => void }> = ({ record, onUpdated }) => {
+  const [updating, setUpdating] = useState(false);
+  const { t } = useTranslation();
+
+  const handleStatusChange = async (newStatus: string) => {
+    if (newStatus === record.status) return;
+    setUpdating(true);
+    try {
+      await crmService.updateLead(record.id, { status: newStatus });
+      notification.success({ message: `Đã đổi trạng thái Lead!` });
+      onUpdated();
+    } catch (err: any) {
+      notification.error({ message: 'Cập nhật trạng thái thất bại', description: err.message });
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  if (record.status === 'CONVERTED') {
+    return <Tag color="green">✅ {t('leads.status.CONVERTED')}</Tag>;
+  }
+
+  return (
+    <Select
+      value={record.status}
+      size="small"
+      loading={updating}
+      onChange={handleStatusChange}
+      className="w-32 font-medium"
+      variant="borderless"
+      popupMatchSelectWidth={false}
+      style={{
+        borderRadius: '6px',
+        backgroundColor:
+          record.status === 'NEW' ? '#eff6ff' :
+          record.status === 'CONTACTED' ? '#faf5ff' :
+          record.status === 'QUALIFIED' ? '#ecfeff' :
+          record.status === 'NURTURING' ? '#fefce8' :
+          record.status === 'LOST' ? '#fef2f2' : '#f8fafc',
+      }}
+    >
+      <Select.Option value="NEW">
+        <Tag color="blue" className="mr-0">{t('leads.status.NEW')}</Tag>
+      </Select.Option>
+      <Select.Option value="CONTACTED">
+        <Tag color="purple" className="mr-0">{t('leads.status.CONTACTED')}</Tag>
+      </Select.Option>
+      <Select.Option value="QUALIFIED">
+        <Tag color="cyan" className="mr-0">{t('leads.status.QUALIFIED')}</Tag>
+      </Select.Option>
+      <Select.Option value="NURTURING">
+        <Tag color="gold" className="mr-0">🌱 Nuôi dưỡng</Tag>
+      </Select.Option>
+      <Select.Option value="UNQUALIFIED">
+        <Tag color="default" className="mr-0">{t('leads.status.UNQUALIFIED')}</Tag>
+      </Select.Option>
+      <Select.Option value="LOST">
+        <Tag color="red" className="mr-0">Mất (Lost)</Tag>
+      </Select.Option>
+    </Select>
+  );
+};
+
 export const LeadListPage: React.FC = () => {
   const { defaultEntityType } = useSettingsStore();
   const [leads, setLeads] = useState<Lead[]>([]);
@@ -366,6 +429,7 @@ export const LeadListPage: React.FC = () => {
       case 'NEW': return <Tag color="blue">{t('leads.status.NEW')}</Tag>;
       case 'CONTACTED': return <Tag color="purple">{t('leads.status.CONTACTED')}</Tag>;
       case 'QUALIFIED': return <Tag color="cyan">{t('leads.status.QUALIFIED')}</Tag>;
+      case 'NURTURING': return <Tag color="gold">🌱 {t('leads.status.NURTURING') || 'Nuôi dưỡng'}</Tag>;
       case 'UNQUALIFIED': return <Tag color="default">{t('leads.status.UNQUALIFIED')}</Tag>;
       case 'CONVERTED': return <Tag color="green">{t('leads.status.CONVERTED')}</Tag>;
       case 'LOST': return <Tag color="red">Mất</Tag>;
@@ -414,18 +478,17 @@ export const LeadListPage: React.FC = () => {
       ),
     },
     {
-      title: t('leads.form.company'),
-      dataIndex: 'companyName',
-      key: 'companyName',
-      render: (val: string) => <span className="font-medium text-slate-700">{val || '—'}</span>,
-    },
-    {
-      title: t('common.email') + ' / ' + t('common.phone'),
+      title: 'Liên hệ / Công ty',
       key: 'contact',
       render: (_: any, record: Lead) => (
         <div className="text-xs space-y-0.5">
-          {record.email && <div className="text-slate-600">✉ {record.email}</div>}
-          {record.phone && <div className="text-slate-500">📞 {record.phone}</div>}
+          {record.email && <div className="text-slate-600 font-medium">✉ {record.email}</div>}
+          {record.phone && <div className="text-slate-500 font-medium">📞 {record.phone}</div>}
+          {record.companyName && (
+            <div className="text-slate-700 font-semibold flex items-center gap-1 mt-0.5">
+              🏢 {record.companyName}
+            </div>
+          )}
         </div>
       ),
     },
@@ -453,9 +516,8 @@ export const LeadListPage: React.FC = () => {
     },
     {
       title: t('common.status'),
-      dataIndex: 'status',
       key: 'status',
-      render: (status: string) => getStatusTag(status),
+      render: (_: any, record: Lead) => <QuickStatusSelector record={record} onUpdated={fetchLeads} />,
     },
     {
       title: 'Sản phẩm quan tâm',
@@ -581,6 +643,7 @@ export const LeadListPage: React.FC = () => {
           <Select.Option value="NEW">{t('leads.status.NEW')}</Select.Option>
           <Select.Option value="CONTACTED">{t('leads.status.CONTACTED')}</Select.Option>
           <Select.Option value="QUALIFIED">{t('leads.status.QUALIFIED')}</Select.Option>
+          <Select.Option value="NURTURING">🌱 {t('leads.status.NURTURING') || 'Nuôi dưỡng'}</Select.Option>
           <Select.Option value="UNQUALIFIED">{t('leads.status.UNQUALIFIED')}</Select.Option>
           <Select.Option value="CONVERTED">{t('leads.status.CONVERTED')}</Select.Option>
           <Select.Option value="LOST">Mất</Select.Option>
