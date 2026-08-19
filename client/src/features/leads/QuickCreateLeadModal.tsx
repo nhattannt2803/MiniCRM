@@ -41,20 +41,25 @@ export const QuickCreateLeadModal: React.FC<QuickCreateLeadModalProps> = ({
     try {
       const res: any = await crmService.fetchSmaxThread(trimmed);
       if (res.success && res.data) {
-        const { name, phone, fbPsid } = res.data;
+        const { name, phone, fbPsid, source, adId, adIds } = res.data;
         const currentPhone = form.getFieldValue('phone');
         const currentFbPsid = form.getFieldValue('fbPsid');
+        const currentAdIds = form.getFieldValue('adIds') || [];
+
+        const extractedAds = adIds || (adId ? [adId] : []);
+        const mergedAdIds = Array.from(new Set([...currentAdIds, ...extractedAds]));
 
         form.setFieldsValue({
           firstName: name || form.getFieldValue('firstName'),
           phone: phone || currentPhone,
           fbPsid: fbPsid || currentFbPsid,
-          source: 'FACEBOOK',
+          source: source || (extractedAds.length > 0 ? 'FB_ADS' : 'FACEBOOK'),
+          adIds: mergedAdIds,
         });
 
         notification.success({
           message: 'Đã tự động lấy thông tin từ Smax.ai!',
-          description: `Tên: ${name || '—'} | SĐT: ${phone || '—'} | PSID: ${fbPsid || '—'}`,
+          description: `Tên: ${name || '—'} | SĐT: ${phone || '—'} | PSID: ${fbPsid || '—'}${extractedAds.length > 0 ? ` | Ad ID: ${extractedAds.join(', ')}` : ''}`,
         });
 
         setTimeout(() => {
@@ -112,14 +117,17 @@ export const QuickCreateLeadModal: React.FC<QuickCreateLeadModalProps> = ({
     const firstName = form.getFieldValue('firstName') || '';
     const lastName = form.getFieldValue('lastName') || '';
 
-    // Auto select Lead Source based on which identity field was filled first
+    // Auto select Lead Source based on which identity field was filled first (unless already set to FB_ADS)
+    const currentSource = form.getFieldValue('source');
     const hasFb = Boolean(fbPsid && fbPsid.trim());
     const hasZalo = Boolean(zaloUid && zaloUid.trim());
 
-    if (hasFb && !hasZalo) {
-      form.setFieldsValue({ source: 'FACEBOOK' });
-    } else if (hasZalo && !hasFb) {
-      form.setFieldsValue({ source: 'ZALO' });
+    if (currentSource !== 'FB_ADS' && currentSource !== 'FACEBOOK_ADS') {
+      if (hasFb && !hasZalo) {
+        form.setFieldsValue({ source: 'FACEBOOK' });
+      } else if (hasZalo && !hasFb) {
+        form.setFieldsValue({ source: 'ZALO' });
+      }
     }
 
     if (
@@ -326,6 +334,20 @@ export const QuickCreateLeadModal: React.FC<QuickCreateLeadModalProps> = ({
             </Select>
           </Form.Item>
         </div>
+
+        <Form.Item
+          name="adIds"
+          label="📢 Mã bài viết / Quảng cáo Facebook (Ad IDs)"
+          extra="Nhập một hoặc nhiều mã Facebook Ad ID (Phân cách bằng dấu phẩy hoặc phím Enter)"
+        >
+          <Select
+            mode="tags"
+            placeholder="Ví dụ: 120249966819330693, 120249966819330694"
+            tokenSeparators={[',', ' ']}
+            open={false}
+            allowClear
+          />
+        </Form.Item>
 
         <Form.Item name="productIds" label="🛒 Sản phẩm / Dịch vụ quan tâm (Chọn nhiều)">
           <Select

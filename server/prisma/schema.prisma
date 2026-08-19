@@ -287,6 +287,7 @@ model Lead {
   opportunities            Opportunity[] @relation("LeadSource")
   conversations            Conversation[]
   products                 LeadProduct[]
+  ads                      LeadAd[]
 
   @@index([bizId, status], map: "idx_leads_biz_status")
   @@index([bizId, ownerId], map: "idx_leads_biz_owner")
@@ -801,6 +802,19 @@ model LeadProduct {
   @@index([leadId], map: "idx_lp_lead")
   @@index([productId], map: "idx_lp_product")
   @@map("lead_products")
+}
+
+model LeadAd {
+  id        BigInt   @id @default(autoincrement()) @db.UnsignedBigInt
+  leadId    BigInt   @map("lead_id") @db.UnsignedBigInt
+  adId      String   @map("ad_id") @db.VarChar(191)
+  createdAt DateTime @default(now()) @map("created_at") @db.DateTime(3)
+  lead      Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  @@unique([leadId, adId])
+  @@index([leadId], map: "idx_la_lead")
+  @@index([adId], map: "idx_la_ad")
+  @@map("lead_ads")
 }
 
 // =============================================================================

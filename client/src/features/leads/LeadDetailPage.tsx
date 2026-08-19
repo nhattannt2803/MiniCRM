@@ -97,6 +97,7 @@ export const LeadDetailPage: React.FC = () => {
     const currentProductIds = (lead as any).products
       ? (lead as any).products.map((p: any) => p.productId)
       : [];
+    const currentAdIds = (lead as any).adIds || [];
     editForm.setFieldsValue({
       firstName: lead.firstName,
       lastName: lead.lastName,
@@ -109,6 +110,7 @@ export const LeadDetailPage: React.FC = () => {
       ownerId: lead.ownerId,
       notes: lead.notes,
       productIds: currentProductIds,
+      adIds: currentAdIds,
     });
     setEditModalVisible(true);
   };
@@ -387,8 +389,18 @@ export const LeadDetailPage: React.FC = () => {
               </div>
               <div>
                 <span className="text-slate-400 font-medium block text-xs">Source</span>
-                <Tag>{lead.source}</Tag>
+                <Tag color={lead.source === 'FB_ADS' ? 'volcano' : 'blue'}>{lead.source}</Tag>
               </div>
+              {Boolean((lead as any).adIds && (lead as any).adIds.length > 0) && (
+                <div>
+                  <span className="text-slate-400 font-medium block text-xs">Facebook Ad IDs</span>
+                  <div className="flex flex-wrap gap-1 mt-1">
+                    {(lead as any).adIds.map((adId: string) => (
+                      <Tag key={adId} color="volcano" className="font-mono text-xs">📢 Ad: {adId}</Tag>
+                    ))}
+                  </div>
+                </div>
+              )}
               <div>
                 <span className="text-slate-400 font-medium block text-xs">Identity Status</span>
                 <Tag color={lead.identityResolutionStatus === 'POTENTIAL_DUPLICATE' ? 'orange' : 'green'}>
@@ -900,6 +912,20 @@ export const LeadDetailPage: React.FC = () => {
               </Select>
             </Form.Item>
           </div>
+
+          <Form.Item
+            name="adIds"
+            label="📢 Mã bài viết / Quảng cáo Facebook (Ad IDs)"
+            extra="Có thể có nhiều Ad ID (Phân cách bằng dấu phẩy hoặc phím Enter)"
+          >
+            <Select
+              mode="tags"
+              placeholder="Ví dụ: 120249966819330693, 120249966819330694"
+              tokenSeparators={[',', ' ']}
+              open={false}
+              allowClear
+            />
+          </Form.Item>
 
           <Form.Item name="productIds" label="🛒 Sản phẩm / Dịch vụ quan tâm (Chọn nhiều)">
             <Select

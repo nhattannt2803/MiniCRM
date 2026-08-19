@@ -55,6 +55,7 @@ export class LeadService {
           customer: { select: { id: true, customerCode: true, company: true, contact: true } },
           campaign: { select: { id: true, name: true } },
           products: { include: { product: true } },
+          ads: true,
         },
       }),
     ]);
@@ -68,6 +69,7 @@ export class LeadService {
         customerId: l.customerId?.toString(),
         campaignId: l.campaignId?.toString(),
         ownerId: l.ownerId?.toString(),
+        adIds: l.ads ? l.ads.map((a) => a.adId) : [],
         products: l.products
           ? l.products.map((lp) => ({
               ...lp,
@@ -100,6 +102,7 @@ export class LeadService {
         convertedOpportunity: true,
         convertedCustomer: true,
         products: { include: { product: true } },
+        ads: true,
         conversations: {
           orderBy: { updatedAt: 'desc' },
           include: { messages: { orderBy: { sentAt: 'desc' }, take: 1 } },
@@ -137,6 +140,7 @@ export class LeadService {
       ownerId: lead.ownerId?.toString(),
       fbPsid: fbPsidIdentity,
       smaxBizSlug: lead.smaxBizSlug || null,
+      adIds: lead.ads ? lead.ads.map((a) => a.adId) : [],
       customer: lead.customer
         ? {
             ...lead.customer,
@@ -335,6 +339,24 @@ export class LeadService {
         }
       }
 
+      // Attach ad_ids
+      const rawAdIds: string[] = [];
+      if (Array.isArray(data.adIds)) {
+        rawAdIds.push(...data.adIds.map((a: any) => String(a).trim()).filter(Boolean));
+      } else if (data.adId) {
+        const splitAds = String(data.adId).split(/[,;\s]+/).map((s) => s.trim()).filter(Boolean);
+        rawAdIds.push(...splitAds);
+      }
+      const uniqueAdIds = Array.from(new Set(rawAdIds));
+      for (const aId of uniqueAdIds) {
+        await tx.leadAd.create({
+          data: {
+            leadId: created.id,
+            adId: aId,
+          },
+        });
+      }
+
       // If customer assigned (matched or newly created), ensure identities are linked
       if (assignedCustomerId) {
         if (data.phone && data.phone.trim()) {
@@ -426,6 +448,26 @@ export class LeadService {
               leadId,
               productId: pId,
               isPrimary: i === 0,
+            },
+          });
+        }
+      }
+
+      if (data.adIds !== undefined || data.adId !== undefined) {
+        const rawAdIds: string[] = [];
+        if (Array.isArray(data.adIds)) {
+          rawAdIds.push(...data.adIds.map((a: any) => String(a).trim()).filter(Boolean));
+        } else if (data.adId) {
+          const splitAds = String(data.adId).split(/[,;\s]+/).map((s) => s.trim()).filter(Boolean);
+          rawAdIds.push(...splitAds);
+        }
+        const uniqueAdIds = Array.from(new Set(rawAdIds));
+        await tx.leadAd.deleteMany({ where: { leadId } });
+        for (const aId of uniqueAdIds) {
+          await tx.leadAd.create({
+            data: {
+              leadId,
+              adId: aId,
             },
           });
         }
@@ -564,12 +606,26 @@ export class LeadService {
         fbPsid = `fb_${cleanThreadId}`;
       }
 
+      const isAdsSource =
+        String(json.data?.source || '').toLowerCase().includes('ad') ||
+        String(json.data?.type || '').toLowerCase().includes('ad') ||
+        !!json.data?.facebook?.ad_id ||
+        !!json.data?.facebook?.facebook?.ad_id ||
+        !!json.data?.ad_id;
+
+      const rawAdId = json.data?.facebook?.ad_id || json.data?.facebook?.facebook?.ad_id || json.data?.ad_id || '';
+      const adId = rawAdId ? String(rawAdId).trim() : undefined;
+
+      const source = isAdsSource ? 'FB_ADS' : 'FACEBOOK';
+
       return {
         name,
         phone,
         fbPsid,
         smaxBizSlug: parsed.biz,
-        source: 'FACEBOOK',
+        source,
+        adId,
+        adIds: adId ? [adId] : [],
       };
     } catch (err: any) {
       if (err instanceof AppError) throw err;
