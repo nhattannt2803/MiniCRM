@@ -22,7 +22,9 @@ Tài liệu này đóng vai trò là **từ điển dữ liệu (Data Dictionary
 - **`users`**: Tài khoản người dùng hệ thống (`email`, `password_hash`, `first_name`, `last_name`, `phone`, `is_active`, `is_super_admin`).
 
 ### Group B: Core CRM Entities (Scoped by `biz_id`)
-- **`leads`**: Khách hàng tiềm năng ban đầu chưa qualify (`biz_id`, `status` = `NEW` | `CONTACTED` | `QUALIFIED` | `UNQUALIFIED` | `CONVERTED`, `smax_biz_slug`).
+- **`leads`**: Khách hàng tiềm năng ban đầu chưa qualify (`biz_id`, `status` = `NEW` | `CONTACTED` | `NURTURING` | `QUALIFIED` | `UNQUALIFIED` | `CONVERTED` | `LOST`, `smax_biz_slug`, `fb_page_id`, `fb_page_name`, `received_at`).
+- **`lead_products`**: Bảng liên kết nhiều sản phẩm/dịch vụ quan tâm cho Lead (`lead_id`, `product_id`, `is_primary`, `notes`).
+- **`lead_ads`**: Bảng ghi vết thuộc tính quảng cáo của Lead (`lead_id`, `ad_id`, `ad_name`, `adset_id`, `campaign_id`, `fb_page_id`, `source_type`). Unique constraint: `(lead_id, ad_id)`.
 - **`companies`**: Hồ sơ công ty/doanh nghiệp B2B (`biz_id`).
 - **`contacts`**: Người liên hệ cá nhân thuộc công ty hoặc B2C (`biz_id`).
 - **`customers`**: Hồ sơ Khách hàng chính thức (`biz_id`, `customer_code`). Unique constraint: `(biz_id, customer_code)`.
@@ -48,7 +50,7 @@ Tài liệu này đóng vai trò là **từ điển dữ liệu (Data Dictionary
 - **`automation_executions`** & **`automation_execution_logs`**: Nhật ký lịch sử chạy automation.
 - **`outbox_events`**: Transactional Outbox Queue (`biz_id`, `event_type`, `payload`, `status` = `PENDING` | `PROCESSED` | `FAILED`).
 - **`conversations`** & **`messages`**: Hội thoại & Tin nhắn tư vấn đa kênh Smax.ai (`biz_id`, `channel_type`, `channel_thread_id`, `smax_biz_slug`).
-- **`system_settings`**: Cấu hình hệ thống theo Doanh nghiệp (`biz_id`, `key` = `SMAX_API_TOKEN`, `value`). Unique constraint: `(biz_id, key)`.
+- **`system_settings`**: Cấu hình hệ thống theo Doanh nghiệp (`biz_id`, `key` = `SMAX_API_TOKEN` | `SMAX_WEBHOOK_KEY` | `DUPLICATE_LEAD_RULES`, `value`). Unique constraint: `(biz_id, key)`.
 
 ---
 
@@ -75,7 +77,7 @@ ORDER BY created_at DESC;
 
 | Enum Name | Possible Values | Descriptions |
 |---|---|---|
-| **LeadStatus** | `NEW`, `CONTACTED`, `QUALIFIED`, `UNQUALIFIED`, `CONVERTED`, `LOST` | Vòng đời của Lead |
+| **LeadStatus** | `NEW`, `CONTACTED`, `NURTURING`, `QUALIFIED`, `UNQUALIFIED`, `CONVERTED`, `LOST` | Vòng đời của Lead |
 | **LeadRating** | `HOT`, `WARM`, `COLD` | Mức độ tiềm năng |
 | **OpportunityStatus** | `OPEN`, `WON`, `LOST` | Nhóm trạng thái Deal |
 | **TaskStatus** | `TODO`, `IN_PROGRESS`, `COMPLETED`, `CANCELLED` | Trạng thái công việc (*Lưu ý: OVERDUE tính động!*) |

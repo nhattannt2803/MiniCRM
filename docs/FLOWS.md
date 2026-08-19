@@ -217,42 +217,82 @@ Luồng quản trị dành riêng cho Super Admin quản lý toàn bộ hệ th�
 
 ---
 
-## 8. Flow 8: Smax.ai Multichannel Chat Integration & Token Protection Flow
+## 8. Flow 8: Smax.ai Multichannel Chat Integration, Ad Attribution & Custom Date Flow
 
-Luồng xử lý trích xuất PSID, tự động hóa lấy lịch sử tin nhắn tư vấn và bảo vệ Token Smax.ai:
+Luồng xử lý trích xuất PSID, thuộc tính quảng cáo (`ad_id`, `fb_page_id`, `fb_page_name`), ngày nhận Lead tùy chỉnh (`receivedAt`), tự động hóa lấy lịch sử tin nhắn tư vấn và bảo vệ Token Smax.ai:
 
 ```text
-[User creates/views Lead with Smax URL]
+[User creates/views Lead with Smax URL or Ads metadata]
  (VD: https://smax.ai/bizs/xe-dien-move/chats/fb726248080568145?tid=fb25251628287812733)
           │
           ▼
-[LeadService.parseSmaxUrl] ➔ Extract: smaxBizSlug = "xe-dien-move", pageId = "fb726248080568145", threadId = "fb25251628287812733"
+[LeadService.parseSmaxUrl & parseAdsData] ➔ Extract: smaxBizSlug, pageId, pageName, threadId, adId
           │
-          ├── 1. Generate Clean PSID = "fb726248080568145_25251628287812733" (Stripping t_ / duplicate fb prefixes)
-          ├── 2. Save `smaxBizSlug` into `lead.smax_biz_slug` & `CustomerIdentity` (FB_PSID)
-          └── 3. Clean Smax Token in SystemSetting (Strip leading "Bearer " to avoid double "Bearer Bearer ...")
+          ├── 1. Generate Clean PSID = "fb726248080568145_25251628287812733"
+          ├── 2. Save `smaxBizSlug`, `fbPageId`, `fbPageName` into `lead` & `CustomerIdentity`
+          ├── 3. Upsert record into `lead_ads` table under (lead_id, ad_id)
+          ├── 4. Set `receivedAt` custom date option when creating lead
+          └── 5. Clean Smax Token in SystemSetting (Strip leading "Bearer " to avoid double "Bearer Bearer ...")
           │
           ▼
 [User opens "Hội thoại đa kênh" Tab in Lead Detail]
-          │ (Default tab on page load is Tasks 'tasks' to prevent API spam)
+          │ (Lazy load triggers handleFetchSmaxMessages)
           ▼
-[LeadDetailPage.tsx] (Lazy triggers handleFetchSmaxMessages)
-          │
-          ├── 1. Checks 15-Minute Cache (Redis & In-Memory Map)
-          ├── 2. If Cache Hit ➔ Return cached messages immediately (fromCache = true)
-          └── 3. If Cache Miss / User clicks "Làm mới (Clear Cache)"
-                  │
-                  ▼
-         [Call Smax Messages API Endpoint]
-         GET https://api.smax.ai/bizs/{smaxBizSlug}/pages/{pageId}/threads/{threadId}/messages?sort=-created_at&limit=20
-                  │
-                  ▼
-         [Format Chronological Messages & Return] ➔ Cache for 15 Minutes
+[LeadDetailPage.tsx] ➔ Checks 15-Minute Cache ➔ Calls Smax Messages API ➔ Formats Chronological Messages
 ```
 
 ---
 
-## 9. Key Files Index
+## 9. Flow 9: Multi-Product Lead Linkage & Filtering Flow
+
+Luồng liên kết nhiều sản phẩm/dịch vụ quan tâm vào Lead và hiển thị bộ lọc sản phẩm trên giao diện:
+
+```text
+[User creates/edits Lead or auto-fills Products]
+          │
+          ▼
+[LeadService.upsertLeadProducts(bizId, leadId, productIds)]
+          │
+          ├── 1. Create/Update records in `lead_products` table (`lead_id`, `product_id`, `is_primary`)
+          └── 2. Trigger Outbox Event `LEAD_PRODUCTS_UPDATED`
+          │
+          ▼
+[LeadListPage.tsx / MyLeadsPage.tsx]
+          │
+          ├── 1. Render "Sản phẩm quan tâm" column with Product Tags & Prices
+          ├── 2. Filter Leads by Product ID dropdown parameter
+          └── 3. Support status filter including 'NURTURING'
+```
+
+---
+
+## 10. Flow 10: Lead Qualification & Opportunity Pipeline Selection Flow
+
+Luồng xác nhận Lead đạt chất lượng (`QUALIFIED`) và chọn quy trình bán hàng (Sales Pipeline) & Stage tương ứng:
+
+```text
+[User clicks "Chuyển thành Qualified Lead" / "Chuyển đổi Lead"]
+          │
+          ▼
+[Modal: Select Sales Pipeline & Stage]
+          │ (Fetch active pipelines & pipeline_stages for current biz)
+          ▼
+[User selects target Pipeline & Stage ➔ Submit]
+          │
+          ▼
+[HTTP POST /api/leads/:id/convert] (Payload: pipelineId, stageId)
+          │
+          ▼
+[LeadConversionService.convertLead(bizId, leadId, { pipelineId, stageId })]
+          │
+          ├── 1. Create Opportunity under selected `pipelineId` and `stageId`
+          ├── 2. Copy linked products from `lead_products` to `opportunity_products`
+          └── 3. Mark Lead as `QUALIFIED` / `CONVERTED`
+```
+
+---
+
+## 11. Key Files Index
 
 - Auth & Tenant Middleware: [tenantMiddleware.ts](file:///Volumes/ChanCuu/Projects/MiniCRM/server/src/middleware/tenantMiddleware.ts), [authMiddleware.ts](file:///Volumes/ChanCuu/Projects/MiniCRM/server/src/middleware/authMiddleware.ts)
 - Business Service: [BusinessService.ts](file:///Volumes/ChanCuu/Projects/MiniCRM/server/src/services/BusinessService.ts)
@@ -260,6 +300,7 @@ Luồng xử lý trích xuất PSID, tự động hóa lấy lịch sử tin nh�
 - User Service: [UserService.ts](file:///Volumes/ChanCuu/Projects/MiniCRM/server/src/services/UserService.ts)
 - System Setting & Smax Token Service: [SystemSettingService.ts](file:///Volumes/ChanCuu/Projects/MiniCRM/server/src/services/SystemSettingService.ts)
 - Lead & Smax Integration Service: [LeadService.ts](file:///Volumes/ChanCuu/Projects/MiniCRM/server/src/services/LeadService.ts)
+- Lead Conversion Service: [LeadConversionService.ts](file:///Volumes/ChanCuu/Projects/MiniCRM/server/src/services/LeadConversionService.ts)
 - Standalone System Layout: [SystemLayout.tsx](file:///Volumes/ChanCuu/Projects/MiniCRM/client/src/layouts/SystemLayout.tsx)
 - System Businesses Management: [SystemBusinessesPage.tsx](file:///Volumes/ChanCuu/Projects/MiniCRM/client/src/features/businesses/SystemBusinessesPage.tsx)
 - Secret Register Page: [RegisterPage.tsx](file:///Volumes/ChanCuu/Projects/MiniCRM/client/src/features/auth/RegisterPage.tsx)

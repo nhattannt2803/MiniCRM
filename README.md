@@ -38,8 +38,9 @@ React 18 + Tailwind CSS + Ant Design + Vite
 4. **Smart Navigation & Fallback (`/no-business`):** Users who register without business membership see a friendly landing page advising them to request an invitation from a Business Admin.
 5. **Standalone System Admin Console (`/system/users` & `/system/businesses`):** Independent administration layout (`SystemLayout.tsx`) for Super Admins to manage all users and create/toggle active status for all platform businesses.
 6. **Drag-and-Drop Kanban Board:** Interactive deal pipeline stage transition with optimistic UI updates.
-7. **Atomic Lead Conversion:** Converts qualified leads to Companies, Contacts, and Opportunities in a single database transaction.
+7. **Atomic Lead Conversion:** Converts qualified leads to Companies, Contacts, and Opportunities in a single database transaction with configurable Pipeline and Stage selection.
 8. **Metadata-Driven Automation Engine:** Event-driven workflow rules executed asynchronously via BullMQ and Redis.
+9. **Smax.ai Multichannel Integration & Ad Attribution:** Automatic PSID resolution, embedded chat conversation tab with 15-minute caching, ad attribution tracking (`ad_id`, `fb_page_id`), multi-product linkage (`lead_products`), custom `receivedAt` date, and `NURTURING` status support.
 
 ---
 

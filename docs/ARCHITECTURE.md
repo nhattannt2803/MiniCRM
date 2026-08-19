@@ -99,7 +99,8 @@ Lead (Tiềm năng) ──► Qualification ──► Opportunity (Cơ hội) �
 
 ```text
 users (isSuperAdmin) ──┬──< business_members >── businesses (plan, status, slug)
-                       ├──< leads (owner)
+                       ├──< leads (owner) ──┬──< lead_products >── products (biz_id)
+                       │                    └──< lead_ads (ad_id, campaign_id)
                        ├──< companies (owner)
                        ├──< contacts (owner)
                        ├──< customers (owner)
@@ -118,6 +119,8 @@ businesses (biz_id) ──┬──< roles (biz_id, code)
                       │                             ├──< opportunity_products >── products (biz_id)
                       │                             └──< quotes (biz_id) ──< quote_items
                       ├──< automations (biz_id)
+                      ├──< system_settings (biz_id, key)
+                      ├──< conversations (biz_id, smax_biz_slug) ──< messages
                       ├──< activities (biz_id, polymorphic)
                       ├──< tasks (biz_id, polymorphic)
                       └──< outbox_events (biz_id) ──► Redis/BullMQ ──► Automation Worker
@@ -132,3 +135,4 @@ businesses (biz_id) ──┬──< roles (biz_id, code)
 3. **IAM Scoping:** Vai trò (`Role`) được scope per-tenant (`biz_id, code`), trong khi `isSuperAdmin` thuộc cấp Platform User.
 4. **Dynamic Tenant Slug Routing:** Tiền tố `/:bizSlug/` ở tất cả CRM routes kết hợp với `switchBizBySlug`.
 5. **Standalone Admin Layout:** `SystemLayout.tsx` tách biệt hoàn toàn khỏi tenant context với 2 trang `/system/users` và `/system/businesses`.
+6. **Multichannel & Smax.ai Integration:** Tự động định danh PSID, lưu giữ vết quảng cáo (`lead_ads`), liên kết đa sản phẩm (`lead_products`), và cache hội thoại 15 phút.

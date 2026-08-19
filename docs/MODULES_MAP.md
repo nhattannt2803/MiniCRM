@@ -24,8 +24,8 @@ server/src/
 │   ├── BusinessService.ts    # Quản lý Doanh nghiệp (Tạo Biz, gán Admin chủ sở hữu, toggle ACTIVE/INACTIVE)
 │   ├── AuthService.ts        # Logic đăng ký tài khoản nhanh, đăng nhập, lấy thông tin me
 │   ├── UserService.ts        # Logic quản lý tài khoản nhân viên & Super Admin hệ thống
-│   ├── LeadService.ts        # Business logic Lead & Identity resolution
-│   ├── LeadConversionService.ts # Chuyển đổi Lead ➔ Opportunity trong atomic transaction
+│   ├── LeadService.ts        # Business logic Lead, Identity resolution, LeadProduct, LeadAd & Smax URL parser
+│   ├── LeadConversionService.ts # Chuyển đổi Lead ➔ Opportunity trong atomic transaction (hỗ trợ chọn Pipeline & Stage)
 │   ├── OpportunityService.ts # Business logic Deal & ghi vết Stage History
 │   ├── PipelineService.ts    # Quản lý Pipeline, Stage & Danh mục sản phẩm
 │   ├── QuoteService.ts       # Báo giá & Chi tiết báo giá
@@ -33,10 +33,10 @@ server/src/
 │   ├── ContactService.ts     # CRUD Người liên hệ
 │   ├── CustomerService.ts    # Quản lý Hồ sơ Khách hàng (Derived Customers)
 │   ├── IdentityResolutionService.ts # Xử lý trùng lặp nhận dạng khách hàng
-│   ├── ConversationService.ts # Hội thoại & Tin nhắn tư vấn đa kênh
+│   ├── ConversationService.ts # Hội thoại & Tin nhắn tư vấn đa kênh Smax.ai
 │   ├── ActivityService.ts    # Nhật ký tương tác Polymorphic & Công việc (Tasks, Campaigns)
 │   ├── DashboardService.ts   # Thống kê KPIs, Phễu bán hàng (Funnel), Pipeline
-│   ├── SystemSettingService.ts # Cấu hình quy tắc trùng lặp lead theo tenant
+│   ├── SystemSettingService.ts # Cấu hình hệ thống theo Biz (Smax API Token, quy tắc trùng lặp)
 │   └── seedEngine.ts         # Engine nạp dữ liệu mẫu Multi-Biz cho các ngành demo
 │
 ├── automation/               # Core Event-Driven Automation Engine
@@ -72,7 +72,7 @@ client/src/
 │   ├── auth/                 # Form đăng nhập (LoginPage), Đăng ký (RegisterPage), Chờ Biz (NoBusinessPage)
 │   ├── users/                # Quản lý nhân viên (UsersListPage), System Users Admin (SystemUsersPage)
 │   ├── businesses/           # Quản lý Doanh nghiệp hệ thống cho Super Admin (SystemBusinessesPage)
-│   ├── leads/                # Danh sách Lead, Modal chuyển đổi Lead, Lead Detail, Cấp phát Lead
+│   ├── leads/                # LeadListPage, MyLeadsPage, LeadDetailPage (Smax Frame, Ad & Products tab), QuickCreateLeadModal
 │   ├── opportunities/        # Bảng kéo thả Kanban Board, Table View, Stage Progress
 │   ├── companies/            # Danh sách & Detail Công ty
 │   ├── contacts/             # Danh sách & Detail Người liên hệ
