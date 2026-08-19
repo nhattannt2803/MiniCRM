@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Table, Button, Input, Select, Tag, Drawer, Form, Popconfirm, notification, Alert, Space, Radio, DatePicker, Tooltip } from 'antd';
+import { Table, Button, Input, Select, Tag, Drawer, Form, Popconfirm, notification, Alert, Space, Radio, DatePicker, Tooltip, Popover } from 'antd';
 import { PlusOutlined, SearchOutlined, EyeOutlined, EditOutlined, SwapOutlined, DeleteOutlined, WarningOutlined, CheckCircleOutlined } from '@ant-design/icons';
 import { useBizNavigate } from '../../hooks/useBizNavigate';
 import { useTranslation } from 'react-i18next';
@@ -9,6 +9,95 @@ import { Lead, User } from '../../types';
 import { LeadConvertModal } from './LeadConvertModal';
 import { useSettingsStore } from '../../stores/settingsStore';
 import { parseFbPsidInput, parseZaloUidInput } from '../../utils/identityHelper';
+
+const QuickProductSelector: React.FC<{ record: Lead; products: any[]; onUpdated: () => void }> = ({ record, products, onUpdated }) => {
+  const currentProductIds = (record as any).products ? (record as any).products.map((p: any) => p.productId) : [];
+  const [selectedIds, setSelectedIds] = useState<(string | number)[]>(currentProductIds);
+  const [loading, setLoading] = useState(false);
+  const [popoverOpen, setPopoverOpen] = useState(false);
+
+  useEffect(() => {
+    const freshProductIds = (record as any).products ? (record as any).products.map((p: any) => p.productId) : [];
+    setSelectedIds(freshProductIds);
+  }, [record]);
+
+  const handleSave = async () => {
+    setLoading(true);
+    try {
+      await crmService.updateLead(record.id, { productIds: selectedIds });
+      notification.success({ message: 'Đã cập nhật sản phẩm cho Lead!' });
+      setPopoverOpen(false);
+      onUpdated();
+    } catch (err: any) {
+      notification.error({ message: 'Cập nhật sản phẩm thất bại', description: err.message });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const content = (
+    <div className="p-2 space-y-3 w-80">
+      <div className="text-xs font-bold text-slate-800 flex items-center justify-between">
+        <span>🛒 Thêm / Chọn sản phẩm quan tâm</span>
+      </div>
+      <Select
+        mode="multiple"
+        className="w-full"
+        placeholder="Chọn các sản phẩm..."
+        value={selectedIds}
+        onChange={setSelectedIds}
+        optionFilterProp="children"
+        allowClear
+      >
+        {products.map((p) => (
+          <Select.Option key={p.id} value={p.id}>
+            📦 {p.name} ({p.code})
+          </Select.Option>
+        ))}
+      </Select>
+      <div className="flex justify-end gap-2 pt-1">
+        <Button size="small" onClick={() => setPopoverOpen(false)}>Hủy</Button>
+        <Button size="small" type="primary" loading={loading} onClick={handleSave} className="bg-indigo-600">
+          Lưu thay đổi
+        </Button>
+      </div>
+    </div>
+  );
+
+  const prods = (record as any).products || [];
+
+  return (
+    <div className="flex items-center gap-1.5 flex-wrap max-w-[220px]">
+      {prods.length > 0 ? (
+        prods.map((p: any) => (
+          <Tag key={p.id} color={p.isPrimary ? 'purple' : 'blue'} className="text-[11px] font-medium">
+            📦 {p.product?.name || p.productId} {p.isPrimary ? '★' : ''}
+          </Tag>
+        ))
+      ) : (
+        <span className="text-slate-400 text-xs italic">Chưa có sản phẩm</span>
+      )}
+      <Popover
+        content={content}
+        title={null}
+        trigger="click"
+        open={popoverOpen}
+        onOpenChange={setPopoverOpen}
+        placement="bottomLeft"
+      >
+        <Button
+          type="dashed"
+          size="small"
+          icon={<PlusOutlined />}
+          className="text-xs text-indigo-600 border-indigo-200 hover:border-indigo-500 h-6 px-1.5 rounded"
+          title="Thêm/Sửa sản phẩm trực tiếp"
+        >
+          {prods.length === 0 ? 'Thêm SP' : ''}
+        </Button>
+      </Popover>
+    </div>
+  );
+};
 
 export const LeadListPage: React.FC = () => {
   const { defaultEntityType } = useSettingsStore();
@@ -48,20 +137,27 @@ export const LeadListPage: React.FC = () => {
     try {
       const res: any = await crmService.fetchSmaxThread(trimmed);
       if (res.success && res.data) {
-        const { name, phone, fbPsid } = res.data;
+        const { name, phone, fbPsid, fbPageId, fbPageName, source, adId, adIds } = res.data;
         const currentPhone = form.getFieldValue('phone');
         const currentFbPsid = form.getFieldValue('fbPsid');
+        const currentAdIds = form.getFieldValue('adIds') || [];
+
+        const extractedAds = adIds || (adId ? [adId] : []);
+        const mergedAdIds = Array.from(new Set([...currentAdIds, ...extractedAds]));
 
         form.setFieldsValue({
           firstName: name || form.getFieldValue('firstName'),
           phone: phone || currentPhone,
           fbPsid: fbPsid || currentFbPsid,
-          source: 'FACEBOOK',
+          fbPageId: fbPageId || form.getFieldValue('fbPageId'),
+          fbPageName: fbPageName || form.getFieldValue('fbPageName'),
+          source: source || (extractedAds.length > 0 ? 'FB_ADS' : 'FACEBOOK'),
+          adIds: mergedAdIds,
         });
 
         notification.success({
           message: 'Đã tự động lấy thông tin từ Smax.ai!',
-          description: `Tên: ${name || '—'} | SĐT: ${phone || '—'} | PSID: ${fbPsid || '—'}`,
+          description: `Tên: ${name || '—'} | SĐT: ${phone || '—'} | PSID: ${fbPsid || '—'}${fbPageName ? ` | Page: ${fbPageName}` : ''}${extractedAds.length > 0 ? ` | Ad ID: ${extractedAds.join(', ')}` : ''}`,
         });
 
         setTimeout(() => {
@@ -137,14 +233,17 @@ export const LeadListPage: React.FC = () => {
     const firstName = form.getFieldValue('firstName') || '';
     const lastName = form.getFieldValue('lastName') || '';
 
-    // Auto select Lead Source based on which identity field was filled first
+    // Auto select Lead Source based on which identity field was filled first (unless already FB_ADS)
+    const currentSource = form.getFieldValue('source');
     const hasFb = Boolean(fbPsid && fbPsid.trim());
     const hasZalo = Boolean(zaloUid && zaloUid.trim());
 
-    if (hasFb && !hasZalo) {
-      form.setFieldsValue({ source: 'FACEBOOK' });
-    } else if (hasZalo && !hasFb) {
-      form.setFieldsValue({ source: 'ZALO' });
+    if (currentSource !== 'FB_ADS' && currentSource !== 'FACEBOOK_ADS') {
+      if (hasFb && !hasZalo) {
+        form.setFieldsValue({ source: 'FACEBOOK' });
+      } else if (hasZalo && !hasFb) {
+        form.setFieldsValue({ source: 'ZALO' });
+      }
     }
 
     if (
@@ -332,9 +431,25 @@ export const LeadListPage: React.FC = () => {
     },
     {
       title: t('leads.source'),
-      dataIndex: 'source',
       key: 'source',
-      render: (source: string) => <Tag>{source}</Tag>,
+      render: (_: any, record: Lead) => {
+        const source = record.source;
+        const fbPageName = (record as any).fbPageName;
+        const isFacebook = source === 'FACEBOOK' || source === 'FB_ADS';
+        return (
+          <div className="space-y-0.5">
+            <Tag color={source === 'FB_ADS' ? 'volcano' : source === 'FACEBOOK' ? 'blue' : 'default'}>
+              {source === 'FB_ADS' ? '📢 FB Ads' : source === 'FACEBOOK' ? '📘 Facebook' : source}
+            </Tag>
+            {isFacebook && fbPageName && (
+              <div className="text-[11px] text-slate-500 font-medium flex items-center gap-1 max-w-[160px]" title={fbPageName}>
+                <span>🚩</span>
+                <span className="truncate">{fbPageName}</span>
+              </div>
+            )}
+          </div>
+        );
+      },
     },
     {
       title: t('common.status'),
@@ -345,19 +460,9 @@ export const LeadListPage: React.FC = () => {
     {
       title: 'Sản phẩm quan tâm',
       key: 'products',
-      render: (_: any, record: Lead) => {
-        const prods = (record as any).products || [];
-        if (prods.length === 0) return <span className="text-slate-400 text-xs italic">—</span>;
-        return (
-          <div className="flex flex-wrap gap-1 max-w-[200px]">
-            {prods.map((p: any) => (
-              <Tag key={p.id} color={p.isPrimary ? 'purple' : 'blue'} className="text-[11px] font-medium">
-                📦 {p.product?.name || p.productId} {p.isPrimary ? '★' : ''}
-              </Tag>
-            ))}
-          </div>
-        );
-      },
+      render: (_: any, record: Lead) => (
+        <QuickProductSelector record={record} products={products} onUpdated={fetchLeads} />
+      ),
     },
     {
       title: 'Đánh giá',
