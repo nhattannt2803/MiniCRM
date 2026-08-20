@@ -154,7 +154,7 @@ export const MainLayout: React.FC = () => {
         { key: `/${currentBizSlug}/overview/manager`, icon: <ClusterOutlined />, label: t('nav.managerOverview') },
       ],
     },
-    { key: `/${currentBizSlug}/dashboard`, icon: <DashboardOutlined />, label: t('nav.dashboard') },
+    // { key: `/${currentBizSlug}/dashboard`, icon: <DashboardOutlined />, label: t('nav.dashboard') },
     {
       key: 'leads-group',
       icon: <UsergroupAddOutlined />,
@@ -162,34 +162,44 @@ export const MainLayout: React.FC = () => {
       children: [
         { key: `/${currentBizSlug}/leads/my`, icon: <UserOutlined />, label: t('nav.myLeads') },
         { key: `/${currentBizSlug}/leads/allocation`, icon: <ShareAltOutlined />, label: t('nav.leadAllocation') },
-        { key: `/${currentBizSlug}/leads/events`, icon: <HistoryOutlined />, label: 'Sự kiện tạo Lead' },
         { key: `/${currentBizSlug}/leads`, icon: <TeamOutlined />, label: t('nav.allLeads') },
       ],
     },
     { key: `/${currentBizSlug}/tasks`, icon: <CheckSquareOutlined />, label: t('nav.tasks') },
     { key: `/${currentBizSlug}/opportunities`, icon: <DollarOutlined />, label: t('nav.opportunities') },
-    { key: `/${currentBizSlug}/companies`, icon: <BankOutlined />, label: t('nav.companies') },
-    { key: `/${currentBizSlug}/contacts`, icon: <ContactsOutlined />, label: t('nav.contacts') },
-    { key: `/${currentBizSlug}/customers`, icon: <SolutionOutlined />, label: t('nav.customers') },
-    { key: `/${currentBizSlug}/products`, icon: <AppstoreOutlined />, label: t('nav.products') },
-    { key: `/${currentBizSlug}/quotes`, icon: <FileTextOutlined />, label: t('nav.quotes') },
-    { key: `/${currentBizSlug}/activities`, icon: <ClockCircleOutlined />, label: t('nav.activities') },
-    { key: `/${currentBizSlug}/automations`, icon: <RobotOutlined />, label: t('nav.automations') },
+    {
+      key: 'customers-group',
+      icon: <SolutionOutlined />,
+      label: t('nav.customers'),
+      onTitleClick: () => navigate(`/${currentBizSlug}/customers`),
+      children: [
+        { key: `/${currentBizSlug}/customers`, icon: <SolutionOutlined />, label: t('nav.customersList') },
+        { key: `/${currentBizSlug}/companies`, icon: <BankOutlined />, label: t('nav.companies') },
+        { key: `/${currentBizSlug}/contacts`, icon: <ContactsOutlined />, label: t('nav.contacts') },
+      ],
+    },
+
+
     {
       key: 'system-group',
       icon: <SafetyCertificateOutlined />,
       label: t('nav.systemManagement'),
       children: [
+        { key: `/${currentBizSlug}/products`, icon: <AppstoreOutlined />, label: t('nav.products') },
         { key: `/${currentBizSlug}/staff`, icon: <IdcardOutlined />, label: t('nav.staff') },
-        { key: `/${currentBizSlug}/users`, icon: <UserSwitchOutlined />, label: t('nav.users') },
-        ...(user?.isSuperAdmin ? [{ key: '/system/users', icon: <SafetyCertificateOutlined />, label: 'Tài Khoản Hệ Thống' }] : []),
         { key: `/${currentBizSlug}/teams`, icon: <ClusterOutlined />, label: t('nav.teams') },
         { key: `/${currentBizSlug}/roles`, icon: <LockOutlined />, label: t('nav.roles') },
+        { key: `/${currentBizSlug}/leads/events`, icon: <HistoryOutlined />, label: 'Sự kiện tạo Lead' },
+        { key: `/${currentBizSlug}/settings`, icon: <SettingOutlined />, label: t('nav.settings') },
+        { key: `/${currentBizSlug}/automations`, icon: <RobotOutlined />, label: t('nav.automations') },
+        { key: `/${currentBizSlug}/activities`, icon: <ClockCircleOutlined />, label: t('nav.activities') },
+        { key: `/${currentBizSlug}/quotes`, icon: <FileTextOutlined />, label: t('nav.quotes') },
+        { key: `/${currentBizSlug}/api-keys`, icon: <KeyOutlined />, label: '🔑 API Keys / Webhook' },
+        { key: `/${currentBizSlug}/product-mappings`, icon: <LinkOutlined />, label: '📦 Mapping Sản Phẩm' },
+        { key: `/${currentBizSlug}/users`, icon: <UserSwitchOutlined />, label: t('nav.users') },
+        ...(user?.isSuperAdmin ? [{ key: '/system/users', icon: <SafetyCertificateOutlined />, label: 'Tài Khoản Hệ Thống' }] : []),
       ],
     },
-    { key: `/${currentBizSlug}/api-keys`, icon: <KeyOutlined />, label: '🔑 API Keys / Webhook' },
-    { key: `/${currentBizSlug}/product-mappings`, icon: <LinkOutlined />, label: '📦 Mapping Sản Phẩm' },
-    { key: `/${currentBizSlug}/settings`, icon: <SettingOutlined />, label: t('nav.settings') },
   ];
 
   const notificationContent = (
@@ -268,7 +278,6 @@ export const MainLayout: React.FC = () => {
         <Menu
           mode="inline"
           selectedKeys={[location.pathname]}
-          defaultOpenKeys={['overview-group', 'leads-group', 'system-group']}
           items={menuItems}
           onClick={({ key }) => navigate(key)}
           className="border-none py-2 text-sm font-medium"
