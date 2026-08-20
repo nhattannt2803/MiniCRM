@@ -438,6 +438,54 @@ export const MainLayout: React.FC = () => {
                     </div>
                   </Tooltip>
 
+                  <Tooltip title={collapsed ? '📦 Mapping Sản Phẩm' : undefined} placement="right">
+                    <div
+                      onClick={() => navigate(`/${currentBizSlug}/product-mappings`)}
+                      className={`flex items-center rounded-lg text-xs font-medium cursor-pointer ${collapsed ? 'justify-center py-2' : 'gap-2.5 px-3 py-2'
+                        } ${location.pathname.includes('/product-mappings') ? 'bg-[#2853b8] text-white' : 'text-blue-100/80 hover:bg-[#1f4598]'
+                        }`}
+                    >
+                      <LinkOutlined className="text-sm" />
+                      {!collapsed && <span>📦 Mapping Sản Phẩm</span>}
+                    </div>
+                  </Tooltip>
+
+                  <Tooltip title={collapsed ? t('nav.leadEvents') : undefined} placement="right">
+                    <div
+                      onClick={() => navigate(`/${currentBizSlug}/leads/events`)}
+                      className={`flex items-center rounded-lg text-xs font-medium cursor-pointer ${collapsed ? 'justify-center py-2' : 'gap-2.5 px-3 py-2'
+                        } ${location.pathname.includes('/leads/events') ? 'bg-[#2853b8] text-white' : 'text-blue-100/80 hover:bg-[#1f4598]'
+                        }`}
+                    >
+                      <HistoryOutlined className="text-sm" />
+                      {!collapsed && <span>{t('nav.leadEvents')}</span>}
+                    </div>
+                  </Tooltip>
+
+                  <Tooltip title={collapsed ? t('nav.activities') : undefined} placement="right">
+                    <div
+                      onClick={() => navigate(`/${currentBizSlug}/activities`)}
+                      className={`flex items-center rounded-lg text-xs font-medium cursor-pointer ${collapsed ? 'justify-center py-2' : 'gap-2.5 px-3 py-2'
+                        } ${location.pathname.includes('/activities') ? 'bg-[#2853b8] text-white' : 'text-blue-100/80 hover:bg-[#1f4598]'
+                        }`}
+                    >
+                      <ClockCircleOutlined className="text-sm" />
+                      {!collapsed && <span>{t('nav.activities')}</span>}
+                    </div>
+                  </Tooltip>
+
+                  <Tooltip title={collapsed ? t('nav.users') : undefined} placement="right">
+                    <div
+                      onClick={() => navigate(`/${currentBizSlug}/users`)}
+                      className={`flex items-center rounded-lg text-xs font-medium cursor-pointer ${collapsed ? 'justify-center py-2' : 'gap-2.5 px-3 py-2'
+                        } ${location.pathname.includes('/users') && !location.pathname.startsWith('/system') ? 'bg-[#2853b8] text-white' : 'text-blue-100/80 hover:bg-[#1f4598]'
+                        }`}
+                    >
+                      <UserSwitchOutlined className="text-sm" />
+                      {!collapsed && <span>{t('nav.users')}</span>}
+                    </div>
+                  </Tooltip>
+
                   {user?.isSuperAdmin && (
                     <Tooltip title={collapsed ? 'System Admin' : undefined} placement="right">
                       <div
