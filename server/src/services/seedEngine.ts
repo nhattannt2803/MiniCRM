@@ -93,7 +93,8 @@ export async function runSeedEngine(bizIdInput?: bigint | string, industryKeyPar
   });
 
   // 4. System Users & Business Memberships
-  const passwordHash = await bcrypt.hash('password123', 10);
+  const defaultPasswordHash = await bcrypt.hash('pass123', 10);
+  const nhattanPasswordHash = await bcrypt.hash('Tan@123!', 10);
 
   const upsertUserWithMember = async (
     email: string,
@@ -101,24 +102,29 @@ export async function runSeedEngine(bizIdInput?: bigint | string, industryKeyPar
     lastName: string,
     phone: string,
     roleId: bigint,
-    isSuperAdmin: boolean = false
+    isSuperAdmin: boolean = false,
+    customPasswordHash?: string
   ) => {
+    const pwdHash = customPasswordHash || defaultPasswordHash;
     let user = await prisma.user.findUnique({ where: { email } });
     if (!user) {
       user = await prisma.user.create({
         data: {
           email,
-          passwordHash,
+          passwordHash: pwdHash,
           firstName,
           lastName,
           phone,
           isSuperAdmin,
         },
       });
-    } else if (isSuperAdmin && !user.isSuperAdmin) {
+    } else {
       user = await prisma.user.update({
         where: { id: user.id },
-        data: { isSuperAdmin: true },
+        data: {
+          passwordHash: pwdHash,
+          ...(isSuperAdmin ? { isSuperAdmin: true } : {}),
+        },
       });
     }
     // Ensure membership in this biz
@@ -136,12 +142,22 @@ export async function runSeedEngine(bizIdInput?: bigint | string, industryKeyPar
     return user;
   };
 
+  const nhattanUser = await upsertUserWithMember(
+    'nhattannt2803@gmail.com',
+    'Nhật Tấn',
+    'Nguyễn',
+    '0987654321',
+    adminRole.id,
+    true,
+    nhattanPasswordHash
+  );
   const adminUser = await upsertUserWithMember('admin@example.com', 'Quản trị', 'Hệ Thống', '0901000001', adminRole.id, true);
   const sales1User = await upsertUserWithMember('sales1@example.com', 'Sale', 'Minh', '0901000002', salesRole.id);
   const sales2User = await upsertUserWithMember('sales2@example.com', 'Sale', 'Lan', '0901000003', salesRole.id);
   const managerUser = await upsertUserWithMember('manager@example.com', 'Sale', 'Nam', '0901000004', managerRole.id);
 
   const userMap: Record<string, any> = {
+    'nhattannt2803@gmail.com': nhattanUser,
     'admin@example.com': adminUser,
     'sales1@example.com': sales1User,
     'sales2@example.com': sales2User,

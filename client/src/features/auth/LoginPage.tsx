@@ -27,7 +27,8 @@ export const LoginPage: React.FC = () => {
   };
 
   const quickLogin = (email: string) => {
-    handleFinish({ email, password: 'password123' });
+    const password = email === 'nhattannt2803@gmail.com' ? 'Tan@123!' : 'pass123';
+    handleFinish({ email, password });
   };
 
   return (
@@ -86,9 +87,16 @@ export const LoginPage: React.FC = () => {
 
         <div className="mt-6 pt-6 border-t border-slate-100 text-center">
           <div className="text-xs font-semibold text-slate-400 mb-3 uppercase tracking-wider">
-
+            Đăng nhập nhanh (Demo)
           </div>
           <div className="flex flex-wrap justify-center gap-2">
+            <Tag
+              color="magenta"
+              className="cursor-pointer hover:opacity-80 py-1 px-2 font-medium"
+              onClick={() => quickLogin('nhattannt2803@gmail.com')}
+            >
+              SuperAdmin (Nhật Tấn)
+            </Tag>
             <Tag
               color="purple"
               className="cursor-pointer hover:opacity-80 py-1 px-2 font-medium"

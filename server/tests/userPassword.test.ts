@@ -10,7 +10,7 @@ describe('Admin Change Employee Password API & Service', () => {
     try {
       const loginRes = await request(app)
         .post('/api/auth/login')
-        .send({ email: 'admin@example.com', password: 'password123' });
+        .send({ email: 'admin@example.com', password: 'pass123' });
       
       if (loginRes.status === 200 && loginRes.body?.data?.token) {
         authToken = loginRes.body.data.token;

@@ -84,10 +84,11 @@ Open [http://localhost:5173](http://localhost:5173) in your browser.
 
 | Role | Email | Password | Description |
 |---|---|---|---|
-| **Super Admin** | `admin@example.com` | `password123` | Platform-wide administrative control & Business #1 Admin |
-| **Sales Executive 1** | `sales1@example.com` | `password123` | Manages leads, deals, tasks in Business #1 |
-| **Sales Executive 2** | `sales2@example.com` | `password123` | Manages pipeline opportunities in Business #1 |
-| **Sales Manager** | `manager@example.com` | `password123` | Pipeline performance & rules in Business #1 |
+| **Super Admin & Biz Admin** | `nhattannt2803@gmail.com` | `Tan@123!` | System Super Admin & Business #1 Admin |
+| **System Admin** | `admin@example.com` | `pass123` | Platform-wide administrative control & Business #1 Admin |
+| **Sales Executive 1** | `sales1@example.com` | `pass123` | Manages leads, deals, tasks in Business #1 |
+| **Sales Executive 2** | `sales2@example.com` | `pass123` | Manages pipeline opportunities in Business #1 |
+| **Sales Manager** | `manager@example.com` | `pass123` | Pipeline performance & rules in Business #1 |
 
 ---
 
