@@ -200,7 +200,7 @@ export const LeadListPage: React.FC = () => {
     try {
       const res: any = await crmService.fetchSmaxThread(trimmed);
       if (res.success && res.data) {
-        const { name, phone, fbPsid, fbPageId, fbPageName, source, adId, adIds } = res.data;
+        const { name, phone, fbPsid, fbPageId, fbPageName, smaxBizSlug, source, adId, adIds } = res.data;
         const currentPhone = form.getFieldValue('phone');
         const currentFbPsid = form.getFieldValue('fbPsid');
         const currentAdIds = form.getFieldValue('adIds') || [];
@@ -214,6 +214,7 @@ export const LeadListPage: React.FC = () => {
           fbPsid: fbPsid || currentFbPsid,
           fbPageId: fbPageId || form.getFieldValue('fbPageId'),
           fbPageName: fbPageName || form.getFieldValue('fbPageName'),
+          smaxBizSlug: smaxBizSlug || form.getFieldValue('smaxBizSlug'),
           source: source || (extractedAds.length > 0 ? 'FB_ADS' : 'FACEBOOK'),
           adIds: mergedAdIds,
         });

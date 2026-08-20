@@ -1,11 +1,12 @@
-import React from 'react';
-import { Card, Tag, Alert, Radio, Typography } from 'antd';
-import { GlobalOutlined, UserOutlined } from '@ant-design/icons';
+import React, { useEffect, useState } from 'react';
+import { Card, Tag, Alert, Radio, Typography, Input, Button, message } from 'antd';
+import { GlobalOutlined, UserOutlined, LinkOutlined, SaveOutlined } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '../../stores/authStore';
 import { useSettingsStore } from '../../stores/settingsStore';
 import { LeadDuplicateSettingsCard } from './LeadDuplicateSettingsCard';
 import { ApiKeySettingsCard } from './ApiKeySettingsCard';
+import { crmService } from '../../services/crmService';
 
 const { Title, Text } = Typography;
 
@@ -13,6 +14,35 @@ export const SettingsPage: React.FC = () => {
   const { t, i18n } = useTranslation();
   const { user } = useAuthStore();
   const { defaultEntityType, setDefaultEntityType } = useSettingsStore();
+
+  // Smax.ai Biz Slug setting
+  const [smaxBizSlug, setSmaxBizSlug] = useState('');
+  const [savingSlug, setSavingSlug] = useState(false);
+
+  useEffect(() => {
+    crmService.getSmaxBizSlug().then((res: any) => {
+      if (res.success && res.data?.slug) setSmaxBizSlug(res.data.slug);
+    }).catch(() => {});
+  }, []);
+
+  const handleSaveSmaxBizSlug = async () => {
+    if (!smaxBizSlug.trim()) {
+      message.warning('Vui lòng nhập Smax.ai Business Slug');
+      return;
+    }
+    setSavingSlug(true);
+    try {
+      const res: any = await crmService.updateSmaxBizSlug(smaxBizSlug.trim());
+      if (res.success) {
+        setSmaxBizSlug(res.data.slug);
+        message.success('Đã lưu Smax.ai Business Slug thành công!');
+      }
+    } catch (err: any) {
+      message.error(err?.message || 'Không thể lưu Smax.ai Business Slug');
+    } finally {
+      setSavingSlug(false);
+    }
+  };
 
   const handleLanguageChange = (e: any) => {
     const lang = e.target.value;
@@ -26,6 +56,47 @@ export const SettingsPage: React.FC = () => {
         <h1 className="text-2xl font-bold text-slate-900 tracking-tight">{t('settings.title')}</h1>
         <p className="text-sm text-slate-500">{t('settings.general')}</p>
       </div>
+
+      {/* Smax.ai Business Slug Card */}
+      <Card
+        title={
+          <div className="flex items-center gap-2">
+            <LinkOutlined className="text-indigo-600" />
+            <span>{t('settings.smaxBizSlugTitle')}</span>
+          </div>
+        }
+        className="shadow-xs border-slate-200 rounded-xl bg-white"
+      >
+        <div className="space-y-3">
+          <p className="text-sm text-slate-500">{t('settings.smaxBizSlugDesc')}</p>
+          <div className="flex gap-2">
+            <Input
+              id="smax-biz-slug-input"
+              prefix={<LinkOutlined className="text-slate-400" />}
+              placeholder="Ví dụ: xe-dien-move"
+              value={smaxBizSlug}
+              onChange={(e) => setSmaxBizSlug(e.target.value)}
+              onPressEnter={handleSaveSmaxBizSlug}
+              allowClear
+              size="large"
+            />
+            <Button
+              id="smax-biz-slug-save-btn"
+              type="primary"
+              icon={<SaveOutlined />}
+              loading={savingSlug}
+              onClick={handleSaveSmaxBizSlug}
+              size="large"
+              className="bg-indigo-600"
+            >
+              Lưu
+            </Button>
+          </div>
+          <p className="text-xs text-slate-400">
+            💡 Slug này được dùng tự động khi xem hội thoại Smax.ai từ mã PSID không có đường dẫn đầy đủ.
+          </p>
+        </div>
+      </Card>
 
       {/* API Key / Webhook Access Tokens Card */}
       <ApiKeySettingsCard />

@@ -290,6 +290,8 @@
     "defaultEntityTypeTitle": "Default Entity Type for Creation",
     "defaultEntityTypeDesc": "Select whether Individual or Business is set as default when creating a new Lead or Customer.",
     "contactOption": "👤 Individual (Contact)",
-    "companyOption": "🏢 Business (Company)"
+    "companyOption": "🏢 Business (Company)",
+    "smaxBizSlugTitle": "⚡ Smax.ai Business Slug",
+    "smaxBizSlugDesc": "Enter your Smax.ai business slug (e.g. xe-dien-move). Used automatically when loading Smax.ai chat messages from a PSID without a full chat URL."
   }
 }

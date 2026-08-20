@@ -178,5 +178,7 @@ router.get('/settings/lead-duplicate-rules', crm.getLeadDuplicateRule);
 router.put('/settings/lead-duplicate-rules', crm.updateLeadDuplicateRule);
 router.get('/system/smax-token', requireSuperAdmin, crm.getSmaxToken);
 router.post('/system/smax-token', requireSuperAdmin, crm.updateSmaxToken);
+router.get('/settings/smax-biz-slug', crm.getSmaxBizSlug);
+router.post('/settings/smax-biz-slug', crm.updateSmaxBizSlug);
 
 export default router;

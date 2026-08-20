@@ -18,6 +18,8 @@ export const crmService = {
   },
   getSmaxToken: () => api.get('/system/smax-token'),
   updateSmaxToken: (token: string) => api.post('/system/smax-token', { token }),
+  getSmaxBizSlug: () => api.get('/settings/smax-biz-slug'),
+  updateSmaxBizSlug: (slug: string) => api.post('/settings/smax-biz-slug', { slug }),
   resolveLeadIdentity: (leadId: string, action: 'ATTACH_TO_EXISTING' | 'CREATE_SEPARATE_CUSTOMER', targetCustomerId?: string) =>
     api.post(`/leads/${leadId}/resolve-identity`, { action, targetCustomerId }),
 

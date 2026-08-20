@@ -225,6 +225,30 @@ export const updateSmaxToken = async (req: AuthenticatedRequest, res: Response, 
   }
 };
 
+export const getSmaxBizSlug = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  try {
+    const slug = await SystemSettingService.getSmaxBizSlug(req.bizId);
+    res.json({ success: true, data: { slug } });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const updateSmaxBizSlug = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  try {
+    const { slug } = req.body;
+    if (!slug || !slug.trim()) {
+      res.status(400).json({ success: false, message: 'Slug không được để trống' });
+      return;
+    }
+    const result = await SystemSettingService.setSmaxBizSlug(slug, req.bizId);
+    res.json({ success: true, data: { slug: result } });
+  } catch (err) {
+    next(err);
+  }
+};
+
+
 export const updateLead = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
     const lead = await LeadService.updateLead(req.bizId!, req.params.id, req.body);

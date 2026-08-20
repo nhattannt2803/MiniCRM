@@ -1030,9 +1030,15 @@ export class LeadService {
           if (anyLead?.smaxBizSlug) {
             smaxBizSlug = anyLead.smaxBizSlug;
           } else {
-            // Last resort: business slug from DB
-            const bizObj = await prisma.business.findUnique({ where: { id: bizId }, select: { slug: true } });
-            if (bizObj?.slug) smaxBizSlug = bizObj.slug;
+            // 3rd priority: SMAX_BIZ_SLUG admin setting from system_settings table
+            const settingSlug = await SystemSettingService.getSmaxBizSlug(bizId);
+            if (settingSlug) {
+              smaxBizSlug = settingSlug;
+            } else {
+              // Last resort: business.slug from DB (usually not a valid Smax slug)
+              const bizObj = await prisma.business.findUnique({ where: { id: bizId }, select: { slug: true } });
+              if (bizObj?.slug) smaxBizSlug = bizObj.slug;
+            }
           }
         }
       }

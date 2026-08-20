@@ -122,4 +122,29 @@ export class SystemSettingService {
       'Authorization Bearer Token cho Smax.ai API'
     );
   }
+
+  static async getSmaxBizSlug(bizId?: bigint): Promise<string> {
+    const targetBizId = bizId || BigInt(1);
+    const saved = await this.getSetting<string>(targetBizId, 'SMAX_BIZ_SLUG', '');
+    if (saved && typeof saved === 'string' && saved.trim()) {
+      return saved.trim();
+    }
+    // Fallback: search any biz setting
+    const anySetting = await prisma.systemSetting.findFirst({ where: { key: 'SMAX_BIZ_SLUG' } });
+    if (anySetting?.value && typeof anySetting.value === 'string' && (anySetting.value as string).trim()) {
+      return (anySetting.value as string).trim();
+    }
+    return '';
+  }
+
+  static async setSmaxBizSlug(slug: string, bizId?: bigint): Promise<string> {
+    const targetBizId = bizId || BigInt(1);
+    const cleanSlug = slug.trim().toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+    return this.setSetting<string>(
+      targetBizId,
+      'SMAX_BIZ_SLUG',
+      cleanSlug,
+      'Smax.ai Business Slug dùng để gọi Smax API (ví dụ: xe-dien-move)'
+    );
+  }
 }
