@@ -89,6 +89,18 @@ npm run dev
 npm run build
 ```
 
+### Production Deployment (VPS):
+```bash
+# 1. Initial VPS setup (run once as root)
+sudo bash deploy/setup.sh
+
+# 2. Regular Code Update (Safe - protects live DB data)
+bash deploy/deploy.sh
+
+# 3. Fresh Server Installation (With sample seed data)
+bash deploy/deploy.sh --seed
+```
+
 ---
 
 ## 5. Linked Detailed Documentation

@@ -3,76 +3,85 @@
 # exit on error
 set -e
 
-# Configurable variables
-DB_NAME="minicrm"
-DB_USER="minicrm_user"
-DB_PASS="123tan"
+PROJECT_DIR="/var/www/minicrm"
+SEED_DATA=false
 
-echo "=============================================="
-echo " Starting Server Setup for Mini CRM "
-echo "=============================================="
-
-# Check if running as root
-if [ "$EUID" -ne 0 ]; then
-  echo "❌ Please run this script with sudo (e.g., sudo ./setup.sh)"
-  exit 1
+# Check if user passed --seed parameter or SEED=true env variable
+if [ "$1" == "--seed" ] || [ "$SEED" == "true" ]; then
+  SEED_DATA=true
 fi
 
-# 1. Update system packages
-echo "🔄 Updating system packages..."
-apt update && apt upgrade -y
-apt install -y git curl build-essential software-properties-common ufw certbot python3-certbot-nginx
+echo "=============================================="
+echo " Starting Application Deployment for Mini CRM "
+if [ "$SEED_DATA" = true ]; then
+  echo " 🟢 Mode: FRESH SERVER INSTALLATION (WITH SEED DATA 🌱)"
+else
+  echo " 🔒 Mode: CODE UPDATE ONLY (SAFE - NO SEED DATA)"
+fi
+echo "=============================================="
 
-# 2. Install Node.js v20 LTS
-echo "📦 Installing Node.js v20..."
-curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
-apt-get install -y nodejs
-echo "✅ Node.js version: $(node -v)"
-echo "✅ NPM version: $(npm -v)"
+# Go to project directory
+cd "$PROJECT_DIR"
 
-# 3. Install MySQL Server 8.x
-echo "🗄️ Installing MySQL Server..."
-apt install -y mysql-server
-systemctl start mysql
-systemctl enable mysql
+# 1. Update source code if using git
+if [ -d ".git" ]; then
+  echo "📥 Fetching latest code from Git..."
+  git pull origin main # Hoặc tên branch của bạn (e.g. master, dev)
+else
+  echo "ℹ️ Skipping Git pull (Not a git repository or manually uploaded)"
+fi
 
-# Create database and user if not exists
-echo "🔑 Provisioning MySQL database & user..."
-mysql -e "CREATE DATABASE IF NOT EXISTS ${DB_NAME} CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
-mysql -e "CREATE USER IF NOT EXISTS '${DB_USER}'@'localhost' IDENTIFIED BY '${DB_PASS}';"
-mysql -e "GRANT ALL PRIVILEGES ON ${DB_NAME}.* TO '${DB_USER}'@'localhost';"
-mysql -e "FLUSH PRIVILEGES;"
-echo "✅ MySQL setup completed."
+# 2. Deploy Backend
+echo "⚙️ Deploying Backend..."
+cd "$PROJECT_DIR/server"
 
-# 4. Install Redis Server
-echo "🚀 Installing Redis Server..."
-apt install -y redis-server
-systemctl start redis-server
-systemctl enable redis-server
-echo "✅ Redis status: $(redis-cli ping)"
+# Install backend dependencies
+echo "📦 Installing backend packages..."
+npm install --production=false
 
-# 5. Install PM2 globally
-echo "💻 Installing PM2 process manager..."
-npm install -g pm2
-echo "✅ PM2 version: $(pm2 -v)"
+# Generate Prisma Client & Migrate database
+echo "🗄️ Running Prisma migrations & generator..."
+npx prisma generate
+npx prisma db push
 
-# 6. Install Nginx
-echo "🌐 Installing Nginx..."
-apt install -y nginx
-systemctl start nginx
-systemctl enable nginx
+if [ "$SEED_DATA" = true ]; then
+  echo "🌱 [FRESH INSTALL] Populating database with initial seed data..."
+  npm run prisma:seed
+else
+  echo "ℹ️ [UPDATE MODE] Skipped DB seed to protect existing live data."
+fi
 
-# 7. Configure Firewall
-echo "🛡️ Configuring Firewall (UFW)..."
-ufw allow OpenSSH
-ufw allow 'Nginx Full'
-# Enable UFW without prompting
-ufw --force enable
+# Build Backend TypeScript to JS
+echo "🛠️ Compiling Backend TypeScript..."
+npm run build
+
+# Restart or Start app in PM2
+echo "💻 Managing PM2 process..."
+if pm2 show minicrm-backend > /dev/null 2>&1; then
+  echo "🔄 Restarting existing PM2 process..."
+  pm2 restart minicrm-backend
+else
+  echo "🚀 Starting new PM2 process..."
+  pm2 start dist/server.js --name "minicrm-backend"
+fi
+
+# 3. Deploy Frontend
+echo "⚙️ Deploying Frontend..."
+cd "$PROJECT_DIR/client"
+
+# Install frontend dependencies
+echo "📦 Installing frontend packages..."
+npm install
+
+# Build static files
+echo "🛠️ Building React production bundle..."
+npm run build
+
+# 4. Reload Nginx to apply any configuration changes
+echo "🌐 Reloading Nginx..."
+sudo systemctl reload nginx
 
 echo "=============================================="
-echo " 🎉 Server setup completed successfully!"
-echo " Next steps:"
-echo " 1. Configure Nginx config file"
-echo " 2. Clone/deploy your code to /var/www/minicrm"
-echo " 3. Run deploy.sh"
+echo " 🎉 Deployment completed successfully!"
+echo " Server is live!"
 echo "=============================================="
