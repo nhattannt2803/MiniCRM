@@ -563,39 +563,48 @@ export const LeadListPage: React.FC = () => {
       title: t('common.actions'),
       key: 'actions',
       render: (_: any, record: Lead) => (
-        <div className="space-x-2">
-          <Button
-            size="small"
-            icon={<EyeOutlined />}
-            onClick={() => navigate(`/leads/${record.id}`)}
-          />
-          {record.status !== 'CONVERTED' && (
+        <div className="flex items-center gap-1">
+          <Tooltip title="Xem chi tiết">
             <Button
               size="small"
-              type="primary"
-              ghost
-              icon={<SwapOutlined />}
-              onClick={() => {
-                setSelectedLead(record);
-                setConvertModalVisible(true);
-              }}
-            >
-              {t('leads.convert')}
-            </Button>
-          )}
-          <Button
-            size="small"
-            icon={<EditOutlined />}
-            onClick={() => handleOpenEditDrawer(record)}
-          />
+              icon={<EyeOutlined />}
+              onClick={() => navigate(`/leads/${record.id}`)}
+            />
+          </Tooltip>
+
+          <Tooltip title="Chỉnh sửa">
+            <Button
+              size="small"
+              icon={<EditOutlined />}
+              onClick={() => handleOpenEditDrawer(record)}
+            />
+          </Tooltip>
+
           <Popconfirm
             title="Xóa Lead này?"
             onConfirm={() => handleDeleteLead(record.id)}
             okText="Xóa"
             cancelText="Hủy"
           >
-            <Button size="small" danger icon={<DeleteOutlined />} />
+            <Tooltip title="Xóa">
+              <Button size="small" danger icon={<DeleteOutlined />} />
+            </Tooltip>
           </Popconfirm>
+
+          {record.status !== 'CONVERTED' && (
+            <Tooltip title={t('leads.convert')}>
+              <Button
+                size="small"
+                type="primary"
+                ghost
+                icon={<SwapOutlined />}
+                onClick={() => {
+                  setSelectedLead(record);
+                  setConvertModalVisible(true);
+                }}
+              />
+            </Tooltip>
+          )}
         </div>
       ),
     },
