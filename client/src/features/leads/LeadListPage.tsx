@@ -8,9 +8,11 @@ import { crmService } from '../../services/crmService';
 import { Lead, User } from '../../types';
 import { LeadConvertModal } from './LeadConvertModal';
 import { useSettingsStore } from '../../stores/settingsStore';
+import { useAuthStore } from '../../stores/authStore';
 import { parseFbPsidInput, parseZaloUidInput } from '../../utils/identityHelper';
 import { PrimaryButton } from '../../components/common/PrimaryButton';
 import { PageHeader } from '../../components/common/PageHeader';
+
 
 
 const QuickProductSelector: React.FC<{ record: Lead; products: any[]; onUpdated: () => void }> = ({ record, products, onUpdated }) => {
@@ -165,7 +167,12 @@ const QuickStatusSelector: React.FC<{ record: Lead; onUpdated: () => void }> = (
   );
 };
 
-export const LeadListPage: React.FC = () => {
+export interface LeadListPageProps {
+  isMyLeads?: boolean;
+}
+
+export const LeadListPage: React.FC<LeadListPageProps> = ({ isMyLeads = false }) => {
+  const { user } = useAuthStore();
   const { defaultEntityType } = useSettingsStore();
   const [leads, setLeads] = useState<Lead[]>([]);
   const [users, setUsers] = useState<User[]>([]);
@@ -251,6 +258,7 @@ export const LeadListPage: React.FC = () => {
         search,
         status: statusFilter,
         rating: ratingFilter,
+        ownerId: isMyLeads ? user?.id : undefined,
       });
       if (res.success) {
         setLeads(res.data);
@@ -265,7 +273,7 @@ export const LeadListPage: React.FC = () => {
 
   useEffect(() => {
     fetchLeads();
-  }, [page, pageSize, search, statusFilter, ratingFilter]);
+  }, [page, pageSize, search, statusFilter, ratingFilter, isMyLeads, user?.id]);
 
   useEffect(() => {
     crmService.getUsers().then((res: any) => {
@@ -716,7 +724,8 @@ export const LeadListPage: React.FC = () => {
     <div className="space-y-4">
       {/* 1. Header Row (Title on Left, Config & View Switchers on Right) */}
       <PageHeader
-        title="Leads"
+        title={isMyLeads ? 'Lead của tôi' : 'Leads'}
+        subtitle={isMyLeads ? 'Danh sách khách hàng tiềm năng được phân công trực tiếp cho bạn theo dõi và chăm sóc' : undefined}
         viewMode={viewMode}
         onViewModeChange={setViewMode}
         extra={
