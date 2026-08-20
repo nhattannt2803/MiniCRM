@@ -9,6 +9,9 @@ dotenv.config();
 
 const app = express();
 
+// Enable trust proxy when behind Nginx / reverse proxy (for rate limiting and client IP extraction)
+app.set('trust proxy', 1);
+
 // Security HTTP headers - Allow iframe embedding from external domains
 app.use(
   helmet({
