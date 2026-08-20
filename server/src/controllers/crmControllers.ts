@@ -686,7 +686,7 @@ export const createTask = async (req: AuthenticatedRequest, res: Response, next:
 
 export const updateTaskStatus = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
-    const task = await TaskService.updateTaskStatus(req.bizId!, req.params.id, req.body.status);
+    const task = await TaskService.updateTaskStatus(req.bizId!, req.params.id, req.body.status, req.body.result);
     res.json({ success: true, data: task });
   } catch (err) {
     next(err);

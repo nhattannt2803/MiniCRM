@@ -22,6 +22,8 @@ export const TaskListPage: React.FC = () => {
   const [assigneeFilter, setAssigneeFilter] = useState<string>('MY_TASKS');
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
+  const [callResultModalVisible, setCallResultModalVisible] = useState(false);
+  const [callResultTask, setCallResultTask] = useState<Task | null>(null);
 
   const [form] = Form.useForm();
   const { t, i18n } = useTranslation();
@@ -69,17 +71,30 @@ export const TaskListPage: React.FC = () => {
     fetchUsers();
   }, []);
 
-  const handleConfirmCompleteTask = async (task: Task) => {
+  const isCallFollowUpTask = (task: Task) => /^Gọi (lại )?khách hàng/i.test(task?.title?.trim() || '') || /^Gọi /i.test(task?.title?.trim() || '');
+
+  const handleConfirmCompleteTask = async (task: Task, result?: 'BUSY' | 'UNREACHABLE' | 'WRONG_NUMBER') => {
     try {
-      await crmService.updateTaskStatus(task.id, 'COMPLETED');
+      await crmService.updateTaskStatus(task.id, 'COMPLETED', result);
       notification.success({
-        message: 'Xác nhận hoàn thành thành công',
-        description: `Đã hoàn thành nhiệm vụ: "${task.title}"`,
+        message: t('tasks.completeSuccessTitle'),
+        description: t('tasks.completeSuccessDesc', { title: task.title }),
       });
+      setCallResultModalVisible(false);
+      setCallResultTask(null);
       fetchTasks();
     } catch (err: any) {
       notification.error({ message: t('common.error'), description: err.message });
     }
+  };
+
+  const handleCompleteClick = (task: Task) => {
+    if (isCallFollowUpTask(task)) {
+      setCallResultTask(task);
+      setCallResultModalVisible(true);
+      return;
+    }
+    handleConfirmCompleteTask(task);
   };
 
   const handleOpenEditModal = (task: Task) => {
@@ -135,11 +150,23 @@ export const TaskListPage: React.FC = () => {
             </Tag>
           );
         }
-        return (
+        return isCallFollowUpTask(r) ? (
+          <Tooltip title={t('tasks.selectCallResultTooltip')}>
+            <Button
+              type="dashed"
+              size="small"
+              icon={<CheckOutlined className="text-emerald-600 font-bold" />}
+              className="border-emerald-400 text-emerald-700 hover:bg-emerald-50 hover:border-emerald-600 font-medium"
+              onClick={() => handleCompleteClick(r)}
+            >
+              {t('tasks.confirmComplete')}
+            </Button>
+          </Tooltip>
+        ) : (
           <Popconfirm
             title="Xác nhận hoàn thành nhiệm vụ?"
             description={`Bạn có chắc chắn muốn xác nhận hoàn thành công việc "${r.title}"?`}
-            onConfirm={() => handleConfirmCompleteTask(r)}
+            onConfirm={() => handleCompleteClick(r)}
             okText="Đồng ý hoàn thành"
             cancelText="Hủy"
             okButtonProps={{ type: 'primary', className: 'bg-emerald-600' }}
@@ -383,6 +410,25 @@ export const TaskListPage: React.FC = () => {
             <Input.TextArea rows={3} placeholder="Ghi chú chi tiết công việc..." />
           </Form.Item>
         </Form>
+      </Modal>
+
+      <Modal
+        title={t('tasks.callResultModalTitle')}
+        open={callResultModalVisible}
+        onCancel={() => { setCallResultModalVisible(false); setCallResultTask(null); }}
+        footer={null}
+      >
+        <div className="flex flex-col gap-3">
+          <Button block onClick={() => callResultTask && handleConfirmCompleteTask(callResultTask, 'BUSY')}>
+            {t('tasks.callResults.BUSY')}
+          </Button>
+          <Button block onClick={() => callResultTask && handleConfirmCompleteTask(callResultTask, 'UNREACHABLE')}>
+            {t('tasks.callResults.UNREACHABLE')}
+          </Button>
+          <Button block danger onClick={() => callResultTask && handleConfirmCompleteTask(callResultTask, 'WRONG_NUMBER')}>
+            {t('tasks.callResults.WRONG_NUMBER')}
+          </Button>
+        </div>
       </Modal>
     </div>
   );

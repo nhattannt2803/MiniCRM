@@ -7,6 +7,7 @@ import { crmService } from '../../services/crmService';
 import { Lead, User, Conversation, Customer } from '../../types';
 import { ActivityTimeline } from '../../components/Timeline/ActivityTimeline';
 import { LeadConvertModal } from './LeadConvertModal';
+import { useTranslation } from 'react-i18next';
 
 export const LeadDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -23,6 +24,10 @@ export const LeadDetailPage: React.FC = () => {
   const [taskModalVisible, setTaskModalVisible] = useState(false);
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [resolveModalVisible, setResolveModalVisible] = useState(false);
+  const [callResultModalVisible, setCallResultModalVisible] = useState(false);
+  const [callResultTask, setCallResultTask] = useState<any>(null);
+
+  const { t } = useTranslation();
   
   // Default tab is 'tasks' as requested
   const [activeTabKey, setActiveTabKey] = useState('tasks');
@@ -244,17 +249,30 @@ export const LeadDetailPage: React.FC = () => {
     }
   };
 
-  const handleConfirmCompleteTask = async (task: any) => {
+  const isCallFollowUpTask = (task: any) => /^Gọi (lại )?khách hàng/i.test(task?.title?.trim() || '') || /^Gọi /i.test(task?.title?.trim() || '');
+
+  const handleConfirmCompleteTask = async (task: any, result?: 'BUSY' | 'UNREACHABLE' | 'WRONG_NUMBER') => {
     try {
-      await crmService.updateTaskStatus(task.id, 'COMPLETED');
+      await crmService.updateTaskStatus(task.id, 'COMPLETED', result);
       notification.success({
-        message: 'Xác nhận hoàn thành thành công',
-        description: `Đã hoàn thành nhiệm vụ: "${task.title}"`,
+        message: t('tasks.completeSuccessTitle'),
+        description: t('tasks.completeSuccessDesc', { title: task.title }),
       });
+      setCallResultModalVisible(false);
+      setCallResultTask(null);
       fetchLeadDetails();
     } catch (err: any) {
-      notification.error({ message: 'Thất bại', description: err.message });
+      notification.error({ message: t('common.error'), description: err.message });
     }
+  };
+
+  const handleCompleteClick = (task: any) => {
+    if (isCallFollowUpTask(task)) {
+      setCallResultTask(task);
+      setCallResultModalVisible(true);
+      return;
+    }
+    handleConfirmCompleteTask(task);
   };
 
   if (loading || !lead) {
@@ -501,31 +519,43 @@ export const LeadDetailPage: React.FC = () => {
                   children: (
                     <div className="space-y-3 py-2">
                       {lead.tasks && lead.tasks.length > 0 ? (
-                        lead.tasks.map((t) => (
-                          <div key={t.id} className="p-3 border border-slate-100 rounded-lg flex items-center justify-between">
+                        lead.tasks.map((tItem: any) => (
+                          <div key={tItem.id} className="p-3 bg-slate-50 border border-slate-200 rounded-lg flex items-center justify-between">
                             <div>
-                              <div className="font-bold text-slate-800 text-sm flex items-center gap-2">
-                                <span className={t.status === 'COMPLETED' ? 'line-through text-slate-400' : ''}>{t.title}</span>
-                                {t.assignee && (
+                              <div className="font-semibold text-slate-800 flex items-center gap-2">
+                                {tItem.title}
+                                {tItem.assignee && (
                                   <span className="text-xs font-normal text-indigo-600">
-                                    👤 {t.assignee.lastName} {t.assignee.firstName}
+                                    👤 {tItem.assignee.lastName} {tItem.assignee.firstName}
                                   </span>
                                 )}
                               </div>
                               <div className="text-xs text-slate-400 mt-0.5">
-                                Hạn chót: {new Date(t.dueAt).toLocaleString('vi-VN')} | Độ ưu tiên: {t.priority}
+                                Hạn chót: {new Date(tItem.dueAt).toLocaleString('vi-VN')} | Độ ưu tiên: {tItem.priority}
                               </div>
                             </div>
                             <div>
-                              {t.status === 'COMPLETED' ? (
+                              {tItem.status === 'COMPLETED' ? (
                                 <Tag color="green" className="font-semibold">
                                   <CheckCircleOutlined /> Đã hoàn thành
                                 </Tag>
+                              ) : isCallFollowUpTask(tItem) ? (
+                                <Tooltip title={t('tasks.selectCallResultTooltip')}>
+                                  <Button
+                                    type="dashed"
+                                    size="small"
+                                    icon={<CheckOutlined className="text-emerald-600 font-bold" />}
+                                    className="border-emerald-400 text-emerald-700 hover:bg-emerald-50 font-medium"
+                                    onClick={() => handleCompleteClick(tItem)}
+                                  >
+                                    {t('tasks.confirmComplete')}
+                                  </Button>
+                                </Tooltip>
                               ) : (
                                 <Popconfirm
                                   title="Xác nhận hoàn thành nhiệm vụ?"
-                                  description={`Bạn có chắc chắn muốn xác nhận hoàn thành "${t.title}"?`}
-                                  onConfirm={() => handleConfirmCompleteTask(t)}
+                                  description={`Bạn có chắc chắn muốn xác nhận hoàn thành "${tItem.title}"?`}
+                                  onConfirm={() => handleCompleteClick(tItem)}
                                   okText="Đồng ý"
                                   cancelText="Hủy"
                                   okButtonProps={{ type: 'primary', className: 'bg-emerald-600' }}
@@ -973,6 +1003,25 @@ export const LeadDetailPage: React.FC = () => {
             <Input.TextArea rows={3} />
           </Form.Item>
         </Form>
+      </Modal>
+
+      <Modal
+        title={t('tasks.callResultModalTitle')}
+        open={callResultModalVisible}
+        onCancel={() => { setCallResultModalVisible(false); setCallResultTask(null); }}
+        footer={null}
+      >
+        <div className="flex flex-col gap-3">
+          <Button block onClick={() => callResultTask && handleConfirmCompleteTask(callResultTask, 'BUSY')}>
+            {t('tasks.callResults.BUSY')}
+          </Button>
+          <Button block onClick={() => callResultTask && handleConfirmCompleteTask(callResultTask, 'UNREACHABLE')}>
+            {t('tasks.callResults.UNREACHABLE')}
+          </Button>
+          <Button block danger onClick={() => callResultTask && handleConfirmCompleteTask(callResultTask, 'WRONG_NUMBER')}>
+            {t('tasks.callResults.WRONG_NUMBER')}
+          </Button>
+        </div>
       </Modal>
     </div>
   );

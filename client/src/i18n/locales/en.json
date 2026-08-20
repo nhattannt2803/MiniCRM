@@ -249,7 +249,18 @@
       "IN_PROGRESS": "In Progress",
       "COMPLETED": "Completed",
       "CANCELLED": "Cancelled"
-    }
+    },
+    "callResultModalTitle": "Select Call Outcome",
+    "selectCallResultTooltip": "Select call outcome to confirm",
+    "confirmComplete": "Confirm",
+    "callResults": {
+      "BUSY": "Line Busy",
+      "UNREACHABLE": "Unreachable / No Answer",
+      "WRONG_NUMBER": "Wrong Number"
+    },
+    "completeSuccessTitle": "Task completed successfully",
+    "completeSuccessDesc": "Completed task: \"{{title}}\"",
+    "completeErrorTitle": "Failed to complete task"
   },
   "activities": {
     "title": "Activity History",

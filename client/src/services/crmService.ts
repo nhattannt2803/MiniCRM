@@ -99,7 +99,8 @@ export const crmService = {
   getTasks: (params?: any) => api.get('/tasks', { params }),
   createTask: (data: any) => api.post('/tasks', data),
   updateTask: (id: string, data: any) => api.patch(`/tasks/${id}`, data),
-  updateTaskStatus: (id: string, status: string) => api.patch(`/tasks/${id}/status`, { status }),
+  updateTaskStatus: (id: string, status: string, result?: 'BUSY' | 'UNREACHABLE' | 'WRONG_NUMBER') =>
+    api.patch(`/tasks/${id}/status`, { status, result }),
 
   // Campaigns
   getCampaigns: () => api.get('/campaigns'),
