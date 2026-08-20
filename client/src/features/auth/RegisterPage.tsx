@@ -28,7 +28,7 @@ export const RegisterPage: React.FC = () => {
       message.success('Đăng ký tài khoản thành công!');
       
       if (data?.businesses && data.businesses.length > 0) {
-        navigate('/dashboard');
+        navigate('/');
       } else {
         navigate('/no-business');
       }

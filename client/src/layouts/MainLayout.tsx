@@ -65,7 +65,7 @@ export const MainLayout: React.FC = () => {
     if (bizSlug) {
       const found = switchBizBySlug(bizSlug);
       if (!found && businesses.length > 0 && activeBiz) {
-        navigate(`/${activeBiz.slug}/dashboard`, { replace: true });
+        navigate(`/${activeBiz.slug}/overview`, { replace: true });
       }
     }
   }, [bizSlug, businesses, activeBiz]);
@@ -77,7 +77,7 @@ export const MainLayout: React.FC = () => {
     if (match) {
       switchBiz(newBizId);
       const parts = location.pathname.split('/').filter(Boolean);
-      let subPath = 'dashboard';
+      let subPath = 'overview';
       if (parts.length > 1) {
         subPath = parts.slice(1).join('/');
       }

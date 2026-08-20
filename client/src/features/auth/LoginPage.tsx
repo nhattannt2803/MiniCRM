@@ -18,7 +18,7 @@ export const LoginPage: React.FC = () => {
     setError(null);
     try {
       await login(values.email, values.password);
-      navigate('/dashboard');
+      navigate('/');
     } catch (err: any) {
       setError(err.message || t('auth.loginError'));
     } finally {

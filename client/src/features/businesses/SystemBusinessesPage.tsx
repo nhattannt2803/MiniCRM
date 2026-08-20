@@ -245,7 +245,7 @@ export const SystemBusinessesPage: React.FC = () => {
           <Form.Item
             name="slug"
             label={<span className="text-xs font-semibold text-slate-700">Mật danh / URL Slug (Tự động sinh nếu trống)</span>}
-            tooltip="Mật danh sẽ xuất hiện trên URL: http://localhost:5173/slug/dashboard"
+            tooltip="Mật danh sẽ xuất hiện trên URL: http://localhost:5173/slug/overview"
           >
             <Input placeholder="xedien-move" className="rounded-xl font-mono text-sm" />
           </Form.Item>

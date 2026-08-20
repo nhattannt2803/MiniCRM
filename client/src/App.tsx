@@ -61,7 +61,7 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
     if (!user?.isSuperAdmin) {
       const activeSlug = businesses[0]?.slug;
       if (activeSlug) {
-        return <Navigate to={`/${activeSlug}/dashboard`} replace />;
+        return <Navigate to={`/${activeSlug}/overview`} replace />;
       }
       return <Navigate to="/no-business" replace />;
     }
@@ -84,7 +84,7 @@ const RootRedirect: React.FC = () => {
     return <Navigate to="/no-business" replace />;
   }
 
-  return <Navigate to={`/${slug}/dashboard`} replace />;
+  return <Navigate to={`/${slug}/overview`} replace />;
 };
 
 export const App: React.FC = () => {
@@ -150,7 +150,7 @@ export const App: React.FC = () => {
               </ProtectedRoute>
             }
           >
-            <Route index element={<Navigate to="dashboard" replace />} />
+            <Route index element={<Navigate to="overview" replace />} />
             <Route path="overview" element={<OverviewPage />} />
             <Route path="overview/team" element={<TeamLeaderOverviewPage />} />
             <Route path="overview/manager" element={<SaleManagerOverviewPage />} />
