@@ -94,8 +94,8 @@ export const LeadEventLogPage: React.FC = () => {
       };
 
       if (dateRange && dateRange[0] && dateRange[1]) {
-        params.fromDate = dateRange[0].toISOString();
-        params.toDate = dateRange[1].toISOString();
+        params.fromDate = dateRange[0].startOf('day').toISOString();
+        params.toDate = dateRange[1].endOf('day').toISOString();
       }
 
       if (creationMethod !== 'ALL') {
@@ -110,14 +110,14 @@ export const LeadEventLogPage: React.FC = () => {
         params.search = search.trim();
       }
 
-      const res = await crmService.getLeadEvents(params);
-      if (res.data?.success) {
-        setLogs(res.data.data || []);
-        if (res.data.pagination) {
-          setTotal(res.data.pagination.total || 0);
+      const res: any = await crmService.getLeadEvents(params);
+      if (res?.success) {
+        setLogs(res.data || []);
+        if (res.pagination) {
+          setTotal(res.pagination.total || 0);
         }
-        if (res.data.stats) {
-          setStats(res.data.stats);
+        if (res.stats) {
+          setStats(res.stats);
         }
       }
     } catch (error: any) {
