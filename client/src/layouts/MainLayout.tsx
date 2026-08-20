@@ -36,6 +36,8 @@ import {
   UnorderedListOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
+  UsergroupAddOutlined,
+  ShareAltOutlined,
 } from '@ant-design/icons';
 import { useNavigate, useLocation, useParams, Outlet } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -61,9 +63,11 @@ export const MainLayout: React.FC = () => {
   const [pipelines, setPipelines] = useState<Pipeline[]>([]);
   const [selectedPipelineName, setSelectedPipelineName] = useState<string>('CỨU KHÁCH HÀNG RỜI BỎ');
   const [pipelineSearch, setPipelineSearch] = useState('');
-  const [otherGroupOpen, setOtherGroupOpen] = useState(true);
+  const [otherGroupOpen, setOtherGroupOpen] = useState(false);
   const [hotGroupOpen, setHotGroupOpen] = useState(false);
   const [systemGroupOpen, setSystemGroupOpen] = useState(false);
+  const [overviewGroupOpen, setOverviewGroupOpen] = useState(false);
+  const [leadsGroupOpen, setLeadsGroupOpen] = useState(false);
 
   const [currentIndustry, setCurrentIndustry] = useState<string>(
     localStorage.getItem('crm_demo_industry') || 'xedien'
@@ -110,24 +114,32 @@ export const MainLayout: React.FC = () => {
     fetchPipelines();
   }, [activeBiz]);
 
+  const currentBizSlug = bizSlug || activeBiz?.slug || (businesses[0] ? businesses[0].slug : 'default');
+
   // Ensure activeBiz matches bizSlug in URL
   useEffect(() => {
     if (bizSlug) {
       const found = switchBizBySlug(bizSlug);
       if (!found && businesses.length > 0 && activeBiz) {
-        navigate(`/${activeBiz.slug}/dashboard`, { replace: true });
+        navigate(`/${activeBiz.slug}/overview`, { replace: true });
       }
     }
   }, [bizSlug, businesses, activeBiz]);
 
-  const currentBizSlug = bizSlug || activeBiz?.slug || (businesses[0] ? businesses[0].slug : 'default');
+  // Redirect to overview when landing on the biz root (/:bizSlug with no sub-path)
+  useEffect(() => {
+    if (currentBizSlug && location.pathname === `/${currentBizSlug}`) {
+      navigate(`/${currentBizSlug}/overview`, { replace: true });
+    }
+  }, [location.pathname, currentBizSlug]);
+
 
   const handleSwitchBiz = (newBizId: string) => {
     const match = businesses.find((b) => b.id === newBizId);
     if (match) {
       switchBiz(newBizId);
       const parts = location.pathname.split('/').filter(Boolean);
-      let subPath = 'dashboard';
+      let subPath = 'overview';
       if (parts.length > 1) {
         subPath = parts.slice(1).join('/');
       }
@@ -194,46 +206,68 @@ export const MainLayout: React.FC = () => {
   };
 
   // Primary sidebar menu items definition
+  type MenuItem = { key: string; icon: React.ReactNode; label: string };
+  type MenuGroup = { key: string; icon: React.ReactNode; label: string; children: MenuItem[]; open: boolean; setOpen: (v: boolean) => void; defaultNavigate?: string };
+
+  const primaryMenuGroups: MenuGroup[] = [
+    {
+      key: 'overview-group',
+      icon: <PieChartOutlined className="text-base" />,
+      label: t('nav.overview'),
+      open: overviewGroupOpen,
+      setOpen: setOverviewGroupOpen,
+      defaultNavigate: `/${currentBizSlug}/overview`,
+      children: [
+        { key: `/${currentBizSlug}/overview`, icon: <PieChartOutlined />, label: t('nav.overview') },
+        { key: `/${currentBizSlug}/overview/team`, icon: <TeamOutlined />, label: t('nav.teamOverview') },
+        { key: `/${currentBizSlug}/overview/manager`, icon: <ClusterOutlined />, label: t('nav.managerOverview') },
+      ],
+    },
+    {
+      key: 'leads-group',
+      icon: <UsergroupAddOutlined className="text-base" />,
+      label: t('nav.leadManagement'),
+      open: leadsGroupOpen,
+      setOpen: setLeadsGroupOpen,
+      defaultNavigate: `/${currentBizSlug}/leads`,
+      children: [
+        { key: `/${currentBizSlug}/leads/my`, icon: <UserOutlined />, label: t('nav.myLeads') },
+        { key: `/${currentBizSlug}/leads/allocation`, icon: <ShareAltOutlined />, label: t('nav.leadAllocation') },
+        { key: `/${currentBizSlug}/leads`, icon: <TeamOutlined />, label: t('nav.allLeads') },
+      ],
+    },
+  ];
+
   const primaryMenuItems = [
     {
       key: `/${currentBizSlug}/customers`,
       icon: <TeamOutlined className="text-base" />,
-      label: 'Khách hàng',
-    },
-    {
-      key: `/${currentBizSlug}/leads`,
-      icon: <UserAddOutlined className="text-base" />,
-      label: 'Leads',
-    },
-    {
-      key: `/${currentBizSlug}/leads/allocation`,
-      icon: <FunnelPlotOutlined className="text-base" />,
-      label: 'Nguồn Lead',
+      label: t('nav.customers'),
     },
     {
       key: `/${currentBizSlug}/tasks`,
       icon: <CheckSquareOutlined className="text-base" />,
-      label: 'Task',
+      label: t('nav.tasks'),
     },
     {
       key: `/${currentBizSlug}/opportunities`,
       icon: <ShoppingCartOutlined className="text-base" />,
-      label: 'Đơn hàng',
+      label: t('nav.opportunities'),
     },
     {
       key: `/${currentBizSlug}/products`,
       icon: <AppstoreOutlined className="text-base" />,
-      label: 'Sản phẩm',
+      label: t('nav.products'),
     },
     {
       key: `/${currentBizSlug}/quotes`,
       icon: <ReadOutlined className="text-base" />,
-      label: 'Khóa học',
+      label: t('nav.quotes'),
     },
     {
       key: `/${currentBizSlug}/automations`,
       icon: <CustomerServiceOutlined className="text-base" />,
-      label: 'Dịch vụ làm đẹp',
+      label: t('nav.automations'),
     },
   ];
 
@@ -324,14 +358,69 @@ export const MainLayout: React.FC = () => {
               </div>
             )}
 
-            {/* Primary Menu Items Stack */}
+            {/* Primary Menu Groups (Collapsible) + Items Stack */}
             <div className={`space-y-1 py-2 ${collapsed ? 'px-1.5' : 'px-2'}`}>
-              {primaryMenuItems.map((item) => {
-                // Check active matching
-                const isActive =
-                  location.pathname === item.key ||
-                  (item.key.endsWith('/leads') && (location.pathname.endsWith('/leads') || location.pathname.includes('/leads/')));
+              {/* Collapsible Groups: Overview & Leads */}
+              {primaryMenuGroups.map((group) => {
+                const isGroupActive = group.children.some((c) => location.pathname === c.key || location.pathname.startsWith(c.key + '/'));
+                return (
+                  <div key={group.key}>
+                    {/* Group Header */}
+                    <Tooltip title={collapsed ? group.label : undefined} placement="right">
+                      <div
+                        onClick={() => {
+                          if (collapsed) {
+                            navigate(group.defaultNavigate || group.children[0]?.key || '/');
+                          } else {
+                            group.setOpen(!group.open);
+                          }
+                        }}
+                        className={`flex items-center rounded-xl text-xs font-semibold cursor-pointer transition-all duration-150 select-none ${
+                          collapsed ? 'justify-center py-2.5 px-0' : 'gap-3 px-3 py-2.5'
+                        } ${
+                          isGroupActive
+                            ? 'bg-[#2853b8] text-white shadow-sm font-bold border border-blue-400/30'
+                            : 'text-blue-100/90 hover:bg-[#1f4598] hover:text-white'
+                        }`}
+                      >
+                        <span className={`text-base ${isGroupActive ? 'text-white' : 'text-blue-200/80'}`}>{group.icon}</span>
+                        {!collapsed && (
+                          <>
+                            <span className="flex-1 truncate">{group.label}</span>
+                            {group.open ? <DownOutlined className="text-[9px]" /> : <RightOutlined className="text-[9px]" />}
+                          </>
+                        )}
+                      </div>
+                    </Tooltip>
+                    {/* Group Children */}
+                    {!collapsed && group.open && (
+                      <div className="mt-0.5 ml-3 space-y-0.5 border-l border-blue-400/20 pl-2">
+                        {group.children.map((child) => {
+                          const isActive = location.pathname === child.key;
+                          return (
+                            <div
+                              key={child.key}
+                              onClick={() => navigate(child.key)}
+                              className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-medium cursor-pointer transition-all duration-150 select-none ${
+                                isActive
+                                  ? 'bg-[#2853b8] text-white font-semibold'
+                                  : 'text-blue-100/75 hover:bg-[#1f4598] hover:text-white'
+                              }`}
+                            >
+                              <span className={`text-sm ${isActive ? 'text-white' : 'text-blue-200/60'}`}>{child.icon}</span>
+                              <span className="truncate">{child.label}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
 
+              {/* Flat menu items */}
+              {primaryMenuItems.map((item) => {
+                const isActive = location.pathname === item.key;
                 return (
                   <Tooltip key={item.key} title={collapsed ? item.label : undefined} placement="right">
                     <div

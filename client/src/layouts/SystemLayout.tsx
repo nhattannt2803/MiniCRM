@@ -14,7 +14,7 @@ export const SystemLayout: React.FC = () => {
 
   if (!user?.isSuperAdmin) {
     const defaultSlug = businesses[0]?.slug;
-    return <Navigate to={defaultSlug ? `/${defaultSlug}/dashboard` : '/no-business'} replace />;
+    return <Navigate to={defaultSlug ? `/${defaultSlug}/overview` : '/no-business'} replace />;
   }
 
   const userMenu = {
@@ -91,7 +91,7 @@ export const SystemLayout: React.FC = () => {
             <Button
               type="default"
               icon={<ShopOutlined />}
-              onClick={() => navigate('/dashboard')}
+              onClick={() => navigate(`/${businesses[0].slug}/overview`)}
               className="bg-slate-800 border-slate-700 text-slate-200 hover:text-white hover:bg-slate-700 rounded-xl text-xs font-semibold h-9"
             >
               Vào CRM Doanh Nghiệp ({businesses[0].name})
