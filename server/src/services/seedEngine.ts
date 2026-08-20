@@ -63,6 +63,7 @@ export async function runSeedEngine(bizIdInput?: bigint | string, industryKeyPar
   await prisma.contact.deleteMany({ where: { bizId } });
   await prisma.company.deleteMany({ where: { bizId } });
   await prisma.campaign.deleteMany({ where: { bizId } });
+  await prisma.productMapping.deleteMany({ where: { bizId } });
   await prisma.product.deleteMany({ where: { bizId } });
   await prisma.automationExecutionLog.deleteMany({ where: { execution: { automation: { bizId } } } });
   await prisma.automationExecution.deleteMany({ where: { automation: { bizId } } });

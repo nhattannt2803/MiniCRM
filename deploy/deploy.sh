@@ -4,6 +4,7 @@
 set -e
 
 PROJECT_DIR="/var/www/minicrm"
+
 SEED_DATA=false
 
 # Check if user passed --seed parameter or SEED=true env variable

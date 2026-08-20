@@ -27,6 +27,8 @@ out/
 
 # Logs & Runtime data
 logs/
+uploads/
+storage/
 *.log
 npm-debug.log*
 yarn-debug.log*

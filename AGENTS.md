@@ -63,6 +63,11 @@ Khi thay đổi trạng thái entity (Lead created, Opportunity stage changed, T
 - Khi tạo Lead từ đường dẫn Smax.ai (`fetchSmaxThread`), **bắt buộc** gán `smaxBizSlug` vào DTO/Form state để lưu xuống DB.
 - Khi tải tin nhắn từ mã PSID, Backend `LeadService.fetchSmaxMessages` áp dụng chuỗi 4 tầng fallback để xác định `smaxBizSlug`: (1) Lead có PSID khớp ➔ (2) Lead khác trong Biz có slug ➔ (3) Cấu hình `SMAX_BIZ_SLUG` trong `/settings` ➔ (4) Slug Doanh nghiệp trong CRM DB (`bizObj.slug`).
 
+### Rule 9: Data Preservation & Production Deployment Safety Rule
+- **Tuyệt đối KHÔNG chạy `npm run prisma:seed` hoặc bất kỳ script dọn dẹp dữ liệu nào** trong quy trình build/deploy thông thường (`bash deploy/deploy.sh`).
+- Mọi thao tác deploy cập nhật tính năng mới **bắt buộc** phải bảo tồn 100% dữ liệu hiện có trong cơ sở dữ liệu trên VPS (bao gồm `product_mappings`, `leads`, `opportunities`, `tasks`, `customers`, `users`, v.v.).
+- Lệnh seed/khởi tạo dữ liệu mẫu chỉ được phép chạy khi người dùng chủ động truyền tham số `--seed` (setup server mới từ đầu).
+
 ---
 
 ## 4. Key Development & Testing Commands
