@@ -165,8 +165,22 @@ export const getLeadById = async (req: AuthenticatedRequest, res: Response, next
 
 export const createLead = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
-    const lead = await LeadService.createLead(req.bizId!, { ...req.body, ownerId: req.body.ownerId || req.user?.userId });
+    const lead = await LeadService.createLead(req.bizId!, {
+      ...req.body,
+      ownerId: req.body.ownerId || req.user?.userId,
+      actorId: req.user?.userId,
+      creationMethod: req.body.creationMethod || 'MANUAL',
+    });
     res.status(201).json({ success: true, data: lead });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const getLeadEventLogs = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  try {
+    const result = await LeadService.getLeadEventLogs(req.bizId!, req.query);
+    res.json({ success: true, data: result.items, pagination: result.pagination, stats: result.stats });
   } catch (err) {
     next(err);
   }
@@ -1366,6 +1380,7 @@ export const handleExternalLead = async (req: AuthenticatedRequest, res: Respons
       adIds,
       ownerId: body.ownerId || body.owner_id || null,
       receivedAt: body.receivedAt || body.received_at ? new Date(body.receivedAt || body.received_at) : new Date(),
+      creationMethod: 'API',
     };
 
     const result = await LeadService.createLead(bizId, leadPayload);

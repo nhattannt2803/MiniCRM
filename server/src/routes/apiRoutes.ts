@@ -58,6 +58,7 @@ router.delete('/businesses/current/product-mappings/:id', crm.deleteBizProductMa
 
 // Leads
 router.get('/leads', crm.getLeads);
+router.get('/leads/events', crm.getLeadEventLogs);
 router.post('/leads', crm.createLead);
 router.post('/leads/check-identity', crm.checkIdentity);
 router.post('/leads/fetch-smax-thread', crm.fetchSmaxThread);

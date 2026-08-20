@@ -283,6 +283,28 @@ export class LeadService {
           });
         }
 
+        let actorName: string | null = null;
+        if (data.actorId) {
+          const actorUser = await prisma.user.findUnique({ where: { id: BigInt(data.actorId) }, select: { firstName: true, lastName: true } });
+          if (actorUser) actorName = `${actorUser.firstName} ${actorUser.lastName}`.trim();
+        }
+        const fullName = `${data.firstName || ''} ${data.lastName || ''}`.trim() || `${activeExistingLead.firstName || ''} ${activeExistingLead.lastName || ''}`.trim();
+        await prisma.leadCreationLog.create({
+          data: {
+            bizId,
+            leadId: activeExistingLead.id,
+            creationMethod: data.creationMethod || 'MANUAL',
+            duplicateStrategy: 'MERGED',
+            customerName: fullName,
+            customerPhone: data.phone || activeExistingLead.phone,
+            customerEmail: data.email || activeExistingLead.email,
+            source: data.source || activeExistingLead.source,
+            actorId: data.actorId ? BigInt(data.actorId) : null,
+            actorName: actorName || data.actorName || null,
+            notes: data.notes || 'Nhu cầu sản phẩm mới đã được gộp vào Lead hiện tại.',
+          },
+        });
+
         return {
           ...activeExistingLead,
           id: activeExistingLead.id.toString(),
@@ -422,6 +444,29 @@ export class LeadService {
         }
       }
 
+      // Record Lead Creation Event Log
+      let actorName: string | null = null;
+      if (data.actorId) {
+        const actorUser = await tx.user.findUnique({ where: { id: BigInt(data.actorId) }, select: { firstName: true, lastName: true } });
+        if (actorUser) actorName = `${actorUser.firstName} ${actorUser.lastName}`.trim();
+      }
+      const fullName = `${created.firstName || ''} ${created.lastName || ''}`.trim();
+      await tx.leadCreationLog.create({
+        data: {
+          bizId,
+          leadId: created.id,
+          creationMethod: data.creationMethod || 'MANUAL',
+          duplicateStrategy: 'CREATED_NEW',
+          customerName: fullName,
+          customerPhone: created.phone,
+          customerEmail: created.email,
+          source: created.source,
+          actorId: data.actorId ? BigInt(data.actorId) : null,
+          actorName: actorName || data.actorName || null,
+          notes: data.notes || null,
+        },
+      });
+
       // Publish Outbox Event
       await publishOutboxEvent(tx, bizId, 'LEAD_CREATED', 'LEAD', created.id, {
         id: created.id.toString(),
@@ -441,6 +486,129 @@ export class LeadService {
       id: lead.id.toString(),
       customerId: lead.customerId?.toString() || null,
       identityResolutionResult: resolution,
+    };
+  }
+
+  public static async getLeadEventLogs(bizId: bigint, filters: any = {}) {
+    const page = Math.max(1, parseInt(filters.page || '1', 10));
+    const pageSize = Math.max(1, Math.min(100, parseInt(filters.pageSize || filters.limit || '10', 10)));
+    const skip = (page - 1) * pageSize;
+
+    // Check & Backfill logs if table is empty for this Biz
+    let totalLogsForBiz = await prisma.leadCreationLog.count({ where: { bizId } });
+    if (totalLogsForBiz === 0) {
+      const existingLeads = await prisma.lead.findMany({
+        where: { bizId },
+        take: 200,
+        orderBy: { createdAt: 'desc' },
+      });
+      if (existingLeads.length > 0) {
+        const backfillData = existingLeads.map((lead) => ({
+          bizId,
+          leadId: lead.id,
+          creationMethod: lead.source === 'API' || lead.source === 'WEBHOOK' || lead.source === 'SMAX' ? 'API' : 'MANUAL',
+          duplicateStrategy: 'CREATED_NEW',
+          customerName: `${lead.firstName || ''} ${lead.lastName || ''}`.trim() || 'Khách hàng',
+          customerPhone: lead.phone,
+          customerEmail: lead.email,
+          source: lead.source,
+          actorId: lead.ownerId,
+          notes: lead.notes,
+          createdAt: lead.createdAt,
+        }));
+        await prisma.leadCreationLog.createMany({
+          data: backfillData,
+        });
+      }
+    }
+
+    const where: any = { bizId };
+
+    if (filters.fromDate || filters.toDate) {
+      where.createdAt = {};
+      if (filters.fromDate) {
+        where.createdAt.gte = new Date(filters.fromDate);
+      }
+      if (filters.toDate) {
+        where.createdAt.lte = new Date(filters.toDate);
+      }
+    }
+
+    if (filters.creationMethod && filters.creationMethod !== 'ALL') {
+      where.creationMethod = filters.creationMethod;
+    }
+
+    if (filters.duplicateStrategy && filters.duplicateStrategy !== 'ALL') {
+      where.duplicateStrategy = filters.duplicateStrategy;
+    }
+
+    if (filters.search && filters.search.trim()) {
+      const q = filters.search.trim();
+      where.OR = [
+        { customerName: { contains: q } },
+        { customerPhone: { contains: q } },
+        { customerEmail: { contains: q } },
+      ];
+    }
+
+    const [logs, total] = await Promise.all([
+      prisma.leadCreationLog.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: pageSize,
+        include: {
+          actor: {
+            select: { id: true, firstName: true, lastName: true, email: true },
+          },
+          lead: {
+            select: { id: true, status: true, source: true },
+          },
+        },
+      }),
+      prisma.leadCreationLog.count({ where }),
+    ]);
+
+    const [totalEvents, totalApi, totalManual, totalMerged, totalCreatedNew] = await Promise.all([
+      prisma.leadCreationLog.count({ where: { bizId } }),
+      prisma.leadCreationLog.count({ where: { bizId, creationMethod: 'API' } }),
+      prisma.leadCreationLog.count({ where: { bizId, creationMethod: 'MANUAL' } }),
+      prisma.leadCreationLog.count({ where: { bizId, duplicateStrategy: 'MERGED' } }),
+      prisma.leadCreationLog.count({ where: { bizId, duplicateStrategy: 'CREATED_NEW' } }),
+    ]);
+
+    const formattedLogs = logs.map((log) => ({
+      id: log.id.toString(),
+      bizId: log.bizId.toString(),
+      leadId: log.leadId ? log.leadId.toString() : null,
+      creationMethod: log.creationMethod,
+      duplicateStrategy: log.duplicateStrategy,
+      customerName: log.customerName,
+      customerPhone: log.customerPhone,
+      customerEmail: log.customerEmail,
+      source: log.source,
+      actorId: log.actorId ? log.actorId.toString() : null,
+      actorName: log.actorName || (log.actor ? `${log.actor.firstName} ${log.actor.lastName}`.trim() : null),
+      notes: log.notes,
+      createdAt: log.createdAt.toISOString(),
+      leadStatus: log.lead?.status || null,
+    }));
+
+    return {
+      items: formattedLogs,
+      pagination: {
+        total,
+        page,
+        pageSize,
+        totalPages: Math.ceil(total / pageSize),
+      },
+      stats: {
+        totalEvents,
+        totalApi,
+        totalManual,
+        totalMerged,
+        totalCreatedNew,
+      },
     };
   }
 

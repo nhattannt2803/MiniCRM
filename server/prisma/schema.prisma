@@ -46,6 +46,7 @@ model Business {
   systemSettings  SystemSetting[]
   apiKeys         ApiKey[]
   productMappings ProductMapping[]
+  leadCreationLogs LeadCreationLog[]
 
   @@index([status], map: "idx_biz_status")
   @@map("businesses")
@@ -122,6 +123,7 @@ model User {
   auditLogs         AuditLog[]
   automationsCreated Automation[]
   createdApiKeys    ApiKey[]
+  leadCreationLogs  LeadCreationLog[]
 
   @@index([email], map: "idx_users_email")
   @@index([isActive], map: "idx_users_is_active")
@@ -293,6 +295,7 @@ model Lead {
   conversations            Conversation[]
   products                 LeadProduct[]
   ads                      LeadAd[]
+  leadCreationLogs         LeadCreationLog[]
 
   @@index([bizId, status], map: "idx_leads_biz_status")
   @@index([bizId, ownerId], map: "idx_leads_biz_owner")
@@ -604,6 +607,31 @@ model AuditLog {
   @@index([bizId, actorId], map: "idx_audit_biz_actor")
   @@index([bizId, createdAt], map: "idx_audit_biz_created")
   @@map("audit_logs")
+}
+
+model LeadCreationLog {
+  id                BigInt   @id @default(autoincrement()) @db.UnsignedBigInt
+  bizId             BigInt   @map("biz_id") @db.UnsignedBigInt
+  leadId            BigInt?  @map("lead_id") @db.UnsignedBigInt
+  creationMethod    String   @default("MANUAL") @map("creation_method") @db.VarChar(30)
+  duplicateStrategy String   @map("duplicate_strategy") @db.VarChar(30)
+  customerName      String?  @map("customer_name") @db.VarChar(200)
+  customerPhone     String?  @map("customer_phone") @db.VarChar(30)
+  customerEmail     String?  @map("customer_email") @db.VarChar(191)
+  source            String?  @db.VarChar(50)
+  actorId           BigInt?  @map("actor_id") @db.UnsignedBigInt
+  actorName         String?  @map("actor_name") @db.VarChar(150)
+  notes             String?  @db.Text
+  createdAt         DateTime @default(now()) @map("created_at") @db.DateTime(3)
+
+  business Business @relation(fields: [bizId], references: [id], onDelete: Cascade)
+  lead     Lead?    @relation(fields: [leadId], references: [id], onDelete: SetNull)
+  actor    User?    @relation(fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([bizId, createdAt], map: "idx_lcl_biz_created")
+  @@index([bizId, creationMethod], map: "idx_lcl_biz_method")
+  @@index([bizId, duplicateStrategy], map: "idx_lcl_biz_strategy")
+  @@map("lead_creation_logs")
 }
 
 // =============================================================================
