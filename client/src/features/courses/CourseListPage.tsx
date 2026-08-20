@@ -1,5 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { PrimaryButton } from '../../components/common/PrimaryButton';
+import { TableToolbar } from '../../components/common/TableToolbar';
+import { PageHeader } from '../../components/common/PageHeader';
+
 import {
   Table,
   Input,
@@ -271,64 +274,41 @@ export const CourseListPage: React.FC = () => {
   return (
     <div className="p-6 bg-slate-50/50 min-h-screen">
       {/* Header Bar */}
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Khóa học</h1>
-        <div className="flex items-center gap-1 border border-gray-200 bg-white p-1 rounded-lg">
-          <button
-            onClick={() => setViewMode('grid')}
-            className={`p-1.5 rounded text-sm ${
-              viewMode === 'grid' ? 'bg-gray-100 text-gray-900 font-medium' : 'text-gray-400 hover:text-gray-600'
-            }`}
-          >
-            <AppstoreOutlined />
-          </button>
-          <button
-            onClick={() => setViewMode('table')}
-            className={`p-1.5 rounded text-sm ${
-              viewMode === 'table' ? 'bg-gray-100 text-gray-900 font-medium' : 'text-gray-400 hover:text-gray-600'
-            }`}
-          >
-            <UnorderedListOutlined />
-          </button>
-        </div>
-      </div>
+      <PageHeader
+        title="Khóa học"
+        viewMode={viewMode}
+        onViewModeChange={setViewMode}
+        className="mb-4"
+      />
 
       {/* Control Bar: Search, Filters, Add Button */}
-      <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
-        <div className="flex items-center gap-3 flex-1">
-          <Input
-            placeholder="Tìm kiếm khóa học..."
-            prefix={<SearchOutlined className="text-gray-400" />}
-            value={search}
-            onChange={handleSearch}
-            className="max-w-md rounded-lg h-9 text-sm"
-          />
-        </div>
+      <TableToolbar
+        searchPlaceholder="Tìm kiếm khóa học..."
+        searchValue={search}
+        onSearchChange={handleSearch}
+        className="mb-4"
+      >
+        <Button
+          icon={<FilterOutlined className="text-slate-600 text-xs" />}
+          className="text-xs font-semibold text-slate-700 bg-white border border-slate-200 rounded-lg h-8 px-3 flex items-center gap-1.5 shadow-2xs hover:border-slate-300"
+        >
+          <span>Lọc</span>
+        </Button>
 
-        <div className="flex items-center gap-3">
-          <Button
-            icon={<FilterOutlined />}
-            className="rounded-lg h-9 text-xs font-semibold border-gray-200 text-gray-700 hover:bg-gray-50 flex items-center gap-1.5"
-          >
-            Lọc
-          </Button>
+        <Button
+          icon={<SettingOutlined className="text-slate-600 text-xs" />}
+          className="text-xs font-semibold text-slate-700 bg-white border border-slate-200 rounded-lg h-8 px-3 flex items-center gap-1.5 shadow-2xs hover:border-slate-300"
+        >
+          <span>Tuỳ chỉnh bảng</span>
+        </Button>
 
-          <Button
-            icon={<SettingOutlined />}
-            className="rounded-lg h-9 text-xs font-semibold border-gray-200 text-gray-700 hover:bg-gray-50 flex items-center gap-1.5"
-          >
-            Tuỳ chỉnh bảng
-          </Button>
-
-          <PrimaryButton
-            icon={<PlusOutlined />}
-            onClick={handleCreateNew}
-          >
-            Thêm khóa học
-          </PrimaryButton>
-
-        </div>
-      </div>
+        <PrimaryButton
+          icon={<PlusOutlined />}
+          onClick={handleCreateNew}
+        >
+          Thêm khóa học
+        </PrimaryButton>
+      </TableToolbar>
 
       {/* Data Table */}
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">

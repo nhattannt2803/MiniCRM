@@ -10,6 +10,8 @@ import { LeadConvertModal } from './LeadConvertModal';
 import { useSettingsStore } from '../../stores/settingsStore';
 import { parseFbPsidInput, parseZaloUidInput } from '../../utils/identityHelper';
 import { PrimaryButton } from '../../components/common/PrimaryButton';
+import { PageHeader } from '../../components/common/PageHeader';
+
 
 const QuickProductSelector: React.FC<{ record: Lead; products: any[]; onUpdated: () => void }> = ({ record, products, onUpdated }) => {
   const currentProductIds = (record as any).products ? (record as any).products.map((p: any) => p.productId) : [];
@@ -703,11 +705,11 @@ export const LeadListPage: React.FC = () => {
   return (
     <div className="space-y-4">
       {/* 1. Header Row (Title on Left, Config & View Switchers on Right) */}
-      <div className="flex items-center justify-between pt-1">
-        <h1 className="text-2xl font-black text-slate-900 tracking-tight m-0 select-none">Leads</h1>
-
-        <div className="flex items-center gap-2">
-          {/* Cấu hình Button */}
+      <PageHeader
+        title="Leads"
+        viewMode={viewMode}
+        onViewModeChange={setViewMode}
+        extra={
           <Button
             icon={<SettingOutlined className="text-slate-600 text-xs" />}
             onClick={() => navigate('/settings')}
@@ -715,30 +717,8 @@ export const LeadListPage: React.FC = () => {
           >
             <span>Cấu hình</span>
           </Button>
-
-          {/* View Switcher Toggle (||| Kanban vs ≡ List) */}
-          <div className="bg-white border border-slate-200 rounded-lg p-0.5 flex items-center shadow-2xs gap-0.5">
-            <Button
-              type={viewMode === 'kanban' ? 'primary' : 'text'}
-              size="small"
-              icon={<AppstoreOutlined />}
-              onClick={() => setViewMode('kanban')}
-              className={`h-7 w-7 flex items-center justify-center rounded border-none ${viewMode === 'kanban' ? 'bg-indigo-600 text-white shadow-2xs' : 'text-slate-500 hover:text-slate-900'
-                }`}
-              title="Giao diện Kanban"
-            />
-            <Button
-              type={viewMode === 'list' ? 'primary' : 'text'}
-              size="small"
-              icon={<UnorderedListOutlined />}
-              onClick={() => setViewMode('list')}
-              className={`h-7 w-7 flex items-center justify-center rounded border-none ${viewMode === 'list' ? 'bg-indigo-600 text-white shadow-2xs' : 'text-slate-500 hover:text-slate-900'
-                }`}
-              title="Giao diện Danh sách"
-            />
-          </div>
-        </div>
-      </div>
+        }
+      />
 
       {/* 2. Control Row (Search Input on Left, Filter / Export / Add on Right) */}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white p-3 rounded-xl border border-slate-200 shadow-2xs">
