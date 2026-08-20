@@ -3,10 +3,10 @@
 # exit on error
 set -e
 
-# Configurable variables
-DB_NAME="minicrm"
-DB_USER="minicrm_user"
-DB_PASS="123tan"
+# Configurable variables (Can be passed via env, e.g., DB_PASS="YourPass" ./setup.sh)
+DB_NAME="${DB_NAME:-minicrm}"
+DB_USER="${DB_USER:-minicrm_user}"
+DB_PASS="${DB_PASS:-ChangeMeStrongPass123!}"
 
 echo "=============================================="
 echo " Starting Server Setup for Mini CRM "
