@@ -73,15 +73,25 @@ client/src/
 │   ├── users/                # Quản lý nhân viên (UsersListPage), System Users Admin (SystemUsersPage)
 │   ├── businesses/           # Quản lý Doanh nghiệp hệ thống cho Super Admin (SystemBusinessesPage)
 │   ├── leads/                # LeadListPage, MyLeadsPage, LeadDetailPage (Smax Frame, Ad & Products tab), QuickCreateLeadModal
-│   ├── opportunities/        # Bảng kéo thả Kanban Board, Table View, Stage Progress
-│   ├── companies/            # Danh sách & Detail Công ty
-│   ├── contacts/             # Danh sách & Detail Người liên hệ
-│   ├── customers/            # Hồ sơ Khách hàng chính thức
+│   ├── opportunities/        # Phễu bán hàng (Funnel), Bảng kéo thả Kanban Board, Table View, Stage Progress
+│   ├── companies/            # Danh sách & Detail Công ty (Sub-item của Khách hàng)
+│   ├── contacts/             # Danh sách & Detail Người liên hệ (Sub-item của Khách hàng)
+│   ├── customers/            # Hồ sơ Khách hàng chính thức (Sub-item chính của Khách hàng)
 │   ├── automations/          # Workflow Builder kéo thả, Xem nhật ký Execution Logs
 │   ├── tasks/                # Danh sách Task, Bộ lọc Task Overdue
 │   ├── activities/           # Timeline nhật ký cuộc gọi, email, họp
 │   ├── overview/             # Trang tổng quan cho Sale, Leader và Manager
-│   └── dashboard/            # BI Analytics, Funnel Chart (Recharts), KPI Cards
+│   ├── dashboard/            # BI Analytics, Funnel Chart (Recharts), KPI Cards
+│   ├── products/             # Quản lý Danh mục sản phẩm & dịch vụ
+│   ├── quotes/               # Quản lý Báo giá & Chi tiết báo giá
+│   ├── roles/                # Quản lý Vai trò & Phân quyền
+│   ├── settings/             # Cấu hình Doanh nghiệp & Token kết nối
+│   ├── staff/                # Quản lý Đội ngũ nhân sự
+│   └── teams/                # Quản lý Nhóm / Đội ngũ bán hàng
+│
+├── i18n/                     # Trình đa ngôn ngữ (i18next)
+│   ├── index.ts              # Khởi tạo i18n configuration
+│   └── locales/              # Tệp dịch thuật ngôn ngữ (vi.json, en.json)
 │
 ├── stores/                   # Quản lý State toàn cục bằng Zustand
 │   ├── authStore.ts          # State user đăng nhập, danh sách Businesses, activeBiz, switchBizBySlug
@@ -96,7 +106,7 @@ client/src/
 │   └── crmService.ts         # API wrappers cho toàn bộ endpoints
 │
 ├── layouts/                  
-│   ├── MainLayout.tsx        # Layout CRM chính đính kèm /:bizSlug/ prefix (Sidebar, Business Switcher)
+│   ├── MainLayout.tsx        # Layout CRM chính đính kèm /:bizSlug/ (Sidebar thu gọn mặc định, Business Switcher)
 │   └── SystemLayout.tsx      # Standalone Layout Quản trị Super Admin hệ thống (/system/users, /system/businesses)
 │
 ├── components/               # UI Components tái sử dụng (DataTable, Tag, Modal...)

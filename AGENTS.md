@@ -27,6 +27,7 @@ Tài liệu này đóng vai trò là **chỉ mục khởi đầu và quy chuẩn
 | **Outbox & Workers** | [outboxWorker.ts](file:///Volumes/ChanCuu/Projects/MiniCRM/server/src/automation/workers/outboxWorker.ts)<br>[automationWorker.ts](file:///Volumes/ChanCuu/Projects/MiniCRM/server/src/automation/workers/automationWorker.ts)<br>[outboxPublisher.ts](file:///Volumes/ChanCuu/Projects/MiniCRM/server/src/events/outboxPublisher.ts) | N/A |
 | **Tasks & Activities** | [ActivityService.ts](file:///Volumes/ChanCuu/Projects/MiniCRM/server/src/services/ActivityService.ts) | [features/tasks/](file:///Volumes/ChanCuu/Projects/MiniCRM/client/src/features/tasks/)<br>[features/activities/](file:///Volumes/ChanCuu/Projects/MiniCRM/client/src/features/activities/) |
 | **Dashboard & Analytics** | [DashboardService.ts](file:///Volumes/ChanCuu/Projects/MiniCRM/server/src/services/DashboardService.ts) | [features/dashboard/](file:///Volumes/ChanCuu/Projects/MiniCRM/client/src/features/dashboard/) |
+| **i18n & Localization** | N/A | [i18n/](file:///Volumes/ChanCuu/Projects/MiniCRM/client/src/i18n/)<br>[vi.json](file:///Volumes/ChanCuu/Projects/MiniCRM/client/src/i18n/locales/vi.json)<br>[en.json](file:///Volumes/ChanCuu/Projects/MiniCRM/client/src/i18n/locales/en.json) |
 
 ---
 
@@ -54,6 +55,9 @@ Khi thay đổi trạng thái entity (Lead created, Opportunity stage changed, T
 
 ### Rule 6: Standalone Super Admin Console & Business Management
 - Quyền Super Admin (`isSuperAdmin`) cho phép quản lý tài khoản toàn hệ thống tại `/system/users` và quản lý Doanh nghiệp tại `/system/businesses` thông qua `SystemLayout.tsx` mà **không phụ thuộc vào bất kỳ Biz nào**.
+
+### Rule 7: UI Text Localization Rule (i18n)
+- Khi thêm hoặc chỉnh sửa nhãn menu, tiêu đề trang hoặc văn bản giao diện, **bắt buộc** cập nhật đồng bộ các tệp ngôn ngữ tại `client/src/i18n/locales/vi.json` và `client/src/i18n/locales/en.json` thông qua hàm `t('nav...')` hoặc `t(...)`.
 
 ---
 
