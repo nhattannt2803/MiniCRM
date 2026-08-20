@@ -23,6 +23,7 @@ export const crmService = {
 
   // Leads
   getLeads: (params?: any) => api.get('/leads', { params }),
+  getLeadEvents: (params?: any) => api.get('/leads/events', { params }),
   getLeadById: (id: string) => api.get(`/leads/${id}`),
   createLead: (data: any) => api.post('/leads', data),
   updateLead: (id: string, data: any) => api.patch(`/leads/${id}`, data),

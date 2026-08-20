@@ -17,6 +17,7 @@ import {
   ClockCircleOutlined,
   RobotOutlined,
   IdcardOutlined,
+  HistoryOutlined,
   UserSwitchOutlined,
   ClusterOutlined,
   LockOutlined,
@@ -161,6 +162,7 @@ export const MainLayout: React.FC = () => {
       children: [
         { key: `/${currentBizSlug}/leads/my`, icon: <UserOutlined />, label: t('nav.myLeads') },
         { key: `/${currentBizSlug}/leads/allocation`, icon: <ShareAltOutlined />, label: t('nav.leadAllocation') },
+        { key: `/${currentBizSlug}/leads/events`, icon: <HistoryOutlined />, label: 'Sự kiện tạo Lead' },
         { key: `/${currentBizSlug}/leads`, icon: <TeamOutlined />, label: t('nav.allLeads') },
       ],
     },

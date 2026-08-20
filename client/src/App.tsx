@@ -18,6 +18,7 @@ import { LeadListPage } from './features/leads/LeadListPage';
 import { LeadDetailPage } from './features/leads/LeadDetailPage';
 import { MyLeadsPage } from './features/leads/MyLeadsPage';
 import { LeadAllocationPage } from './features/leads/LeadAllocationPage';
+import { LeadEventLogPage } from './features/leads/LeadEventLogPage';
 import { StaffListPage } from './features/staff/StaffListPage';
 import { UsersListPage } from './features/users/UsersListPage';
 import { SystemUsersPage } from './features/users/SystemUsersPage';
@@ -157,6 +158,7 @@ export const App: React.FC = () => {
             <Route path="leads" element={<LeadListPage />} />
             <Route path="leads/my" element={<MyLeadsPage />} />
             <Route path="leads/allocation" element={<LeadAllocationPage />} />
+            <Route path="leads/events" element={<LeadEventLogPage />} />
             <Route path="leads/:id" element={<LeadDetailPage />} />
             <Route path="staff" element={<StaffListPage />} />
             <Route path="users" element={<UsersListPage />} />
