@@ -43,6 +43,7 @@ import { AutomationExecutionPage } from './features/automations/AutomationExecut
 import { SettingsPage } from './features/settings/SettingsPage';
 import { ApiKeyPage } from './features/settings/ApiKeyPage';
 import { ProductMappingPage } from './features/products/ProductMappingPage';
+import { CourseListPage } from './features/courses/CourseListPage';
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { isAuthenticated, isLoading, businesses, user } = useAuthStore();
@@ -182,6 +183,7 @@ export const App: React.FC = () => {
             <Route path="settings" element={<SettingsPage />} />
             <Route path="api-keys" element={<ApiKeyPage />} />
             <Route path="product-mappings" element={<ProductMappingPage />} />
+            <Route path="courses" element={<CourseListPage />} />
           </Route>
 
           <Route path="*" element={<ProtectedRoute><RootRedirect /></ProtectedRoute>} />

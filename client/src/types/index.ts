@@ -326,3 +326,6 @@ export interface Notification {
   readAt?: string;
   createdAt: string;
 }
+
+export * from './course';
+

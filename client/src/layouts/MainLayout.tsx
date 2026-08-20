@@ -8,6 +8,7 @@ import {
   CheckSquareOutlined,
   ShoppingCartOutlined,
   ReadOutlined,
+  BookOutlined,
   CustomerServiceOutlined,
   PlusOutlined,
   SearchOutlined,
@@ -258,6 +259,11 @@ export const MainLayout: React.FC = () => {
       key: `/${currentBizSlug}/products`,
       icon: <AppstoreOutlined className="text-base" />,
       label: t('nav.products'),
+    },
+    {
+      key: `/${currentBizSlug}/courses`,
+      icon: <BookOutlined className="text-base" />,
+      label: t('nav.courses'),
     },
     {
       key: `/${currentBizSlug}/quotes`,

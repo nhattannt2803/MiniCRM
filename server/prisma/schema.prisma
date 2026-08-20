@@ -47,6 +47,7 @@ model Business {
   apiKeys         ApiKey[]
   productMappings ProductMapping[]
   leadCreationLogs LeadCreationLog[]
+  courses         Course[]
 
   @@index([status], map: "idx_biz_status")
   @@map("businesses")
@@ -922,5 +923,105 @@ model ProductMapping {
   @@unique([bizId, externalCode], map: "uk_product_mapping_biz_code")
   @@index([bizId, externalCode], map: "idx_product_mapping_biz_code")
   @@map("product_mappings")
+}
+
+// =============================================================================
+// Course Management (Khoá học / Sự kiện)
+// =============================================================================
+
+model Course {
+  id                 BigInt            @id @default(autoincrement()) @db.UnsignedBigInt
+  bizId              BigInt            @map("biz_id") @db.UnsignedBigInt
+  title              String            @db.VarChar(255)
+  thumbnail          String?           @db.VarChar(500)
+  status             String            @default("ACTIVE") @db.VarChar(30)
+  startDate          DateTime?         @map("start_date") @db.DateTime(3)
+  endDate            DateTime?         @map("end_date") @db.DateTime(3)
+  shortDescription   String?           @map("short_description") @db.Text
+  description        String?           @db.LongText
+  series             String?           @db.VarChar(100)
+  programType        String?           @map("program_type") @db.VarChar(100)
+  category           String?           @db.VarChar(100)
+  speaker            String?           @db.VarChar(100)
+  district           String?           @db.VarChar(100)
+  ward               String?           @db.VarChar(100)
+  addressDetail      String?           @map("address_detail") @db.VarChar(255)
+  priceType          String?           @default("FULL") @map("price_type") @db.VarChar(50)
+  registrationsCount Int               @default(0) @map("registrations_count")
+  maxCapacity        Int?              @map("max_capacity")
+  hotline            String?           @db.VarChar(50)
+  createdAt          DateTime          @default(now()) @map("created_at") @db.DateTime(3)
+  updatedAt          DateTime          @default(now()) @updatedAt @map("updated_at") @db.DateTime(3)
+  deletedAt          DateTime?         @map("deleted_at") @db.DateTime(3)
+
+  business   Business          @relation(fields: [bizId], references: [id], onDelete: Cascade)
+  sessions   CourseSession[]
+  tickets    CourseTicket[]
+  promotions CoursePromotion[]
+
+  @@index([bizId, status], map: "idx_courses_biz_status")
+  @@map("courses")
+}
+
+model CourseSession {
+  id          BigInt    @id @default(autoincrement()) @db.UnsignedBigInt
+  bizId       BigInt    @map("biz_id") @db.UnsignedBigInt
+  courseId    BigInt    @map("course_id") @db.UnsignedBigInt
+  title       String    @db.VarChar(255)
+  isActive    Boolean   @default(true) @map("is_active")
+  sortOrder   Int       @default(0) @map("sort_order")
+  startTime   DateTime? @map("start_time") @db.DateTime(3)
+  endTime     DateTime? @map("end_time") @db.DateTime(3)
+  description String?   @db.Text
+  location    String?   @db.VarChar(255)
+  createdAt   DateTime  @default(now()) @map("created_at") @db.DateTime(3)
+  updatedAt   DateTime  @default(now()) @updatedAt @map("updated_at") @db.DateTime(3)
+
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@index([courseId], map: "idx_cs_course_id")
+  @@map("course_sessions")
+}
+
+model CourseTicket {
+  id            BigInt   @id @default(autoincrement()) @db.UnsignedBigInt
+  bizId         BigInt   @map("biz_id") @db.UnsignedBigInt
+  courseId      BigInt   @map("course_id") @db.UnsignedBigInt
+  name          String   @db.VarChar(255)
+  price         Decimal  @default(0.00) @db.Decimal(15, 2)
+  originalPrice Decimal? @map("original_price") @db.Decimal(15, 2)
+  quantity      Int?
+  soldCount     Int      @default(0) @map("sold_count")
+  isActive      Boolean  @default(true) @map("is_active")
+  sortOrder     Int      @default(0) @map("sort_order")
+  description   String?  @db.Text
+  createdAt     DateTime @default(now()) @map("created_at") @db.DateTime(3)
+  updatedAt     DateTime @default(now()) @updatedAt @map("updated_at") @db.DateTime(3)
+
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@index([courseId], map: "idx_ct_course_id")
+  @@map("course_tickets")
+}
+
+model CoursePromotion {
+  id            BigInt    @id @default(autoincrement()) @db.UnsignedBigInt
+  bizId         BigInt    @map("biz_id") @db.UnsignedBigInt
+  courseId      BigInt    @map("course_id") @db.UnsignedBigInt
+  name          String    @db.VarChar(255)
+  discountType  String    @default("PERCENTAGE") @map("discount_type") @db.VarChar(30)
+  discountValue Decimal   @default(0.00) @map("discount_value") @db.Decimal(15, 2)
+  code          String?   @db.VarChar(50)
+  startDate     DateTime? @map("start_date") @db.DateTime(3)
+  endDate       DateTime? @map("end_date") @db.DateTime(3)
+  isActive      Boolean   @default(true) @map("is_active")
+  sortOrder     Int       @default(0) @map("sort_order")
+  createdAt     DateTime  @default(now()) @map("created_at") @db.DateTime(3)
+  updatedAt     DateTime  @default(now()) @updatedAt @map("updated_at") @db.DateTime(3)
+
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@index([courseId], map: "idx_cp_course_id")
+  @@map("course_promotions")
 }
 
