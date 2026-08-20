@@ -172,6 +172,7 @@ export const LeadListPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string | undefined>();
   const [ratingFilter, setRatingFilter] = useState<string | undefined>();
@@ -246,7 +247,7 @@ export const LeadListPage: React.FC = () => {
     try {
       const res: any = await crmService.getLeads({
         page,
-        limit: 10,
+        limit: pageSize,
         search,
         status: statusFilter,
         rating: ratingFilter,
@@ -264,7 +265,7 @@ export const LeadListPage: React.FC = () => {
 
   useEffect(() => {
     fetchLeads();
-  }, [page, search, statusFilter, ratingFilter]);
+  }, [page, pageSize, search, statusFilter, ratingFilter]);
 
   useEffect(() => {
     crmService.getUsers().then((res: any) => {
@@ -872,9 +873,22 @@ export const LeadListPage: React.FC = () => {
             loading={loading}
             pagination={{
               current: page,
+              pageSize,
               total,
-              pageSize: 10,
-              onChange: (p) => setPage(p),
+              showSizeChanger: true,
+              pageSizeOptions: ['10', '20', '50', '100'],
+              onChange: (p, size) => {
+                setPage(p);
+                if (size && size !== pageSize) {
+                  setPageSize(size);
+                  setPage(1);
+                }
+              },
+              showTotal: (totalCount, range) => (
+                <span className="text-xs text-slate-500 font-medium">
+                  Hiển thị {range[0]}-{range[1]} / {totalCount} Leads
+                </span>
+              ),
             }}
           />
         </div>

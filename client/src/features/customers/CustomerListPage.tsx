@@ -18,6 +18,7 @@ export const CustomerListPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   const [search, setSearch] = useState('');
   const [filterEntityType, setFilterEntityType] = useState<string | undefined>(undefined);
   const [filterStatus, setFilterStatus] = useState<string | undefined>(undefined);
@@ -38,7 +39,7 @@ export const CustomerListPage: React.FC = () => {
     try {
       const res: any = await crmService.getCustomers({
         page,
-        limit: 10,
+        limit: pageSize,
         search,
         entityType: filterEntityType,
         status: filterStatus,
@@ -67,7 +68,7 @@ export const CustomerListPage: React.FC = () => {
 
   useEffect(() => {
     fetchCustomers();
-  }, [page, search, filterEntityType, filterStatus]);
+  }, [page, pageSize, search, filterEntityType, filterStatus]);
 
   useEffect(() => {
     fetchUsers();
@@ -332,7 +333,25 @@ export const CustomerListPage: React.FC = () => {
           dataSource={customers}
           rowKey="id"
           loading={loading}
-          pagination={{ current: page, total, pageSize: 10, onChange: setPage }}
+          pagination={{
+            current: page,
+            pageSize,
+            total,
+            showSizeChanger: true,
+            pageSizeOptions: ['10', '20', '50', '100'],
+            onChange: (p, size) => {
+              setPage(p);
+              if (size && size !== pageSize) {
+                setPageSize(size);
+                setPage(1);
+              }
+            },
+            showTotal: (totalCount, range) => (
+              <span className="text-xs text-slate-500 font-medium">
+                Hiển thị {range[0]}-{range[1]} / {totalCount} Khách hàng
+              </span>
+            ),
+          }}
         />
       </div>
 
