@@ -219,7 +219,7 @@ Luồng quản trị dành riêng cho Super Admin quản lý toàn bộ hệ th�
 
 ## 8. Flow 8: Smax.ai Multichannel Chat Integration, Ad Attribution & Custom Date Flow
 
-Luồng xử lý trích xuất PSID, thuộc tính quảng cáo (`ad_id`, `fb_page_id`, `fb_page_name`), ngày nhận Lead tùy chỉnh (`receivedAt`), tự động hóa lấy lịch sử tin nhắn tư vấn và bảo vệ Token Smax.ai:
+Luồng xử lý trích xuất PSID, thuộc tính quảng cáo (`ad_id`, `fb_page_id`, `fb_page_name`), tự động gán `smaxBizSlug` vào database khi tạo Lead từ link chat, ngày nhận Lead tùy chỉnh (`receivedAt`), tự động hóa lấy lịch sử tin nhắn tư vấn và bảo vệ Token Smax.ai:
 
 ```text
 [User creates/views Lead with Smax URL or Ads metadata]
@@ -229,14 +229,21 @@ Luồng xử lý trích xuất PSID, thuộc tính quảng cáo (`ad_id`, `fb_pa
 [LeadService.parseSmaxUrl & parseAdsData] ➔ Extract: smaxBizSlug, pageId, pageName, threadId, adId
           │
           ├── 1. Generate Clean PSID = "fb726248080568145_25251628287812733"
-          ├── 2. Save `smaxBizSlug`, `fbPageId`, `fbPageName` into `lead` & `CustomerIdentity`
-          ├── 3. Upsert record into `lead_ads` table under (lead_id, ad_id)
-          ├── 4. Set `receivedAt` custom date option when creating lead
-          └── 5. Clean Smax Token in SystemSetting (Strip leading "Bearer " to avoid double "Bearer Bearer ...")
+          ├── 2. Auto-fill `smaxBizSlug` into form state & save `smaxBizSlug`, `fbPageId`, `fbPageName` into `lead` DB
+          ├── 3. Save `FB_PSID` identity into `CustomerIdentity` table
+          ├── 4. Upsert record into `lead_ads` table under (lead_id, ad_id)
+          ├── 5. Set `receivedAt` custom date option when creating lead
+          └── 6. Clean Smax Token in SystemSetting (Strip leading "Bearer " to avoid double "Bearer Bearer ...")
           │
           ▼
 [User opens "Hội thoại đa kênh" Tab in Lead Detail]
           │ (Lazy load triggers handleFetchSmaxMessages)
+          ▼
+[LeadService.fetchSmaxMessages] ➔ 4-Tier Fallback Chain for `smaxBizSlug`:
+          │  ├── 1. Exact Lead PSID match in `customer_identities` (Most accurate)
+          │  ├── 2. Any existing Lead in tenant with non-null `smaxBizSlug`
+          │  ├── 3. System setting `SMAX_BIZ_SLUG` from `/settings` (Configured by admin)
+          │  └── 4. Business slug from DB (`bizObj.slug`) (Last resort)
           ▼
 [LeadDetailPage.tsx] ➔ Checks 15-Minute Cache ➔ Calls Smax Messages API ➔ Formats Chronological Messages
 ```

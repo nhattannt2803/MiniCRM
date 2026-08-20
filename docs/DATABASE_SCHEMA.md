@@ -50,7 +50,7 @@ Tài liệu này đóng vai trò là **từ điển dữ liệu (Data Dictionary
 - **`automation_executions`** & **`automation_execution_logs`**: Nhật ký lịch sử chạy automation.
 - **`outbox_events`**: Transactional Outbox Queue (`biz_id`, `event_type`, `payload`, `status` = `PENDING` | `PROCESSED` | `FAILED`).
 - **`conversations`** & **`messages`**: Hội thoại & Tin nhắn tư vấn đa kênh Smax.ai (`biz_id`, `channel_type`, `channel_thread_id`, `smax_biz_slug`).
-- **`system_settings`**: Cấu hình hệ thống theo Doanh nghiệp (`biz_id`, `key` = `SMAX_API_TOKEN` | `SMAX_WEBHOOK_KEY` | `DUPLICATE_LEAD_RULES`, `value`). Unique constraint: `(biz_id, key)`.
+- **`system_settings`**: Cấu hình hệ thống theo Doanh nghiệp (`biz_id`, `key` = `SMAX_API_TOKEN` | `SMAX_BIZ_SLUG` | `SMAX_WEBHOOK_KEY` | `DUPLICATE_LEAD_RULES`, `value`). Unique constraint: `(biz_id, key)`.
 
 ---
 

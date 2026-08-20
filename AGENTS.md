@@ -59,6 +59,10 @@ Khi thay đổi trạng thái entity (Lead created, Opportunity stage changed, T
 ### Rule 7: UI Text Localization Rule (i18n)
 - Khi thêm hoặc chỉnh sửa nhãn menu, tiêu đề trang hoặc văn bản giao diện, **bắt buộc** cập nhật đồng bộ các tệp ngôn ngữ tại `client/src/i18n/locales/vi.json` và `client/src/i18n/locales/en.json` thông qua hàm `t('nav...')` hoặc `t(...)`.
 
+### Rule 8: Smax.ai Chat Integration & Biz Slug Fallback Rule
+- Khi tạo Lead từ đường dẫn Smax.ai (`fetchSmaxThread`), **bắt buộc** gán `smaxBizSlug` vào DTO/Form state để lưu xuống DB.
+- Khi tải tin nhắn từ mã PSID, Backend `LeadService.fetchSmaxMessages` áp dụng chuỗi 4 tầng fallback để xác định `smaxBizSlug`: (1) Lead có PSID khớp ➔ (2) Lead khác trong Biz có slug ➔ (3) Cấu hình `SMAX_BIZ_SLUG` trong `/settings` ➔ (4) Slug Doanh nghiệp trong CRM DB (`bizObj.slug`).
+
 ---
 
 ## 4. Key Development & Testing Commands

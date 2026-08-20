@@ -36,7 +36,7 @@ server/src/
 │   ├── ConversationService.ts # Hội thoại & Tin nhắn tư vấn đa kênh Smax.ai
 │   ├── ActivityService.ts    # Nhật ký tương tác Polymorphic & Công việc (Tasks, Campaigns)
 │   ├── DashboardService.ts   # Thống kê KPIs, Phễu bán hàng (Funnel), Pipeline
-│   ├── SystemSettingService.ts # Cấu hình hệ thống theo Biz (Smax API Token, quy tắc trùng lặp)
+│   ├── SystemSettingService.ts # Cấu hình hệ thống theo Biz (Smax API Token, Smax Business Slug, quy tắc trùng lặp)
 │   └── seedEngine.ts         # Engine nạp dữ liệu mẫu Multi-Biz cho các ngành demo
 │
 ├── automation/               # Core Event-Driven Automation Engine
@@ -85,7 +85,7 @@ client/src/
 │   ├── products/             # Quản lý Danh mục sản phẩm & dịch vụ
 │   ├── quotes/               # Quản lý Báo giá & Chi tiết báo giá
 │   ├── roles/                # Quản lý Vai trò & Phân quyền
-│   ├── settings/             # Cấu hình Doanh nghiệp & Token kết nối
+│   ├── settings/             # Cấu hình Doanh nghiệp, Webhook API Key, Smax Business Slug & Token
 │   ├── staff/                # Quản lý Đội ngũ nhân sự
 │   └── teams/                # Quản lý Nhóm / Đội ngũ bán hàng
 │
