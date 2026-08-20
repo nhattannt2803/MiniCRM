@@ -289,11 +289,13 @@ export class LeadService {
           if (actorUser) actorName = `${actorUser.firstName} ${actorUser.lastName}`.trim();
         }
         const fullName = `${data.firstName || ''} ${data.lastName || ''}`.trim() || `${activeExistingLead.firstName || ''} ${activeExistingLead.lastName || ''}`.trim();
+        const externalSources = ['API', 'WEBHOOK', 'SMAX', 'FB_ADS', 'ZALO_ADS', 'LANDING_PAGE'];
+        const effectiveMethod = data.creationMethod || (externalSources.includes(data.source || activeExistingLead.source) ? 'API' : 'MANUAL');
         await prisma.leadCreationLog.create({
           data: {
             bizId,
             leadId: activeExistingLead.id,
-            creationMethod: data.creationMethod || 'MANUAL',
+            creationMethod: effectiveMethod,
             duplicateStrategy: 'MERGED',
             customerName: fullName,
             customerPhone: data.phone || activeExistingLead.phone,
@@ -451,11 +453,13 @@ export class LeadService {
         if (actorUser) actorName = `${actorUser.firstName} ${actorUser.lastName}`.trim();
       }
       const fullName = `${created.firstName || ''} ${created.lastName || ''}`.trim();
+      const externalSources = ['API', 'WEBHOOK', 'SMAX', 'FB_ADS', 'ZALO_ADS', 'LANDING_PAGE'];
+      const effectiveMethod = data.creationMethod || (externalSources.includes(created.source) ? 'API' : 'MANUAL');
       await tx.leadCreationLog.create({
         data: {
           bizId,
           leadId: created.id,
-          creationMethod: data.creationMethod || 'MANUAL',
+          creationMethod: effectiveMethod,
           duplicateStrategy: 'CREATED_NEW',
           customerName: fullName,
           customerPhone: created.phone,
@@ -494,32 +498,34 @@ export class LeadService {
     const pageSize = Math.max(1, Math.min(100, parseInt(filters.pageSize || filters.limit || '10', 10)));
     const skip = (page - 1) * pageSize;
 
-    // Check & Backfill logs if table is empty for this Biz
-    let totalLogsForBiz = await prisma.leadCreationLog.count({ where: { bizId } });
-    if (totalLogsForBiz === 0) {
-      const existingLeads = await prisma.lead.findMany({
-        where: { bizId },
-        take: 200,
-        orderBy: { createdAt: 'desc' },
+    // Check & Backfill logs for any leads in DB missing event logs
+    const unloggedLeads = await prisma.lead.findMany({
+      where: {
+        bizId,
+        leadCreationLogs: { none: {} },
+      },
+      take: 200,
+      orderBy: { createdAt: 'desc' },
+    });
+
+    if (unloggedLeads.length > 0) {
+      const externalSources = ['API', 'WEBHOOK', 'SMAX', 'FB_ADS', 'ZALO_ADS', 'LANDING_PAGE'];
+      const backfillData = unloggedLeads.map((lead) => ({
+        bizId,
+        leadId: lead.id,
+        creationMethod: externalSources.includes(lead.source) ? 'API' : 'MANUAL',
+        duplicateStrategy: 'CREATED_NEW',
+        customerName: `${lead.firstName || ''} ${lead.lastName || ''}`.trim() || 'Khách hàng',
+        customerPhone: lead.phone,
+        customerEmail: lead.email,
+        source: lead.source,
+        actorId: lead.ownerId,
+        notes: lead.notes,
+        createdAt: lead.createdAt,
+      }));
+      await prisma.leadCreationLog.createMany({
+        data: backfillData,
       });
-      if (existingLeads.length > 0) {
-        const backfillData = existingLeads.map((lead) => ({
-          bizId,
-          leadId: lead.id,
-          creationMethod: lead.source === 'API' || lead.source === 'WEBHOOK' || lead.source === 'SMAX' ? 'API' : 'MANUAL',
-          duplicateStrategy: 'CREATED_NEW',
-          customerName: `${lead.firstName || ''} ${lead.lastName || ''}`.trim() || 'Khách hàng',
-          customerPhone: lead.phone,
-          customerEmail: lead.email,
-          source: lead.source,
-          actorId: lead.ownerId,
-          notes: lead.notes,
-          createdAt: lead.createdAt,
-        }));
-        await prisma.leadCreationLog.createMany({
-          data: backfillData,
-        });
-      }
     }
 
     const where: any = { bizId };
@@ -543,12 +549,25 @@ export class LeadService {
     }
 
     if (filters.search && filters.search.trim()) {
-      const q = filters.search.trim();
-      where.OR = [
-        { customerName: { contains: q } },
-        { customerPhone: { contains: q } },
-        { customerEmail: { contains: q } },
+      const rawQ = filters.search.trim();
+      const cleanQ = rawQ.replace(/^#/, '');
+      const isNumeric = /^\d+$/.test(cleanQ);
+      const searchId = isNumeric ? BigInt(cleanQ) : null;
+
+      const orConditions: any[] = [
+        { customerName: { contains: rawQ } },
+        { customerPhone: { contains: rawQ } },
+        { customerEmail: { contains: rawQ } },
+        { source: { contains: rawQ } },
+        { notes: { contains: rawQ } },
+        { actorName: { contains: rawQ } },
       ];
+
+      if (searchId) {
+        orConditions.push({ leadId: searchId });
+      }
+
+      where.OR = orConditions;
     }
 
     const [logs, total] = await Promise.all([

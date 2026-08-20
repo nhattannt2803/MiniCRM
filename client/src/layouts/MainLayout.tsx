@@ -189,7 +189,7 @@ export const MainLayout: React.FC = () => {
         { key: `/${currentBizSlug}/staff`, icon: <IdcardOutlined />, label: t('nav.staff') },
         { key: `/${currentBizSlug}/teams`, icon: <ClusterOutlined />, label: t('nav.teams') },
         { key: `/${currentBizSlug}/roles`, icon: <LockOutlined />, label: t('nav.roles') },
-        { key: `/${currentBizSlug}/leads/events`, icon: <HistoryOutlined />, label: 'Sự kiện tạo Lead' },
+        { key: `/${currentBizSlug}/leads/events`, icon: <HistoryOutlined />, label: t('nav.leadEvents') },
         { key: `/${currentBizSlug}/settings`, icon: <SettingOutlined />, label: t('nav.settings') },
         { key: `/${currentBizSlug}/automations`, icon: <RobotOutlined />, label: t('nav.automations') },
         { key: `/${currentBizSlug}/activities`, icon: <ClockCircleOutlined />, label: t('nav.activities') },
