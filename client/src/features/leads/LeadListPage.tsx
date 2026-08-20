@@ -9,6 +9,7 @@ import { Lead, User } from '../../types';
 import { LeadConvertModal } from './LeadConvertModal';
 import { useSettingsStore } from '../../stores/settingsStore';
 import { parseFbPsidInput, parseZaloUidInput } from '../../utils/identityHelper';
+import { PrimaryButton } from '../../components/common/PrimaryButton';
 
 const QuickProductSelector: React.FC<{ record: Lead; products: any[]; onUpdated: () => void }> = ({ record, products, onUpdated }) => {
   const currentProductIds = (record as any).products ? (record as any).products.map((p: any) => p.productId) : [];
@@ -134,10 +135,10 @@ const QuickStatusSelector: React.FC<{ record: Lead; onUpdated: () => void }> = (
         borderRadius: '6px',
         backgroundColor:
           record.status === 'NEW' ? '#eff6ff' :
-          record.status === 'CONTACTED' ? '#faf5ff' :
-          record.status === 'QUALIFIED' ? '#ecfeff' :
-          record.status === 'NURTURING' ? '#fefce8' :
-          record.status === 'LOST' ? '#fef2f2' : '#f8fafc',
+            record.status === 'CONTACTED' ? '#faf5ff' :
+              record.status === 'QUALIFIED' ? '#ecfeff' :
+                record.status === 'NURTURING' ? '#fefce8' :
+                  record.status === 'LOST' ? '#fef2f2' : '#f8fafc',
       }}
     >
       <Select.Option value="NEW">
@@ -722,9 +723,8 @@ export const LeadListPage: React.FC = () => {
               size="small"
               icon={<AppstoreOutlined />}
               onClick={() => setViewMode('kanban')}
-              className={`h-7 w-7 flex items-center justify-center rounded border-none ${
-                viewMode === 'kanban' ? 'bg-indigo-600 text-white shadow-2xs' : 'text-slate-500 hover:text-slate-900'
-              }`}
+              className={`h-7 w-7 flex items-center justify-center rounded border-none ${viewMode === 'kanban' ? 'bg-indigo-600 text-white shadow-2xs' : 'text-slate-500 hover:text-slate-900'
+                }`}
               title="Giao diện Kanban"
             />
             <Button
@@ -732,9 +732,8 @@ export const LeadListPage: React.FC = () => {
               size="small"
               icon={<UnorderedListOutlined />}
               onClick={() => setViewMode('list')}
-              className={`h-7 w-7 flex items-center justify-center rounded border-none ${
-                viewMode === 'list' ? 'bg-indigo-600 text-white shadow-2xs' : 'text-slate-500 hover:text-slate-900'
-              }`}
+              className={`h-7 w-7 flex items-center justify-center rounded border-none ${viewMode === 'list' ? 'bg-indigo-600 text-white shadow-2xs' : 'text-slate-500 hover:text-slate-900'
+                }`}
               title="Giao diện Danh sách"
             />
           </div>
@@ -768,11 +767,10 @@ export const LeadListPage: React.FC = () => {
           >
             <Button
               icon={<FilterOutlined className="text-slate-600 text-xs" />}
-              className={`text-xs font-semibold rounded-lg h-8 px-3 flex items-center gap-1.5 shadow-2xs border ${
-                statusFilter || ratingFilter
+              className={`text-xs font-semibold rounded-lg h-8 px-3 flex items-center gap-1.5 shadow-2xs border ${statusFilter || ratingFilter
                   ? 'bg-indigo-50 text-indigo-700 border-indigo-200'
                   : 'bg-white text-slate-700 border-slate-200 hover:border-slate-300'
-              }`}
+                }`}
             >
               <span>Lọc</span>
               {(statusFilter || ratingFilter) && <span className="w-2 h-2 rounded-full bg-indigo-600" />}
@@ -789,14 +787,13 @@ export const LeadListPage: React.FC = () => {
           </Button>
 
           {/* + Thêm Primary Blue Button */}
-          <Button
-            type="primary"
+          <PrimaryButton
             icon={<PlusOutlined />}
             onClick={handleOpenCreateDrawer}
-            className="bg-[#173b85] hover:bg-[#1f4598] text-white font-bold text-xs rounded-lg h-8 px-4 border-none shadow-sm flex items-center gap-1"
           >
-            <span>+ Thêm</span>
-          </Button>
+            Thêm
+          </PrimaryButton>
+
         </div>
       </div>
 
