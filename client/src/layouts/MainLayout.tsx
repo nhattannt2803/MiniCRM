@@ -342,7 +342,11 @@ export const MainLayout: React.FC = () => {
         <div className="h-full flex flex-col justify-between overflow-hidden">
           <div className="flex-1 overflow-y-auto">
             {/* Logo Header */}
-            <div className={`h-14 flex items-center border-b border-[#234aa0]/60 sticky top-0 bg-[#173b85] z-10 px-4 gap-2.5 ${collapsed ? 'justify-center' : ''}`}>
+            <div
+              onClick={() => navigate(`/${currentBizSlug}/overview`)}
+              className={`h-14 flex items-center border-b border-[#234aa0]/60 sticky top-0 bg-[#173b85] z-10 px-4 gap-2.5 cursor-pointer hover:bg-[#1e469c] transition-colors ${collapsed ? 'justify-center' : ''}`}
+              title="Về trang chủ"
+            >
               <div className="w-7 h-7 rounded-lg bg-[#254ea7] text-white flex items-center justify-center font-black text-sm shadow-sm border border-[#3b67cb]/50 shrink-0">
                 <AppstoreOutlined className="text-base text-white" />
               </div>
