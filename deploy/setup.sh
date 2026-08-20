@@ -3,13 +3,53 @@
 # exit on error
 set -e
 
-# Configurable variables (Can be passed via env, e.g., DB_PASS="YourPass" ./setup.sh)
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
+ENV_FILE="$PROJECT_ROOT/server/.env"
+ENV_EXAMPLE="$PROJECT_ROOT/server/.env.example"
+
+# Auto-create server/.env from server/.env.example if missing
+if [ ! -f "$ENV_FILE" ] && [ -f "$ENV_EXAMPLE" ]; then
+  cp "$ENV_EXAMPLE" "$ENV_FILE"
+  echo "📋 Created server/.env from server/.env.example"
+fi
+
+# Fallback default values
 DB_NAME="${DB_NAME:-minicrm}"
 DB_USER="${DB_USER:-minicrm_user}"
 DB_PASS="${DB_PASS:-ChangeMeStrongPass123!}"
 
+# Automatically read DB_NAME, DB_USER, DB_PASS or DATABASE_URL from server/.env if available
+if [ -f "$ENV_FILE" ]; then
+  echo "📖 Reading database configuration from $ENV_FILE..."
+  ENV_DB_USER=$(grep "^DB_USER=" "$ENV_FILE" | cut -d '=' -f2- | tr -d '"' | tr -d "'")
+  ENV_DB_PASS=$(grep "^DB_PASS=" "$ENV_FILE" | cut -d '=' -f2- | tr -d '"' | tr -d "'")
+  ENV_DB_NAME=$(grep "^DB_NAME=" "$ENV_FILE" | cut -d '=' -f2- | tr -d '"' | tr -d "'")
+
+  [ -n "$ENV_DB_USER" ] && DB_USER="$ENV_DB_USER"
+  [ -n "$ENV_DB_PASS" ] && DB_PASS="$ENV_DB_PASS"
+  [ -n "$ENV_DB_NAME" ] && DB_NAME="$ENV_DB_NAME"
+
+  # Fallback to parsing DATABASE_URL if individual variables were missing
+  if [ -z "$ENV_DB_USER" ] || [ -z "$ENV_DB_PASS" ] || [ -z "$ENV_DB_NAME" ]; then
+    DB_URL=$(grep "^DATABASE_URL=" "$ENV_FILE" | cut -d '=' -f2- | tr -d '"' | tr -d "'")
+    if [ -n "$DB_URL" ]; then
+      PARSED_USER=$(echo "$DB_URL" | sed -n 's|.*mysql://\([^:]*\):.*|\1|p')
+      PARSED_PASS=$(echo "$DB_URL" | sed -n 's|.*mysql://[^:]*:\([^@]*\)@.*|\1|p')
+      PARSED_NAME=$(echo "$DB_URL" | sed -n 's|.*mysql://[^/]*/\([^?]*\).*|\1|p' | cut -d '?' -f1)
+
+      [ -n "$PARSED_USER" ] && DB_USER="$PARSED_USER"
+      [ -n "$PARSED_PASS" ] && DB_PASS="$PARSED_PASS"
+      [ -n "$PARSED_NAME" ] && DB_NAME="$PARSED_NAME"
+    fi
+  fi
+  echo "✅ Extracted DB credentials from .env -> User: $DB_USER, Database: $DB_NAME"
+fi
+
 echo "=============================================="
 echo " Starting Server Setup for Mini CRM "
+echo " Target Database: ${DB_NAME}"
+echo " Target DB User:  ${DB_USER}"
 echo "=============================================="
 
 # Check if running as root
@@ -36,13 +76,13 @@ apt install -y mysql-server
 systemctl start mysql
 systemctl enable mysql
 
-# Create database and user if not exists
+# Create database and user in MySQL using credentials read from .env
 echo "🔑 Provisioning MySQL database & user..."
 mysql -e "CREATE DATABASE IF NOT EXISTS ${DB_NAME} CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
 mysql -e "CREATE USER IF NOT EXISTS '${DB_USER}'@'localhost' IDENTIFIED BY '${DB_PASS}';"
 mysql -e "GRANT ALL PRIVILEGES ON ${DB_NAME}.* TO '${DB_USER}'@'localhost';"
 mysql -e "FLUSH PRIVILEGES;"
-echo "✅ MySQL setup completed."
+echo "✅ MySQL database & user setup completed successfully."
 
 # 4. Install Redis Server
 echo "🚀 Installing Redis Server..."
