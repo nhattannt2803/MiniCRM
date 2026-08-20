@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { PrimaryButton } from '../../components/common/PrimaryButton';
+import { PageHeader } from '../../components/common/PageHeader';
+import { TableToolbar } from '../../components/common/TableToolbar';
+
 
 import { Table, Card, Button, Input, Tag, Space, Switch, Modal, Form, Select, message, Badge, Tooltip } from 'antd';
 import {
@@ -198,39 +201,33 @@ export const UsersListPage: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
+      <PageHeader
+        title={
+          <span className="flex items-center gap-2">
             <UserOutlined className="text-indigo-600" /> Quản lý Users hệ thống
-          </h1>
-          <p className="text-sm text-slate-500">
-            Danh sách tất cả tài khoản người dùng, cấp quyền truy cập và quản lý trạng thái kích hoạt tài khoản
-          </p>
-        </div>
-        <div className="flex items-center gap-3">
-          <Button icon={<ReloadOutlined />} onClick={fetchUsers} loading={loading}>
-            Làm mới
-          </Button>
-          <PrimaryButton
-            icon={<UserAddOutlined />}
-            onClick={() => setIsModalOpen(true)}
-          >
-            Tạo Tài Khoản User
-          </PrimaryButton>
-        </div>
-      </div>
+          </span>
+        }
+        subtitle="Danh sách tất cả tài khoản người dùng, cấp quyền truy cập và quản lý trạng thái kích hoạt tài khoản"
+      />
+
+      <TableToolbar
+        searchPlaceholder="Tìm người dùng theo tên, email, ID..."
+        searchValue={searchText}
+        onSearchChange={(e) => setSearchText(e.target.value)}
+      >
+        <Button icon={<ReloadOutlined className="text-slate-600 text-xs" />} onClick={fetchUsers} loading={loading} className="text-xs font-semibold text-slate-700 bg-white border border-slate-200 rounded-lg h-8 px-3 flex items-center gap-1.5 shadow-2xs hover:border-slate-300">
+          Làm mới
+        </Button>
+        <PrimaryButton
+          icon={<UserAddOutlined />}
+          onClick={() => setIsModalOpen(true)}
+        >
+          Tạo Tài Khoản User
+        </PrimaryButton>
+      </TableToolbar>
 
       {/* Main Table */}
       <Card className="shadow-xs border-slate-200 rounded-xl">
-        <div className="mb-4">
-          <Input
-            placeholder="Tìm người dùng theo tên, email, ID..."
-            prefix={<SearchOutlined className="text-slate-400" />}
-            value={searchText}
-            onChange={(e) => setSearchText(e.target.value)}
-            className="w-full sm:w-80 rounded-lg"
-          />
-        </div>
         <Table
           rowKey="id"
           loading={loading}

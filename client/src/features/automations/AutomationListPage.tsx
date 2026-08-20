@@ -6,6 +6,9 @@ import { useTranslation } from 'react-i18next';
 import { crmService } from '../../services/crmService';
 import { Automation, Pipeline, PipelineStage } from '../../types';
 import { PrimaryButton } from '../../components/common/PrimaryButton';
+import { PageHeader } from '../../components/common/PageHeader';
+import { TableToolbar } from '../../components/common/TableToolbar';
+
 
 export const AutomationListPage: React.FC = () => {
   const [automations, setAutomations] = useState<Automation[]>([]);
@@ -369,30 +372,34 @@ export const AutomationListPage: React.FC = () => {
       {/* Hidden file input for import JSON */}
       <input type="file" ref={fileInputRef} onChange={handleImportFile} accept=".json" style={{ display: 'none' }} />
 
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">{t('automations.title')}</h1>
-          <p className="text-sm text-slate-500">Cấu hình quy trình tự động hóa dựa trên sự kiện hệ thống</p>
-        </div>
+      <PageHeader
+        title={t('automations.title')}
+        subtitle="Cấu hình quy trình tự động hóa dựa trên sự kiện hệ thống"
+      />
 
-        <div className="flex gap-2">
-          <Button icon={<RobotOutlined className="text-indigo-600" />} onClick={handleCreateQualifiedOpportunityRule}>
-            + Mẫu: Lead QUALIFIED ➔ Mở Cơ hội Kanban
-          </Button>
-          <Button icon={<UploadOutlined />} onClick={handleImportClick}>
-            Nhập JSON
-          </Button>
-          <Button icon={<HistoryOutlined />} onClick={() => navigate('/automations/executions')}>
-            {t('automations.executionHistory')}
-          </Button>
-          <PrimaryButton
-            icon={<PlusOutlined />}
-            onClick={() => navigate('/automations/create')}
-          >
-            {t('automations.addAutomation')}
-          </PrimaryButton>
-        </div>
-      </div>
+      <TableToolbar
+        showSearch={false}
+        extraLeft={
+          <div className="flex flex-wrap items-center gap-2">
+            <Button icon={<RobotOutlined className="text-indigo-600 text-xs" />} onClick={handleCreateQualifiedOpportunityRule} className="text-xs font-semibold text-slate-700 bg-white border border-slate-200 rounded-lg h-8 px-3 flex items-center gap-1.5 shadow-2xs hover:border-slate-300">
+              + Mẫu: Lead QUALIFIED ➔ Mở Cơ hội Kanban
+            </Button>
+            <Button icon={<UploadOutlined className="text-slate-600 text-xs" />} onClick={handleImportClick} className="text-xs font-semibold text-slate-700 bg-white border border-slate-200 rounded-lg h-8 px-3 flex items-center gap-1.5 shadow-2xs hover:border-slate-300">
+              Nhập JSON
+            </Button>
+            <Button icon={<HistoryOutlined className="text-slate-600 text-xs" />} onClick={() => navigate('/automations/executions')} className="text-xs font-semibold text-slate-700 bg-white border border-slate-200 rounded-lg h-8 px-3 flex items-center gap-1.5 shadow-2xs hover:border-slate-300">
+              {t('automations.executionHistory')}
+            </Button>
+          </div>
+        }
+      >
+        <PrimaryButton
+          icon={<PlusOutlined />}
+          onClick={() => navigate('/automations/create')}
+        >
+          {t('automations.addAutomation')}
+        </PrimaryButton>
+      </TableToolbar>
 
       <div className="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden">
         <Table columns={columns} dataSource={automations} rowKey="id" loading={loading} pagination={false} />

@@ -7,6 +7,9 @@ import { crmService } from '../../services/crmService';
 import { Customer, User } from '../../types';
 import { useSettingsStore } from '../../stores/settingsStore';
 import { PrimaryButton } from '../../components/common/PrimaryButton';
+import { PageHeader } from '../../components/common/PageHeader';
+import { TableToolbar } from '../../components/common/TableToolbar';
+
 
 export const CustomerListPage: React.FC = () => {
   const { defaultEntityType } = useSettingsStore();
@@ -273,10 +276,43 @@ export const CustomerListPage: React.FC = () => {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">{t('customers.title')}</h1>
-          <p className="text-sm text-slate-500">Danh sách và quản lý thông tin khách hàng chính thức</p>
+      <PageHeader
+        title={t('customers.title')}
+        subtitle="Danh sách và quản lý thông tin khách hàng chính thức"
+      />
+
+      <TableToolbar
+        searchPlaceholder={t('common.searchPlaceholder')}
+        searchValue={search}
+        onSearchChange={(e) => setSearch(e.target.value)}
+        extraLeft={
+          <>
+            <Select
+              placeholder="Tất cả loại hình"
+              allowClear
+              className="w-40 text-xs"
+              value={filterEntityType}
+              onChange={(val) => setFilterEntityType(val)}
+            >
+              <Select.Option value="COMPANY">🏢 Doanh nghiệp</Select.Option>
+              <Select.Option value="CONTACT">👤 Cá nhân</Select.Option>
+            </Select>
+
+            <Select
+              placeholder="Tất cả trạng thái"
+              allowClear
+              className="w-40 text-xs"
+              value={filterStatus}
+              onChange={(val) => setFilterStatus(val)}
+            >
+              <Select.Option value="ACTIVE">Đang hoạt động</Select.Option>
+              <Select.Option value="INACTIVE">Tạm dừng</Select.Option>
+            </Select>
+          </>
+        }
+      >
+        <div className="text-xs text-slate-500 font-medium mr-2">
+          Tổng số khách hàng: <span className="text-indigo-600 font-bold">{total}</span>
         </div>
         <PrimaryButton
           icon={<PlusOutlined />}
@@ -288,43 +324,7 @@ export const CustomerListPage: React.FC = () => {
         >
           {t('customers.addCustomer')}
         </PrimaryButton>
-      </div>
-
-      <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <Input
-            prefix={<SearchOutlined className="text-slate-400" />}
-            placeholder={t('common.searchPlaceholder')}
-            className="w-64"
-            allowClear
-            onChange={(e) => setSearch(e.target.value)}
-          />
-          <Select
-            placeholder="Tất cả loại hình"
-            allowClear
-            className="w-44"
-            value={filterEntityType}
-            onChange={(val) => setFilterEntityType(val)}
-          >
-            <Select.Option value="COMPANY">🏢 Doanh nghiệp</Select.Option>
-            <Select.Option value="CONTACT">👤 Cá nhân</Select.Option>
-          </Select>
-
-          <Select
-            placeholder="Tất cả trạng thái"
-            allowClear
-            className="w-44"
-            value={filterStatus}
-            onChange={(val) => setFilterStatus(val)}
-          >
-            <Select.Option value="ACTIVE">Đang hoạt động</Select.Option>
-            <Select.Option value="INACTIVE">Tạm dừng</Select.Option>
-          </Select>
-        </div>
-        <div className="text-xs text-slate-500 font-medium">
-          Tổng số khách hàng: <span className="text-indigo-600 font-bold">{total}</span>
-        </div>
-      </div>
+      </TableToolbar>
 
       <div className="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden">
         <Table

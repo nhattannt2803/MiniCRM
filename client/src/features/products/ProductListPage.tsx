@@ -5,6 +5,9 @@ import { useTranslation } from 'react-i18next';
 import { crmService } from '../../services/crmService';
 import { Product } from '../../types';
 import { PrimaryButton } from '../../components/common/PrimaryButton';
+import { PageHeader } from '../../components/common/PageHeader';
+import { TableToolbar } from '../../components/common/TableToolbar';
+
 
 export const ProductListPage: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
@@ -168,28 +171,23 @@ export const ProductListPage: React.FC = () => {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">{t('products.title')}</h1>
-          <p className="text-sm text-slate-500">Danh mục sản phẩm và dịch vụ dành cho báo giá và hợp đồng</p>
-        </div>
+      <PageHeader
+        title={t('products.title')}
+        subtitle="Danh mục sản phẩm và dịch vụ dành cho báo giá và hợp đồng"
+      />
+
+      <TableToolbar
+        searchPlaceholder={t('common.searchPlaceholder')}
+        searchValue={search}
+        onSearchChange={(e) => setSearch(e.target.value)}
+      >
         <PrimaryButton
           icon={<PlusOutlined />}
           onClick={handleOpenAdd}
         >
           {t('products.addProduct')}
         </PrimaryButton>
-      </div>
-
-      <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
-        <Input
-          prefix={<SearchOutlined className="text-slate-400" />}
-          placeholder={t('common.searchPlaceholder')}
-          className="w-72"
-          allowClear
-          onChange={(e) => setSearch(e.target.value)}
-        />
-      </div>
+      </TableToolbar>
 
       <div className="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden">
         <Table columns={columns} dataSource={products} rowKey="id" loading={loading} pagination={false} />

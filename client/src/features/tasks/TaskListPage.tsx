@@ -7,6 +7,9 @@ import dayjs from 'dayjs';
 import { crmService } from '../../services/crmService';
 import { useAuthStore } from '../../stores/authStore';
 import { Task, User } from '../../types';
+import { PageHeader } from '../../components/common/PageHeader';
+import { TableToolbar } from '../../components/common/TableToolbar';
+
 
 export const TaskListPage: React.FC = () => {
   const navigate = useBizNavigate();
@@ -257,67 +260,70 @@ export const TaskListPage: React.FC = () => {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">{t('tasks.title')}</h1>
-          <p className="text-sm text-slate-500">Quản lý danh sách công việc, nhắc nhở và theo dõi tiến độ</p>
-        </div>
-      </div>
+      <PageHeader
+        title={t('tasks.title')}
+        subtitle="Quản lý danh sách công việc, nhắc nhở và theo dõi tiến độ"
+      />
 
-      <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs flex flex-wrap items-center gap-4">
-        <div>
-          <span className="text-xs font-semibold text-slate-500 block mb-1">Phạm vi công việc:</span>
-          <Select
-            value={assigneeFilter}
-            onChange={(v) => setAssigneeFilter(v)}
-            className="w-52"
-          >
-            <Select.Option value="MY_TASKS">👤 Task của tôi</Select.Option>
-            <Select.Option value="ALL">👥 Tất cả mọi người</Select.Option>
-            {users.map((u) => (
-              <Select.Option key={u.id} value={u.id.toString()}>
-                👤 {u.lastName} {u.firstName}
-              </Select.Option>
-            ))}
-          </Select>
-        </div>
+      <TableToolbar
+        showSearch={false}
+        extraLeft={
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-semibold text-slate-500 whitespace-nowrap">Phạm vi:</span>
+              <Select
+                value={assigneeFilter}
+                onChange={(v) => setAssigneeFilter(v)}
+                className="w-44 text-xs"
+              >
+                <Select.Option value="MY_TASKS">👤 Task của tôi</Select.Option>
+                <Select.Option value="ALL">👥 Tất cả mọi người</Select.Option>
+                {users.map((u) => (
+                  <Select.Option key={u.id} value={u.id.toString()}>
+                    👤 {u.lastName} {u.firstName}
+                  </Select.Option>
+                ))}
+              </Select>
+            </div>
 
-        <div>
-          <span className="text-xs font-semibold text-slate-500 block mb-1">{t('common.status')}:</span>
-          <Select
-            value={statusFilter}
-            className="w-60"
-            onChange={(v) => setStatusFilter(v)}
-          >
-            <Select.Option value="TODO,IN_PROGRESS">⚡ Đang thực hiện & Chờ xử lý</Select.Option>
-            <Select.Option value="TODO">⌛ {t('tasks.status.PENDING')}</Select.Option>
-            <Select.Option value="IN_PROGRESS">🔄 {t('tasks.status.IN_PROGRESS')}</Select.Option>
-            <Select.Option value="COMPLETED">✅ {t('tasks.status.COMPLETED')}</Select.Option>
-            <Select.Option value="CANCELLED">🚫 Đã hủy</Select.Option>
-            <Select.Option value="ALL">🌐 Tất cả trạng thái</Select.Option>
-          </Select>
-        </div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-semibold text-slate-500 whitespace-nowrap">{t('common.status')}:</span>
+              <Select
+                value={statusFilter}
+                className="w-52 text-xs"
+                onChange={(v) => setStatusFilter(v)}
+              >
+                <Select.Option value="TODO,IN_PROGRESS">⚡ Đang thực hiện & Chờ xử lý</Select.Option>
+                <Select.Option value="TODO">⌛ {t('tasks.status.PENDING')}</Select.Option>
+                <Select.Option value="IN_PROGRESS">🔄 {t('tasks.status.IN_PROGRESS')}</Select.Option>
+                <Select.Option value="COMPLETED">✅ {t('tasks.status.COMPLETED')}</Select.Option>
+                <Select.Option value="CANCELLED">🚫 Đã hủy</Select.Option>
+                <Select.Option value="ALL">🌐 Tất cả trạng thái</Select.Option>
+              </Select>
+            </div>
 
-        <div>
-          <span className="text-xs font-semibold text-slate-500 block mb-1">Bộ lọc thời gian:</span>
-          <Select
-            value={presetFilter}
-            onChange={(v) => setPresetFilter(v)}
-            placeholder="Tất cả thời gian"
-            className="w-64"
-            allowClear
-          >
-            <Select.Option value="OVERDUE_TODAY">🔥 Chỉ xem quá hạn & Việc Hôm Nay</Select.Option>
-            <Select.Option value="OVERDUE">⚠️ Chỉ Xem Quá Hạn</Select.Option>
-            <Select.Option value="TODAY">📅 Việc Hôm Nay</Select.Option>
-            <Select.Option value="NEXT_2_DAYS">⏳ Việc trong 2 ngày tới</Select.Option>
-          </Select>
-        </div>
-
-        <div className="ml-auto text-xs text-slate-500 self-end mb-1">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-semibold text-slate-500 whitespace-nowrap">Thời gian:</span>
+              <Select
+                value={presetFilter}
+                onChange={(v) => setPresetFilter(v)}
+                placeholder="Tất cả thời gian"
+                className="w-56 text-xs"
+                allowClear
+              >
+                <Select.Option value="OVERDUE_TODAY">🔥 Quá hạn & Việc Hôm Nay</Select.Option>
+                <Select.Option value="OVERDUE">⚠️ Chỉ Xem Quá Hạn</Select.Option>
+                <Select.Option value="TODAY">📅 Việc Hôm Nay</Select.Option>
+                <Select.Option value="NEXT_2_DAYS">⏳ Việc trong 2 ngày tới</Select.Option>
+              </Select>
+            </div>
+          </div>
+        }
+      >
+        <div className="text-xs text-slate-500">
           Hiển thị: <strong className="text-indigo-600 font-semibold">{tasks.length}</strong> công việc
         </div>
-      </div>
+      </TableToolbar>
 
       <div className="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden">
         <Table columns={columns} dataSource={tasks} rowKey="id" loading={loading} pagination={false} />
