@@ -146,6 +146,7 @@ export const LeadDetailPage: React.FC = () => {
       overrideUrl ||
       smaxUrlInput ||
       (lead as any)?.fbPsid ||
+      (lead as any)?.conversations?.find((c: any) => c.channelThreadId)?.channelThreadId ||
       (lead as any)?.customer?.identities?.find((i: any) => i.type === 'FB_PSID')?.identityValue ||
       ''
     ).trim();
@@ -191,6 +192,7 @@ export const LeadDetailPage: React.FC = () => {
       const urlOrPsidToUse =
         smaxUrlInput.trim() ||
         (lead as any)?.fbPsid ||
+        (lead as any)?.conversations?.find((c: any) => c.channelThreadId)?.channelThreadId ||
         (lead as any)?.customer?.identities?.find((i: any) => i.type === 'FB_PSID')?.identityValue;
       if (urlOrPsidToUse) {
         handleFetchSmaxMessages(false, urlOrPsidToUse);

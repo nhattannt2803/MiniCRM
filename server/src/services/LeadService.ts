@@ -72,12 +72,12 @@ export class LeadService {
         adIds: l.ads ? l.ads.map((a) => a.adId) : [],
         products: l.products
           ? l.products.map((lp) => ({
-              ...lp,
-              id: lp.id.toString(),
-              leadId: lp.leadId.toString(),
-              productId: lp.productId.toString(),
-              product: lp.product ? { ...lp.product, id: lp.product.id.toString(), unitPrice: Number(lp.product.unitPrice) } : null,
-            }))
+            ...lp,
+            id: lp.id.toString(),
+            leadId: lp.leadId.toString(),
+            productId: lp.productId.toString(),
+            product: lp.product ? { ...lp.product, id: lp.product.id.toString(), unitPrice: Number(lp.product.unitPrice) } : null,
+          }))
           : [],
       })),
       meta: {
@@ -143,10 +143,10 @@ export class LeadService {
       adIds: lead.ads ? lead.ads.map((a) => a.adId) : [],
       customer: lead.customer
         ? {
-            ...lead.customer,
-            id: lead.customer.id.toString(),
-            identities: lead.customer.identities.map((i) => ({ ...i, id: i.id.toString() })),
-          }
+          ...lead.customer,
+          id: lead.customer.id.toString(),
+          identities: lead.customer.identities.map((i) => ({ ...i, id: i.id.toString() })),
+        }
         : null,
       conversations: lead.conversations.map((c) => ({
         ...c,
@@ -158,12 +158,12 @@ export class LeadService {
       tasks: tasks.map((t) => ({ ...t, id: t.id.toString() })),
       products: lead.products
         ? lead.products.map((lp) => ({
-            ...lp,
-            id: lp.id.toString(),
-            leadId: lp.leadId.toString(),
-            productId: lp.productId.toString(),
-            product: lp.product ? { ...lp.product, id: lp.product.id.toString(), unitPrice: Number(lp.product.unitPrice) } : null,
-          }))
+          ...lp,
+          id: lp.id.toString(),
+          leadId: lp.leadId.toString(),
+          productId: lp.productId.toString(),
+          product: lp.product ? { ...lp.product, id: lp.product.id.toString(), unitPrice: Number(lp.product.unitPrice) } : null,
+        }))
         : [],
     };
   }
@@ -882,7 +882,7 @@ export class LeadService {
               }
             }
           }
-        } catch (msgErr) {}
+        } catch (msgErr) { }
       }
       let phone = customer?.phone || customer?.phones?.[0]?.value || '';
       if (!phone && json.data?.tag_aliases) {
@@ -1011,9 +1011,12 @@ export class LeadService {
       fullSmaxUrl = `https://smax.ai/bizs/${smaxBizSlug}/chats/${pageId}?tid=${threadId}`;
     }
 
-    const cleanPageId = pageId.replace(/^(?:fb|t_)+/gi, '').replace(/\D+/g, '');
-    const cleanThreadId = threadId.replace(/^(?:fb|t_)+/gi, '').replace(/\D+/g, '');
-    const cacheKey = `smax_messages:${smaxBizSlug}:${cleanPageId}:${cleanThreadId}`;
+    const cleanP = pageId.replace(/^(?:fb|t_)+/gi, '').replace(/\D+/g, '');
+    const cleanT = threadId.replace(/^(?:fb|t_)+/gi, '').replace(/\D+/g, '');
+    pageId = `fb${cleanP}`;
+    threadId = `fb${cleanT}`;
+
+    const cacheKey = `smax_messages:${smaxBizSlug}:${cleanP}:${cleanT}`;
 
     // 1. Check Cache if not forcing refresh
     if (!forceRefresh) {
@@ -1023,7 +1026,7 @@ export class LeadService {
           const cachedJson = JSON.parse(cachedStr);
           return { ...cachedJson, fromCache: true };
         }
-      } catch (redisErr) {}
+      } catch (redisErr) { }
 
       const mem = smaxMemoryCache.get(cacheKey);
       if (mem && mem.expiresAt > Date.now()) {
@@ -1033,14 +1036,37 @@ export class LeadService {
 
     // 2. Fetch from Smax APIs
     const token = await SystemSettingService.getSmaxApiToken(bizId);
-    const threadApi = `https://api.smax.ai/bizs/${smaxBizSlug}/pages/${pageId}/threads/${threadId}`;
-    const messagesApi = `https://api.smax.ai/bizs/${smaxBizSlug}/pages/${pageId}/threads/${threadId}/messages?sort=-created_at&limit=25`;
+    let threadApi = `https://api.smax.ai/bizs/${smaxBizSlug}/pages/${pageId}/threads/${threadId}`;
+    let messagesApi = `https://api.smax.ai/bizs/${smaxBizSlug}/pages/${pageId}/threads/${threadId}/messages?sort=-created_at&limit=25`;
+    console.log('[SMAX_FETCH] Thread API:', threadApi);
+    console.log('[SMAX_FETCH] Messages API:', messagesApi);
 
     try {
-      const [threadRes, msgsRes] = await Promise.all([
+      let [threadRes, msgsRes] = await Promise.all([
         fetch(threadApi, { headers: { authorization: `Bearer ${token}`, 'Accept-Encoding': 'gzip, deflate, br' } }),
         fetch(messagesApi, { headers: { authorization: `Bearer ${token}`, 'Accept-Encoding': 'gzip, deflate, br' } }),
       ]);
+
+      // Fallback: If initial messages fetch failed (e.g. 404), try swapping pageId and threadId!
+      if (!msgsRes.ok && pageId && threadId && pageId !== threadId) {
+        const swappedPageId = threadId;
+        const swappedThreadId = pageId;
+        const swappedThreadApi = `https://api.smax.ai/bizs/${smaxBizSlug}/pages/${swappedPageId}/threads/${swappedThreadId}`;
+        const swappedMessagesApi = `https://api.smax.ai/bizs/${smaxBizSlug}/pages/${swappedPageId}/threads/${swappedThreadId}/messages?sort=-created_at&limit=25`;
+
+        const [swappedThreadRes, swappedMsgsRes] = await Promise.all([
+          fetch(swappedThreadApi, { headers: { authorization: `Bearer ${token}`, 'Accept-Encoding': 'gzip, deflate, br' } }),
+          fetch(swappedMessagesApi, { headers: { authorization: `Bearer ${token}`, 'Accept-Encoding': 'gzip, deflate, br' } }),
+        ]);
+
+        if (swappedMsgsRes.ok || swappedThreadRes.ok) {
+          console.log('[SMAX_FETCH] Swapping succeeded! Using swapped pageId/threadId.');
+          threadRes = swappedThreadRes;
+          msgsRes = swappedMsgsRes;
+          pageId = swappedPageId;
+          threadId = swappedThreadId;
+        }
+      }
 
       if (!threadRes.ok && !msgsRes.ok) {
         if (threadRes.status === 401 || msgsRes.status === 401 || threadRes.status === 403 || msgsRes.status === 403) {
@@ -1050,8 +1076,12 @@ export class LeadService {
             'SMAX_TOKEN_EXPIRED'
           );
         }
-        throw new AppError(`Không thể lấy dữ liệu từ Smax.ai API`, 400, 'SMAX_API_ERROR');
+        throw new AppError(`Không thể lấy dữ liệu từ Smax.ai API (Status ${threadRes.status}/${msgsRes.status})`, 400, 'SMAX_API_ERROR');
       }
+
+      // Re-normalize cleanPageId & cleanThreadId after possible swap
+      const finalCleanPageId = pageId.replace(/^(?:fb|t_)+/gi, '').replace(/\D+/g, '');
+      const finalCleanThreadId = threadId.replace(/^(?:fb|t_)+/gi, '').replace(/\D+/g, '');
 
       let threadJson: any = {};
       if (threadRes.ok) {
@@ -1071,7 +1101,7 @@ export class LeadService {
         if (foundPhone) phone = foundPhone;
       }
 
-      const fbPsid = `fb${cleanPageId}_${cleanThreadId}`;
+      const fbPsid = `fb${finalCleanPageId}_${finalCleanThreadId}`;
 
       let rawMsgs: any[] = [];
       if (Array.isArray(msgsJson.data)) {
@@ -1084,7 +1114,7 @@ export class LeadService {
         .map((m: any, idx: number) => {
           const content = m.message || m.text || m.content || m.facebook?.message || (m.facebook?.attachments?.length ? '[File/Hình ảnh đính kèm]' : '');
           const senderPid = String(m.sender_pid || m.from || m.by || '');
-          const isPageSender = senderPid.includes(cleanPageId) || m.is_page === true || m.is_bot === true || m.sender_type === 'AGENT';
+          const isPageSender = senderPid.includes(finalCleanPageId) || m.is_page === true || m.is_bot === true || m.sender_type === 'AGENT';
           const isCustomerSender = !isPageSender;
 
           let senderType: 'CUSTOMER' | 'AGENT' | 'SYSTEM' = 'SYSTEM';
@@ -1104,7 +1134,7 @@ export class LeadService {
             try {
               const num = Number(rawTime);
               sentAt = new Date(!isNaN(num) && num < 10000000000 ? num * 1000 : rawTime).toISOString();
-            } catch (e) {}
+            } catch (e) { }
           }
 
           return {
@@ -1158,7 +1188,7 @@ export class LeadService {
 
       try {
         await redisClient.set(cacheKey, JSON.stringify(result), 'EX', 900);
-      } catch (redisErr) {}
+      } catch (redisErr) { }
 
       smaxMemoryCache.set(cacheKey, {
         data: result,
