@@ -1004,8 +1004,37 @@ export class LeadService {
       threadId = `fb${parts[1]}`;
 
       if (!smaxBizSlug && bizId) {
-        const bizObj = await prisma.business.findUnique({ where: { id: bizId }, select: { slug: true } });
-        if (bizObj?.slug) smaxBizSlug = bizObj.slug;
+        // 1st priority: find the exact lead whose PSID matches → most accurate slug
+        const exactPsid = cleanedPsid; // e.g. "fb708133115714000_27885627237761480"
+        const exactLead = await prisma.lead.findFirst({
+          where: {
+            bizId,
+            smaxBizSlug: { not: null },
+            customer: {
+              identities: {
+                some: { type: 'FB_PSID', identityValue: exactPsid },
+              },
+            },
+          },
+          select: { smaxBizSlug: true },
+        });
+        if (exactLead?.smaxBizSlug) {
+          smaxBizSlug = exactLead.smaxBizSlug;
+        } else {
+          // 2nd priority: any lead in the biz that has a smax slug (most recently updated)
+          const anyLead = await prisma.lead.findFirst({
+            where: { bizId, smaxBizSlug: { not: null } },
+            select: { smaxBizSlug: true },
+            orderBy: { updatedAt: 'desc' },
+          });
+          if (anyLead?.smaxBizSlug) {
+            smaxBizSlug = anyLead.smaxBizSlug;
+          } else {
+            // Last resort: business slug from DB
+            const bizObj = await prisma.business.findUnique({ where: { id: bizId }, select: { slug: true } });
+            if (bizObj?.slug) smaxBizSlug = bizObj.slug;
+          }
+        }
       }
 
       fullSmaxUrl = `https://smax.ai/bizs/${smaxBizSlug}/chats/${pageId}?tid=${threadId}`;
@@ -1042,31 +1071,10 @@ export class LeadService {
     console.log('[SMAX_FETCH] Messages API:', messagesApi);
 
     try {
-      let [threadRes, msgsRes] = await Promise.all([
+      const [threadRes, msgsRes] = await Promise.all([
         fetch(threadApi, { headers: { authorization: `Bearer ${token}`, 'Accept-Encoding': 'gzip, deflate, br' } }),
         fetch(messagesApi, { headers: { authorization: `Bearer ${token}`, 'Accept-Encoding': 'gzip, deflate, br' } }),
       ]);
-
-      // Fallback: If initial messages fetch failed (e.g. 404), try swapping pageId and threadId!
-      if (!msgsRes.ok && pageId && threadId && pageId !== threadId) {
-        const swappedPageId = threadId;
-        const swappedThreadId = pageId;
-        const swappedThreadApi = `https://api.smax.ai/bizs/${smaxBizSlug}/pages/${swappedPageId}/threads/${swappedThreadId}`;
-        const swappedMessagesApi = `https://api.smax.ai/bizs/${smaxBizSlug}/pages/${swappedPageId}/threads/${swappedThreadId}/messages?sort=-created_at&limit=25`;
-
-        const [swappedThreadRes, swappedMsgsRes] = await Promise.all([
-          fetch(swappedThreadApi, { headers: { authorization: `Bearer ${token}`, 'Accept-Encoding': 'gzip, deflate, br' } }),
-          fetch(swappedMessagesApi, { headers: { authorization: `Bearer ${token}`, 'Accept-Encoding': 'gzip, deflate, br' } }),
-        ]);
-
-        if (swappedMsgsRes.ok || swappedThreadRes.ok) {
-          console.log('[SMAX_FETCH] Swapping succeeded! Using swapped pageId/threadId.');
-          threadRes = swappedThreadRes;
-          msgsRes = swappedMsgsRes;
-          pageId = swappedPageId;
-          threadId = swappedThreadId;
-        }
-      }
 
       if (!threadRes.ok && !msgsRes.ok) {
         if (threadRes.status === 401 || msgsRes.status === 401 || threadRes.status === 403 || msgsRes.status === 403) {
@@ -1079,7 +1087,6 @@ export class LeadService {
         throw new AppError(`Không thể lấy dữ liệu từ Smax.ai API (Status ${threadRes.status}/${msgsRes.status})`, 400, 'SMAX_API_ERROR');
       }
 
-      // Re-normalize cleanPageId & cleanThreadId after possible swap
       const finalCleanPageId = pageId.replace(/^(?:fb|t_)+/gi, '').replace(/\D+/g, '');
       const finalCleanThreadId = threadId.replace(/^(?:fb|t_)+/gi, '').replace(/\D+/g, '');
 
