@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Table, Button, Input, Select, Tag, Drawer, Form, Popconfirm, notification, Alert, Space, Radio, DatePicker, Tooltip, Popover } from 'antd';
-import { PlusOutlined, SearchOutlined, EyeOutlined, EditOutlined, SwapOutlined, DeleteOutlined, WarningOutlined, CheckCircleOutlined } from '@ant-design/icons';
+import { Table, Button, Input, Select, Tag, Drawer, Form, Popconfirm, notification, Alert, Space, Radio, DatePicker, Tooltip, Popover, Avatar } from 'antd';
+import { PlusOutlined, SearchOutlined, EyeOutlined, EditOutlined, SwapOutlined, DeleteOutlined, WarningOutlined, CheckCircleOutlined, SettingOutlined, FilterOutlined, DownloadOutlined, AppstoreOutlined, UnorderedListOutlined } from '@ant-design/icons';
 import { useBizNavigate } from '../../hooks/useBizNavigate';
 import { useTranslation } from 'react-i18next';
 import dayjs from 'dayjs';
@@ -598,89 +598,302 @@ export const LeadListPage: React.FC = () => {
     },
   ];
 
-  return (
-    <div className="space-y-6">
-      {/* Top Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
-        <div>
-          <h1 className="text-2xl font-extrabold text-slate-900">{t('leads.title')}</h1>
-          <p className="text-sm text-slate-500">{t('leads.subtitle')}</p>
-        </div>
-        <Button
-          type="primary"
-          icon={<PlusOutlined />}
-          size="large"
-          onClick={handleOpenCreateDrawer}
-          className="bg-indigo-600 hover:bg-indigo-700 shadow-md shadow-indigo-200"
-        >
-          {t('leads.addLead')}
-        </Button>
+  // View mode & Popover filter states
+  const [viewMode, setViewMode] = useState<'kanban' | 'list'>('list');
+  const [filterPopoverOpen, setPopoverFilterOpen] = useState(false);
+
+  const handleExportLeads = () => {
+    if (leads.length === 0) {
+      notification.info({ message: 'Không có dữ liệu Lead để xuất file' });
+      return;
+    }
+    const headers = ['ID', 'Họ', 'Tên', 'Email', 'Số điện thoại', 'Công ty', 'Nguồn', 'Trạng thái', 'Đánh giá', 'Ngày tiếp cận'];
+    const rows = leads.map((l) => [
+      l.id,
+      `"${l.lastName || ''}"`,
+      `"${l.firstName || ''}"`,
+      `"${l.email || ''}"`,
+      `"${l.phone || ''}"`,
+      `"${l.companyName || ''}"`,
+      `"${l.source || ''}"`,
+      `"${l.status || ''}"`,
+      `"${l.rating || ''}"`,
+      `"${new Date(l.receivedAt || l.createdAt).toLocaleDateString('vi-VN')}"`,
+    ]);
+    const csvContent = 'data:text/csv;charset=utf-8,\uFEFF' + [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', `leads_export_${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    notification.success({ message: 'Đã xuất file Leads CSV thành công!' });
+  };
+
+  const filterPopoverContent = (
+    <div className="p-3 space-y-3 w-64">
+      <div className="font-bold text-xs text-slate-800 border-b pb-1.5 flex items-center justify-between">
+        <span>⚡ Bộ lọc Lead</span>
+        {(statusFilter || ratingFilter) && (
+          <Button
+            type="link"
+            size="small"
+            onClick={() => {
+              setStatusFilter(undefined);
+              setRatingFilter(undefined);
+              setPopoverFilterOpen(false);
+            }}
+            className="text-[11px] p-0 h-auto text-indigo-600"
+          >
+            Xóa lọc
+          </Button>
+        )}
       </div>
-
-      {/* Filter Bar */}
-      <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-wrap items-center gap-3">
-        <Input
-          placeholder={t('common.search') + '...'}
-          prefix={<SearchOutlined className="text-slate-400" />}
-          value={search}
-          onChange={(e) => {
-            setSearch(e.target.value);
-            setPage(1);
-          }}
-          className="w-64"
-          allowClear
-        />
-
+      <div>
+        <label className="text-[11px] font-semibold text-slate-600 block mb-1">Trạng thái</label>
         <Select
-          placeholder={t('common.status')}
+          placeholder="Tất cả trạng thái"
           value={statusFilter}
           onChange={(val) => {
             setStatusFilter(val);
             setPage(1);
           }}
-          className="w-40"
+          className="w-full text-xs"
           allowClear
         >
-          <Select.Option value="NEW">{t('leads.status.NEW')}</Select.Option>
-          <Select.Option value="CONTACTED">{t('leads.status.CONTACTED')}</Select.Option>
-          <Select.Option value="QUALIFIED">{t('leads.status.QUALIFIED')}</Select.Option>
-          <Select.Option value="NURTURING">🌱 {t('leads.status.NURTURING') || 'Nuôi dưỡng'}</Select.Option>
-          <Select.Option value="UNQUALIFIED">{t('leads.status.UNQUALIFIED')}</Select.Option>
-          <Select.Option value="CONVERTED">{t('leads.status.CONVERTED')}</Select.Option>
-          <Select.Option value="LOST">Mất</Select.Option>
+          <Select.Option value="NEW">Chưa chăm sóc (Mới)</Select.Option>
+          <Select.Option value="CONTACTED">Đang liên hệ</Select.Option>
+          <Select.Option value="QUALIFIED">Điền form khảo sát</Select.Option>
+          <Select.Option value="NURTURING">Đang chốt đơn</Select.Option>
+          <Select.Option value="CONVERTED">Hoàn tất (Converted)</Select.Option>
+          <Select.Option value="LOST">Thất bại (Lost)</Select.Option>
         </Select>
-
+      </div>
+      <div>
+        <label className="text-[11px] font-semibold text-slate-600 block mb-1">Đánh giá (Priority)</label>
         <Select
-          placeholder="Đánh giá"
+          placeholder="Tất cả mức độ"
           value={ratingFilter}
           onChange={(val) => {
             setRatingFilter(val);
             setPage(1);
           }}
-          className="w-40"
+          className="w-full text-xs"
           allowClear
         >
-          <Select.Option value="HOT">Nóng (Hot)</Select.Option>
-          <Select.Option value="WARM">Ấm (Warm)</Select.Option>
-          <Select.Option value="COLD">Lạnh (Cold)</Select.Option>
+          <Select.Option value="HOT">🔥 Nóng (Hot)</Select.Option>
+          <Select.Option value="WARM">⚡ Ấm (Warm)</Select.Option>
+          <Select.Option value="COLD">❄ Lạnh (Cold)</Select.Option>
         </Select>
       </div>
+    </div>
+  );
 
-      {/* Table */}
-      <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden p-4">
-        <Table
-          columns={columns}
-          dataSource={leads}
-          rowKey="id"
-          loading={loading}
-          pagination={{
-            current: page,
-            total,
-            pageSize: 10,
-            onChange: (p) => setPage(p),
-          }}
-        />
+  // Define Kanban Columns for Leads
+  const kanbanColumns = [
+    { key: 'NEW', title: 'Chưa chăm sóc', color: 'blue', dotColor: '#3b82f6', bg: 'bg-blue-50/40', borderTop: 'border-t-4 border-blue-500' },
+    { key: 'CONTACTED', title: 'Đang liên hệ', color: 'red', dotColor: '#ef4444', bg: 'bg-red-50/40', borderTop: 'border-t-4 border-red-500' },
+    { key: 'QUALIFIED', title: 'Điền form khảo sát', color: 'purple', dotColor: '#8b5cf6', bg: 'bg-purple-50/40', borderTop: 'border-t-4 border-purple-500' },
+    { key: 'NURTURING', title: 'Đang chốt đơn', color: 'teal', dotColor: '#14b8a6', bg: 'bg-teal-50/40', borderTop: 'border-t-4 border-teal-500' },
+    { key: 'CONVERTED', title: 'Hoàn tất', color: 'green', dotColor: '#22c55e', bg: 'bg-emerald-50/40', borderTop: 'border-t-4 border-emerald-500' },
+  ];
+
+  return (
+    <div className="space-y-4">
+      {/* 1. Header Row (Title on Left, Config & View Switchers on Right) */}
+      <div className="flex items-center justify-between pt-1">
+        <h1 className="text-2xl font-black text-slate-900 tracking-tight m-0 select-none">Leads</h1>
+
+        <div className="flex items-center gap-2">
+          {/* Cấu hình Button */}
+          <Button
+            icon={<SettingOutlined className="text-slate-600 text-xs" />}
+            onClick={() => navigate('/settings')}
+            className="text-xs font-semibold text-slate-700 rounded-lg bg-white border border-slate-200 shadow-2xs h-8 px-3 flex items-center gap-1 hover:border-slate-300"
+          >
+            <span>Cấu hình</span>
+          </Button>
+
+          {/* View Switcher Toggle (||| Kanban vs ≡ List) */}
+          <div className="bg-white border border-slate-200 rounded-lg p-0.5 flex items-center shadow-2xs gap-0.5">
+            <Button
+              type={viewMode === 'kanban' ? 'primary' : 'text'}
+              size="small"
+              icon={<AppstoreOutlined />}
+              onClick={() => setViewMode('kanban')}
+              className={`h-7 w-7 flex items-center justify-center rounded border-none ${
+                viewMode === 'kanban' ? 'bg-indigo-600 text-white shadow-2xs' : 'text-slate-500 hover:text-slate-900'
+              }`}
+              title="Giao diện Kanban"
+            />
+            <Button
+              type={viewMode === 'list' ? 'primary' : 'text'}
+              size="small"
+              icon={<UnorderedListOutlined />}
+              onClick={() => setViewMode('list')}
+              className={`h-7 w-7 flex items-center justify-center rounded border-none ${
+                viewMode === 'list' ? 'bg-indigo-600 text-white shadow-2xs' : 'text-slate-500 hover:text-slate-900'
+              }`}
+              title="Giao diện Danh sách"
+            />
+          </div>
+        </div>
       </div>
+
+      {/* 2. Control Row (Search Input on Left, Filter / Export / Add on Right) */}
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white p-3 rounded-xl border border-slate-200 shadow-2xs">
+        {/* Search Input Box */}
+        <Input
+          prefix={<SearchOutlined className="text-slate-400 text-xs" />}
+          placeholder="Tìm kiếm lead..."
+          value={search}
+          onChange={(e) => {
+            setSearch(e.target.value);
+            setPage(1);
+          }}
+          allowClear
+          className="w-full sm:w-72 rounded-lg bg-white border-slate-200 text-xs py-1.5 shadow-2xs"
+        />
+
+        {/* Action Buttons */}
+        <div className="flex items-center justify-end gap-2 shrink-0">
+          {/* Lọc Button */}
+          <Popover
+            content={filterPopoverContent}
+            trigger="click"
+            placement="bottomRight"
+            open={filterPopoverOpen}
+            onOpenChange={setPopoverFilterOpen}
+          >
+            <Button
+              icon={<FilterOutlined className="text-slate-600 text-xs" />}
+              className={`text-xs font-semibold rounded-lg h-8 px-3 flex items-center gap-1.5 shadow-2xs border ${
+                statusFilter || ratingFilter
+                  ? 'bg-indigo-50 text-indigo-700 border-indigo-200'
+                  : 'bg-white text-slate-700 border-slate-200 hover:border-slate-300'
+              }`}
+            >
+              <span>Lọc</span>
+              {(statusFilter || ratingFilter) && <span className="w-2 h-2 rounded-full bg-indigo-600" />}
+            </Button>
+          </Popover>
+
+          {/* Export Button */}
+          <Button
+            icon={<DownloadOutlined className="text-slate-600 text-xs" />}
+            onClick={handleExportLeads}
+            className="text-xs font-semibold text-slate-700 bg-white border border-slate-200 rounded-lg h-8 px-3 flex items-center gap-1.5 shadow-2xs hover:border-slate-300"
+          >
+            <span>Export</span>
+          </Button>
+
+          {/* + Thêm Primary Blue Button */}
+          <Button
+            type="primary"
+            icon={<PlusOutlined />}
+            onClick={handleOpenCreateDrawer}
+            className="bg-[#173b85] hover:bg-[#1f4598] text-white font-bold text-xs rounded-lg h-8 px-4 border-none shadow-sm flex items-center gap-1"
+          >
+            <span>+ Thêm</span>
+          </Button>
+        </div>
+      </div>
+
+      {/* 3. Main Display: Kanban Board or Table List */}
+      {viewMode === 'kanban' ? (
+        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4 pt-1 items-start overflow-x-auto pb-4">
+          {kanbanColumns.map((col) => {
+            const colLeads = leads.filter((l) => l.status === col.key);
+            return (
+              <div
+                key={col.key}
+                className={`rounded-xl border border-slate-200/80 bg-white shadow-2xs ${col.borderTop} flex flex-col min-w-[240px] overflow-hidden`}
+              >
+                {/* Column Header */}
+                <div className="p-3 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: col.dotColor }} />
+                    <span className="font-bold text-xs text-slate-800">{col.title}</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xs font-bold text-slate-500 bg-slate-200/70 px-2 py-0.5 rounded-full">
+                      {colLeads.length}
+                    </span>
+                    <SettingOutlined className="text-slate-400 text-xs hover:text-slate-600 cursor-pointer" />
+                  </div>
+                </div>
+
+                {/* Column Lead Cards */}
+                <div className="p-2.5 space-y-2.5 min-h-[420px] max-h-[600px] overflow-y-auto bg-slate-50/30">
+                  {colLeads.length === 0 ? (
+                    <div className="text-center py-12 text-slate-400 text-xs italic">Trống</div>
+                  ) : (
+                    colLeads.map((lead) => (
+                      <div
+                        key={lead.id}
+                        onClick={() => navigate(`/leads/${lead.id}`)}
+                        className="p-3 bg-white rounded-xl border border-slate-200/90 shadow-2xs hover:shadow-md transition-all duration-150 cursor-pointer space-y-2 group"
+                      >
+                        {/* Lead Card Header */}
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex items-center gap-2">
+                            <Avatar className="bg-indigo-600 text-white font-bold text-xs h-7 w-7 shrink-0">
+                              {lead.firstName ? lead.firstName[0] : 'L'}
+                            </Avatar>
+                            <span className="font-extrabold text-xs text-slate-900 group-hover:text-indigo-600 transition-colors truncate max-w-[120px]">
+                              {lead.lastName} {lead.firstName}
+                            </span>
+                          </div>
+                          {getRatingTag(lead.rating)}
+                        </div>
+
+                        {/* Company & Source info */}
+                        {lead.companyName && (
+                          <div className="text-[11px] font-semibold text-slate-600 truncate flex items-center gap-1">
+                            🏢 {lead.companyName}
+                          </div>
+                        )}
+
+                        {/* Contact info & Date */}
+                        <div className="flex items-center justify-between text-[11px] text-slate-500 pt-1 border-t border-slate-100">
+                          {lead.phone ? (
+                            <span className="font-semibold text-slate-700 flex items-center gap-1">
+                              📞 {lead.phone}
+                            </span>
+                          ) : (
+                            <span className="italic text-slate-400">Chưa có SĐT</span>
+                          )}
+                          <span className="text-[10px] text-slate-400">
+                            📅 {new Date(lead.receivedAt || lead.createdAt).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' })}
+                          </span>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        /* Table List View */
+        <div className="bg-white rounded-xl border border-slate-200 shadow-2xs overflow-hidden p-4">
+          <Table
+            columns={columns}
+            dataSource={leads}
+            rowKey="id"
+            loading={loading}
+            pagination={{
+              current: page,
+              total,
+              pageSize: 10,
+              onChange: (p) => setPage(p),
+            }}
+          />
+        </div>
+      )}
+
 
       {/* Create/Edit Drawer */}
       <Drawer

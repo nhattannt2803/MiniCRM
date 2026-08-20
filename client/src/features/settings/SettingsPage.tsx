@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { Card, Tag, Alert, Radio, Typography, Input, Button, message } from 'antd';
-import { GlobalOutlined, UserOutlined, LinkOutlined, SaveOutlined } from '@ant-design/icons';
+import { Card, Tag, Alert, Radio, Typography, Input, Button, message, Select } from 'antd';
+import { GlobalOutlined, UserOutlined, LinkOutlined, SaveOutlined, ShopOutlined, ThunderboltOutlined } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../stores/authStore';
 import { useSettingsStore } from '../../stores/settingsStore';
 import { LeadDuplicateSettingsCard } from './LeadDuplicateSettingsCard';
@@ -12,12 +13,50 @@ const { Title, Text } = Typography;
 
 export const SettingsPage: React.FC = () => {
   const { t, i18n } = useTranslation();
-  const { user } = useAuthStore();
+  const navigate = useNavigate();
+  const { user, businesses, activeBiz, switchBiz } = useAuthStore();
   const { defaultEntityType, setDefaultEntityType } = useSettingsStore();
+
+  // Demo Industry Switcher state
+  const [currentIndustry, setCurrentIndustry] = useState<string>(
+    localStorage.getItem('crm_demo_industry') || 'xedien'
+  );
+  const [switchingDemo, setSwitchingDemo] = useState(false);
 
   // Smax.ai Biz Slug setting
   const [smaxBizSlug, setSmaxBizSlug] = useState('');
   const [savingSlug, setSavingSlug] = useState(false);
+
+  const handleSwitchBiz = (newBizId: string) => {
+    const match = businesses.find((b) => b.id === newBizId);
+    if (match) {
+      switchBiz(newBizId);
+      navigate(`/${match.slug}/settings`);
+    }
+  };
+
+  const handleSwitchDemo = async (value: string) => {
+    setSwitchingDemo(true);
+    const hideMessage = message.loading('Đang chuyển đổi dữ liệu ngành...', 0);
+    try {
+      const res: any = await crmService.switchDemoIndustry(value);
+      hideMessage();
+      if (res.success && res.data) {
+        const industryName = res.data.industryName || res.data.name || value;
+        setCurrentIndustry(value);
+        localStorage.setItem('crm_demo_industry', value);
+        message.success(`Đã đổi dữ liệu demo sang: ${industryName}`);
+        setTimeout(() => {
+          window.location.reload();
+        }, 600);
+      }
+    } catch (err: any) {
+      hideMessage();
+      message.error(err?.message || 'Không thể chuyển đổi dữ liệu demo');
+    } finally {
+      setSwitchingDemo(false);
+    }
+  };
 
   useEffect(() => {
     crmService.getSmaxBizSlug().then((res: any) => {
@@ -56,6 +95,61 @@ export const SettingsPage: React.FC = () => {
         <h1 className="text-2xl font-bold text-slate-900 tracking-tight">{t('settings.title')}</h1>
         <p className="text-sm text-slate-500">{t('settings.general')}</p>
       </div>
+
+      {/* Multi-Tenant Business Switcher & Demo Industry Card */}
+      <Card
+        title={
+          <div className="flex items-center gap-2">
+            <ShopOutlined className="text-indigo-600" />
+            <span>Doanh nghiệp & Dữ liệu Ngành Demo</span>
+          </div>
+        }
+        className="shadow-xs border-slate-200 rounded-xl bg-white"
+      >
+        <div className="space-y-4">
+          {/* Multi-tenant Business Switcher */}
+          <div>
+            <label className="block text-xs font-bold text-slate-700 mb-1">
+              🏢 Doanh nghiệp đang hoạt động (Multi-Tenant Workspace)
+            </label>
+            <Select
+              value={activeBiz?.id}
+              onChange={handleSwitchBiz}
+              size="large"
+              className="w-full font-semibold text-sm"
+              options={businesses.map((b: any) => ({
+                value: b.id,
+                label: `${b.name} (/${b.slug}) - Gói: ${b.plan}`,
+              }))}
+            />
+          </div>
+
+          {/* Demo Industry Switcher */}
+          <div>
+            <label className="block text-xs font-bold text-slate-700 mb-1">
+              ⚡ Chuyển đổi Dữ liệu Ngành Demo
+            </label>
+            <Select
+              value={currentIndustry}
+              onChange={handleSwitchDemo}
+              loading={switchingDemo}
+              disabled={switchingDemo}
+              size="large"
+              className="w-full font-semibold text-sm"
+              options={[
+                { value: 'xedien', label: '🚲 Xe Điện MOVE (Bán lẻ Showroom B2C)' },
+                { value: 'software', label: '💻 Phần Mềm B2B (Giải pháp Doanh nghiệp)' },
+                { value: 'batdongsan', label: '🏢 Bất Động Sản (Dự án & Căn hộ)' },
+                { value: 'tienganh', label: '🎓 Tiếng Anh ILA (Khóa học & Trung tâm)' },
+              ]}
+            />
+            <p className="text-xs text-slate-400 mt-1">
+              💡 Chuyển đổi dữ liệu ngành demo sẽ reset và nạp bộ dữ liệu mẫu chuẩn của ngành tương ứng cho Doanh nghiệp hiện tại.
+            </p>
+          </div>
+        </div>
+      </Card>
+
 
       {/* Smax.ai Business Slug Card */}
       <Card

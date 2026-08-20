@@ -1,55 +1,70 @@
 import React, { useState, useEffect } from 'react';
-import { Layout, Menu, Badge, Dropdown, Avatar, Button, Popover, List, Typography, Select, message } from 'antd';
+import { Layout, Badge, Dropdown, Avatar, Button, Popover, List, Typography, Select, message, Input, Tooltip } from 'antd';
 import {
-  PieChartOutlined,
-  DashboardOutlined,
-  UsergroupAddOutlined,
-  UserOutlined,
-  ShareAltOutlined,
-  TeamOutlined,
-  BankOutlined,
-  ContactsOutlined,
-  SolutionOutlined,
-  DollarOutlined,
   AppstoreOutlined,
-  FileTextOutlined,
+  TeamOutlined,
+  UserAddOutlined,
+  FunnelPlotOutlined,
   CheckSquareOutlined,
-  ClockCircleOutlined,
-  RobotOutlined,
-  IdcardOutlined,
-  HistoryOutlined,
-  UserSwitchOutlined,
-  ClusterOutlined,
-  LockOutlined,
-  SafetyCertificateOutlined,
-  BellOutlined,
+  ShoppingCartOutlined,
+  ReadOutlined,
+  CustomerServiceOutlined,
+  PlusOutlined,
+  SearchOutlined,
+  DownOutlined,
+  RightOutlined,
   SettingOutlined,
-  KeyOutlined,
-  LinkOutlined,
-  LogoutOutlined,
-  MenuFoldOutlined,
-  MenuUnfoldOutlined,
   GlobalOutlined,
   ThunderboltOutlined,
   ShopOutlined,
+  SafetyCertificateOutlined,
+  BellOutlined,
+  LogoutOutlined,
+  LeftOutlined,
+  UserOutlined,
+  ClusterOutlined,
+  IdcardOutlined,
+  LockOutlined,
+  HistoryOutlined,
+  RobotOutlined,
+  ClockCircleOutlined,
+  FileTextOutlined,
+  KeyOutlined,
+  LinkOutlined,
+  UserSwitchOutlined,
+  PieChartOutlined,
+  UnorderedListOutlined,
+  MenuFoldOutlined,
+  MenuUnfoldOutlined,
 } from '@ant-design/icons';
 import { useNavigate, useLocation, useParams, Outlet } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '../stores/authStore';
 import { crmService } from '../services/crmService';
-import { Notification } from '../types';
+import { Notification, Pipeline } from '../types';
 import { QuickCreateLeadModal } from '../features/leads/QuickCreateLeadModal';
-import { PlusOutlined } from '@ant-design/icons';
+import { PipelineManagementModal } from '../features/opportunities/PipelineManagementModal';
 
 const { Header, Sider, Content } = Layout;
 const { Text } = Typography;
 
 export const MainLayout: React.FC = () => {
   const [collapsed, setCollapsed] = useState(false);
+  const [subSiderCollapsed, setSubSiderCollapsed] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [switchingDemo, setSwitchingDemo] = useState(false);
   const [createLeadModalOpen, setCreateLeadModalOpen] = useState(false);
+  const [pipelineModalOpen, setPipelineModalOpen] = useState(false);
+
+  // Sub-sidebar Pipeline States
+  const [pipelines, setPipelines] = useState<Pipeline[]>([]);
+  const [selectedPipelineName, setSelectedPipelineName] = useState<string>('CỨU KHÁCH HÀNG RỜI BỎ');
+  const [pipelineSearch, setPipelineSearch] = useState('');
+  const [otherGroupOpen, setOtherGroupOpen] = useState(true);
+  const [hotGroupOpen, setHotGroupOpen] = useState(false);
+  const [systemGroupOpen, setSystemGroupOpen] = useState(false);
+
   const [currentIndustry, setCurrentIndustry] = useState<string>(
     localStorage.getItem('crm_demo_industry') || 'xedien'
   );
@@ -59,6 +74,41 @@ export const MainLayout: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { bizSlug } = useParams<{ bizSlug: string }>();
+
+  // Default demo pipelines matching the screenshot design
+  const defaultPipelines = [
+    { id: 'p1', name: 'CỨU KHÁCH HÀNG RỜI BỎ', group: 'KHÁCH' },
+    { id: 'p2', name: 'LEAD B2B', group: 'KHÁCH' },
+    { id: 'p3', name: 'LEAD TỪ QUẢNG CÁO B2C (FB/TIKTOK/GG)', group: 'KHÁCH' },
+    { id: 'p4', name: 'LEAD B2B', group: 'KHÁCH' },
+    { id: 'p5', name: 'LEAD B2C', group: 'KHÁCH' },
+    { id: 'p6', name: 'Khách hàng B2C từ quảng cáo', group: 'KHÁCH' },
+    { id: 'p7', name: 'Khách Nuôi Dưỡng', group: 'KHÁCH' },
+    { id: 'p8', name: 'Khách Ra Showroom', group: 'KHÁCH' },
+    { id: 'p9', name: 'Khách hàng đã lâu không tương tác', group: 'KHÁCH' },
+    { id: 'p10', name: 'Khác', group: 'KHÁCH' },
+  ];
+
+  const hotPipelines = [
+    { id: 'hp1', name: 'HOT LEAD VIP', group: 'HOT' },
+    { id: 'hp2', name: 'KÍCH HOẠT KHÁCH MỚI', group: 'HOT' },
+  ];
+
+  // Fetch actual DB pipelines
+  const fetchPipelines = async () => {
+    try {
+      const res: any = await crmService.getPipelines();
+      if (res.success && res.data.length > 0) {
+        setPipelines(res.data);
+      }
+    } catch (err) {
+      console.error('Failed to load pipelines:', err);
+    }
+  };
+
+  useEffect(() => {
+    fetchPipelines();
+  }, [activeBiz]);
 
   // Ensure activeBiz matches bizSlug in URL
   useEffect(() => {
@@ -116,13 +166,13 @@ export const MainLayout: React.FC = () => {
         setUnreadCount(res.data.unreadCount);
       }
     } catch (err) {
-      // Ignore auth error on unmount
+      // Ignore auth error
     }
   };
 
   useEffect(() => {
     fetchNotifications();
-    const timer = setInterval(fetchNotifications, 10000); // Refresh every 10s
+    const timer = setInterval(fetchNotifications, 10000);
     return () => clearInterval(timer);
   }, []);
 
@@ -143,64 +193,57 @@ export const MainLayout: React.FC = () => {
     ],
   };
 
-  const menuItems = [
+  // Primary sidebar menu items definition
+  const primaryMenuItems = [
     {
-      key: 'overview-group',
-      icon: <PieChartOutlined />,
-      label: t('nav.overview'),
-      children: [
-        { key: `/${currentBizSlug}/overview`, icon: <UserOutlined />, label: t('nav.overview') },
-        { key: `/${currentBizSlug}/overview/team`, icon: <TeamOutlined />, label: t('nav.teamOverview') },
-        { key: `/${currentBizSlug}/overview/manager`, icon: <ClusterOutlined />, label: t('nav.managerOverview') },
-      ],
+      key: `/${currentBizSlug}/customers`,
+      icon: <TeamOutlined className="text-base" />,
+      label: 'Khách hàng',
     },
-    // { key: `/${currentBizSlug}/dashboard`, icon: <DashboardOutlined />, label: t('nav.dashboard') },
     {
-      key: 'leads-group',
-      icon: <UsergroupAddOutlined />,
-      label: t('nav.leadManagement'),
-      children: [
-        { key: `/${currentBizSlug}/leads/my`, icon: <UserOutlined />, label: t('nav.myLeads') },
-        { key: `/${currentBizSlug}/leads/allocation`, icon: <ShareAltOutlined />, label: t('nav.leadAllocation') },
-        { key: `/${currentBizSlug}/leads`, icon: <TeamOutlined />, label: t('nav.allLeads') },
-      ],
+      key: `/${currentBizSlug}/leads`,
+      icon: <UserAddOutlined className="text-base" />,
+      label: 'Leads',
     },
-    { key: `/${currentBizSlug}/tasks`, icon: <CheckSquareOutlined />, label: t('nav.tasks') },
-    { key: `/${currentBizSlug}/opportunities`, icon: <DollarOutlined />, label: t('nav.opportunities') },
     {
-      key: 'customers-group',
-      icon: <SolutionOutlined />,
-      label: t('nav.customers'),
-      onTitleClick: () => navigate(`/${currentBizSlug}/customers`),
-      children: [
-        { key: `/${currentBizSlug}/customers`, icon: <SolutionOutlined />, label: t('nav.customersList') },
-        { key: `/${currentBizSlug}/companies`, icon: <BankOutlined />, label: t('nav.companies') },
-        { key: `/${currentBizSlug}/contacts`, icon: <ContactsOutlined />, label: t('nav.contacts') },
-      ],
+      key: `/${currentBizSlug}/leads/allocation`,
+      icon: <FunnelPlotOutlined className="text-base" />,
+      label: 'Nguồn Lead',
     },
-
-
     {
-      key: 'system-group',
-      icon: <SafetyCertificateOutlined />,
-      label: t('nav.systemManagement'),
-      children: [
-        { key: `/${currentBizSlug}/products`, icon: <AppstoreOutlined />, label: t('nav.products') },
-        { key: `/${currentBizSlug}/staff`, icon: <IdcardOutlined />, label: t('nav.staff') },
-        { key: `/${currentBizSlug}/teams`, icon: <ClusterOutlined />, label: t('nav.teams') },
-        { key: `/${currentBizSlug}/roles`, icon: <LockOutlined />, label: t('nav.roles') },
-        { key: `/${currentBizSlug}/leads/events`, icon: <HistoryOutlined />, label: 'Sự kiện tạo Lead' },
-        { key: `/${currentBizSlug}/settings`, icon: <SettingOutlined />, label: t('nav.settings') },
-        { key: `/${currentBizSlug}/automations`, icon: <RobotOutlined />, label: t('nav.automations') },
-        { key: `/${currentBizSlug}/activities`, icon: <ClockCircleOutlined />, label: t('nav.activities') },
-        { key: `/${currentBizSlug}/quotes`, icon: <FileTextOutlined />, label: t('nav.quotes') },
-        { key: `/${currentBizSlug}/api-keys`, icon: <KeyOutlined />, label: '🔑 API Keys / Webhook' },
-        { key: `/${currentBizSlug}/product-mappings`, icon: <LinkOutlined />, label: '📦 Mapping Sản Phẩm' },
-        { key: `/${currentBizSlug}/users`, icon: <UserSwitchOutlined />, label: t('nav.users') },
-        ...(user?.isSuperAdmin ? [{ key: '/system/users', icon: <SafetyCertificateOutlined />, label: 'Tài Khoản Hệ Thống' }] : []),
-      ],
+      key: `/${currentBizSlug}/tasks`,
+      icon: <CheckSquareOutlined className="text-base" />,
+      label: 'Task',
+    },
+    {
+      key: `/${currentBizSlug}/opportunities`,
+      icon: <ShoppingCartOutlined className="text-base" />,
+      label: 'Đơn hàng',
+    },
+    {
+      key: `/${currentBizSlug}/products`,
+      icon: <AppstoreOutlined className="text-base" />,
+      label: 'Sản phẩm',
+    },
+    {
+      key: `/${currentBizSlug}/quotes`,
+      icon: <ReadOutlined className="text-base" />,
+      label: 'Khóa học',
+    },
+    {
+      key: `/${currentBizSlug}/automations`,
+      icon: <CustomerServiceOutlined className="text-base" />,
+      label: 'Dịch vụ làm đẹp',
     },
   ];
+
+  // Filter pipelines for sub-sidebar search
+  const filteredDefaultPipelines = defaultPipelines.filter((p) =>
+    p.name.toLowerCase().includes(pipelineSearch.toLowerCase())
+  );
+  const filteredHotPipelines = hotPipelines.filter((p) =>
+    p.name.toLowerCase().includes(pipelineSearch.toLowerCase())
+  );
 
   const notificationContent = (
     <div className="w-80">
@@ -252,142 +295,355 @@ export const MainLayout: React.FC = () => {
   };
 
   return (
-    <Layout className="h-screen overflow-hidden">
-      {/* Sidebar */}
-      <Sider trigger={null} collapsible collapsed={collapsed} theme="light" className="h-screen overflow-y-auto border-r border-slate-200 shadow-xs shrink-0">
-        <div className="h-16 flex items-center px-4 gap-3 border-b border-slate-100 sticky top-0 bg-white z-10">
-          <div className="w-8 h-8 rounded-lg bg-indigo-600 text-white font-black flex items-center justify-center text-lg shadow-md">
-            M
+    <Layout className="h-screen overflow-hidden flex flex-row bg-slate-100 font-sans">
+      {/* 1. Primary Left Dark Blue Sidebar */}
+      <Sider
+        width={190}
+        collapsedWidth={64}
+        collapsed={collapsed}
+        theme="dark"
+        className="h-screen flex flex-col justify-between shrink-0 shadow-lg border-r border-[#1e4494] z-20 transition-all duration-200"
+        style={{ backgroundColor: '#173b85' }}
+      >
+        <div className="flex-1 overflow-y-auto">
+          {/* Logo Header */}
+          <div className={`h-14 flex items-center border-b border-[#234aa0]/60 sticky top-0 bg-[#173b85] z-10 ${collapsed ? 'justify-center px-2' : 'justify-between px-3'}`}>
+            <div className="flex items-center gap-2">
+              <div className="w-7 h-7 rounded-lg bg-[#254ea7] text-white flex items-center justify-center font-black text-sm shadow-sm border border-[#3b67cb]/50 shrink-0">
+                <AppstoreOutlined className="text-base text-white" />
+              </div>
+              {!collapsed && <span className="font-extrabold text-white text-lg tracking-tight select-none">CRM</span>}
+            </div>
+            <Button
+              type="text"
+              icon={collapsed ? <MenuUnfoldOutlined className="text-blue-200 text-sm" /> : <MenuFoldOutlined className="text-blue-200 text-sm" />}
+              onClick={() => setCollapsed(!collapsed)}
+              className="text-white hover:bg-[#1f4598] hover:text-white p-1 h-7 w-7 flex items-center justify-center rounded-lg"
+              title={collapsed ? 'Mở rộng sidebar' : 'Thu nhỏ sidebar'}
+            />
           </div>
-          {!collapsed && <span className="font-bold text-slate-900 text-base tracking-tight">{t('common.appName')}</span>}
-        </div>
 
-        {/* Action Button at Top of Sidebar */}
-        <div className="p-3 border-b border-slate-100">
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            onClick={() => setCreateLeadModalOpen(true)}
-            className="w-full bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 text-white font-bold shadow-md h-10 flex items-center justify-center rounded-xl border-none transition-all"
-            title="Tạo Lead Mới"
-          >
-            {!collapsed && <span> Tạo Lead Mới</span>}
-          </Button>
-        </div>
+          {/* Category Header */}
+          {!collapsed && (
+            <div className="px-4 pt-4 pb-2">
+              <span className="text-[11px] font-bold text-blue-200/70 uppercase tracking-wider select-none">
+                BÁN HÀNG & CRM
+              </span>
+            </div>
+          )}
 
-        <Menu
-          mode="inline"
-          selectedKeys={[location.pathname]}
-          items={menuItems}
-          onClick={({ key }) => navigate(key)}
-          className="border-none py-2 text-sm font-medium"
-        />
-      </Sider>
+          {/* Primary Menu Items Stack */}
+          <div className={`space-y-1 py-2 ${collapsed ? 'px-1.5' : 'px-2'}`}>
+            {primaryMenuItems.map((item) => {
+              // Check active matching
+              const isActive =
+                location.pathname === item.key ||
+                (item.key.endsWith('/leads') && (location.pathname.endsWith('/leads') || location.pathname.includes('/leads/')));
 
-      <Layout className="h-screen overflow-hidden flex flex-col flex-1">
-        {/* Top Header - Sticky */}
-        <Header className="sticky top-0 z-20 bg-white border-b border-slate-200 px-6 flex items-center justify-between h-16 shadow-xs shrink-0">
-          <Button
-            type="text"
-            icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
-            onClick={() => setCollapsed(!collapsed)}
-            className="text-base text-slate-600"
-          />
+              return (
+                <Tooltip key={item.key} title={collapsed ? item.label : undefined} placement="right">
+                  <div
+                    onClick={() => navigate(item.key)}
+                    className={`flex items-center rounded-xl text-xs font-semibold cursor-pointer transition-all duration-150 select-none ${
+                      collapsed ? 'justify-center py-2.5 px-0' : 'gap-3 px-3 py-2.5'
+                    } ${
+                      isActive
+                        ? 'bg-[#2853b8] text-white shadow-sm font-bold border border-blue-400/30'
+                        : 'text-blue-100/90 hover:bg-[#1f4598] hover:text-white'
+                    }`}
+                  >
+                    <span className={`text-base ${isActive ? 'text-white' : 'text-blue-200/80'}`}>{item.icon}</span>
+                    {!collapsed && <span className="truncate">{item.label}</span>}
+                  </div>
+                </Tooltip>
+              );
+            })}
+          </div>
 
-          <div className="flex items-center gap-4">
-            {/* Super Admin Quick Link */}
-            {user?.isSuperAdmin && (
-              <Button
-                type="primary"
-                icon={<SafetyCertificateOutlined />}
-                onClick={() => navigate('/system/users')}
-                className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-bold text-xs rounded-full h-8 px-3 border-none shadow-xs"
+          {/* System Administration Collapsible Section */}
+          <div className={`pt-3 pb-6 ${collapsed ? 'px-1.5' : 'px-2'}`}>
+            {!collapsed ? (
+              <div
+                onClick={() => setSystemGroupOpen(!systemGroupOpen)}
+                className="flex items-center justify-between px-2 py-1 text-[10px] font-bold text-blue-200/60 uppercase tracking-wider cursor-pointer hover:text-blue-100 select-none"
               >
-                System Admin
-              </Button>
+                <span>QUẢN TRỊ & HỆ THỐNG</span>
+                {systemGroupOpen ? <DownOutlined className="text-[9px]" /> : <RightOutlined className="text-[9px]" />}
+              </div>
+            ) : (
+              <div className="border-t border-blue-400/20 my-2" />
             )}
 
-            {/* Multi-Tenant Business Switcher Widget */}
-            {businesses && businesses.length > 0 && (
-              <div className="flex items-center gap-2 bg-emerald-50/80 border border-emerald-200 rounded-full px-3 py-1 shadow-2xs">
-                <ShopOutlined className="text-emerald-600 font-bold" />
-                <span className="text-xs font-semibold text-emerald-950 hidden sm:inline">Doanh nghiệp:</span>
-                <Select
-                  value={activeBiz?.id}
-                  onChange={handleSwitchBiz}
-                  size="small"
-                  variant="borderless"
-                  popupMatchSelectWidth={false}
-                  className="font-bold text-emerald-900 text-xs"
-                  options={businesses.map((b: any) => ({
-                    value: b.id,
-                    label: `${b.name} (/${b.slug})`,
-                  }))}
-                />
+            {(systemGroupOpen || collapsed) && (
+              <div className="mt-1 space-y-1">
+                <Tooltip title={collapsed ? t('nav.overview') : undefined} placement="right">
+                  <div
+                    onClick={() => navigate(`/${currentBizSlug}/overview`)}
+                    className={`flex items-center rounded-lg text-xs font-medium cursor-pointer ${
+                      collapsed ? 'justify-center py-2' : 'gap-2.5 px-3 py-2'
+                    } ${
+                      location.pathname.includes('/overview') ? 'bg-[#2853b8] text-white' : 'text-blue-100/80 hover:bg-[#1f4598]'
+                    }`}
+                  >
+                    <PieChartOutlined className="text-sm" />
+                    {!collapsed && <span>{t('nav.overview')}</span>}
+                  </div>
+                </Tooltip>
+
+                <Tooltip title={collapsed ? t('nav.staff') : undefined} placement="right">
+                  <div
+                    onClick={() => navigate(`/${currentBizSlug}/staff`)}
+                    className={`flex items-center rounded-lg text-xs font-medium cursor-pointer ${
+                      collapsed ? 'justify-center py-2' : 'gap-2.5 px-3 py-2'
+                    } ${
+                      location.pathname.includes('/staff') ? 'bg-[#2853b8] text-white' : 'text-blue-100/80 hover:bg-[#1f4598]'
+                    }`}
+                  >
+                    <IdcardOutlined className="text-sm" />
+                    {!collapsed && <span>{t('nav.staff')}</span>}
+                  </div>
+                </Tooltip>
+
+                <Tooltip title={collapsed ? t('nav.teams') : undefined} placement="right">
+                  <div
+                    onClick={() => navigate(`/${currentBizSlug}/teams`)}
+                    className={`flex items-center rounded-lg text-xs font-medium cursor-pointer ${
+                      collapsed ? 'justify-center py-2' : 'gap-2.5 px-3 py-2'
+                    } ${
+                      location.pathname.includes('/teams') ? 'bg-[#2853b8] text-white' : 'text-blue-100/80 hover:bg-[#1f4598]'
+                    }`}
+                  >
+                    <ClusterOutlined className="text-sm" />
+                    {!collapsed && <span>{t('nav.teams')}</span>}
+                  </div>
+                </Tooltip>
+
+                <Tooltip title={collapsed ? t('nav.roles') : undefined} placement="right">
+                  <div
+                    onClick={() => navigate(`/${currentBizSlug}/roles`)}
+                    className={`flex items-center rounded-lg text-xs font-medium cursor-pointer ${
+                      collapsed ? 'justify-center py-2' : 'gap-2.5 px-3 py-2'
+                    } ${
+                      location.pathname.includes('/roles') ? 'bg-[#2853b8] text-white' : 'text-blue-100/80 hover:bg-[#1f4598]'
+                    }`}
+                  >
+                    <LockOutlined className="text-sm" />
+                    {!collapsed && <span>{t('nav.roles')}</span>}
+                  </div>
+                </Tooltip>
+
+                <Tooltip title={collapsed ? t('nav.settings') : undefined} placement="right">
+                  <div
+                    onClick={() => navigate(`/${currentBizSlug}/settings`)}
+                    className={`flex items-center rounded-lg text-xs font-medium cursor-pointer ${
+                      collapsed ? 'justify-center py-2' : 'gap-2.5 px-3 py-2'
+                    } ${
+                      location.pathname.includes('/settings') ? 'bg-[#2853b8] text-white' : 'text-blue-100/80 hover:bg-[#1f4598]'
+                    }`}
+                  >
+                    <SettingOutlined className="text-sm" />
+                    {!collapsed && <span>{t('nav.settings')}</span>}
+                  </div>
+                </Tooltip>
+
+                <Tooltip title={collapsed ? 'API Keys' : undefined} placement="right">
+                  <div
+                    onClick={() => navigate(`/${currentBizSlug}/api-keys`)}
+                    className={`flex items-center rounded-lg text-xs font-medium cursor-pointer ${
+                      collapsed ? 'justify-center py-2' : 'gap-2.5 px-3 py-2'
+                    } ${
+                      location.pathname.includes('/api-keys') ? 'bg-[#2853b8] text-white' : 'text-blue-100/80 hover:bg-[#1f4598]'
+                    }`}
+                  >
+                    <KeyOutlined className="text-sm" />
+                    {!collapsed && <span>API Keys</span>}
+                  </div>
+                </Tooltip>
+
+                {user?.isSuperAdmin && (
+                  <Tooltip title={collapsed ? 'System Admin' : undefined} placement="right">
+                    <div
+                      onClick={() => navigate('/system/users')}
+                      className={`flex items-center rounded-lg text-xs font-medium cursor-pointer text-amber-300 hover:bg-[#1f4598] ${
+                        collapsed ? 'justify-center py-2' : 'gap-2.5 px-3 py-2'
+                      }`}
+                    >
+                      <SafetyCertificateOutlined className="text-sm" />
+                      {!collapsed && <span>System Admin</span>}
+                    </div>
+                  </Tooltip>
+                )}
               </div>
             )}
+          </div>
+        </div>
 
-            {/* Demo Industry Switcher Widget */}
-            <div className="flex items-center gap-2 bg-indigo-50/80 border border-indigo-100 rounded-full px-3 py-1 shadow-2xs">
-              <ThunderboltOutlined className="text-indigo-600 font-bold" />
-              <span className="text-xs font-semibold text-indigo-950 hidden sm:inline">Demo:</span>
-              <Select
-                value={currentIndustry}
-                onChange={handleSwitchDemo}
-                loading={switchingDemo}
-                disabled={switchingDemo}
-                size="small"
-                variant="borderless"
-                popupMatchSelectWidth={false}
-                className="font-bold text-indigo-900 text-xs"
-                options={[
-                  { value: 'xedien', label: '🚲 Xe Điện MOVE' },
-                  { value: 'software', label: '💻 Phần Mềm B2B' },
-                  { value: 'batdongsan', label: '🏢 Bất Động Sản' },
-                  { value: 'tienganh', label: '🎓 Tiếng Anh ILA' },
-                ]}
-              />
-            </div>
-
-            {/* Language Switcher Dropdown */}
-            <Dropdown menu={languageMenu} placement="bottomRight">
-              <Button type="text" icon={<GlobalOutlined className="text-lg text-slate-600" />} className="flex items-center gap-1">
-                <span className="text-xs font-semibold text-slate-700 uppercase">{i18n.language}</span>
-              </Button>
-            </Dropdown>
-
-            {/* Notification Dropdown */}
-            <Popover content={notificationContent} trigger="click" placement="bottomRight">
-              <Badge count={unreadCount} overflowCount={99} size="small">
-                <Button type="text" shape="circle" icon={<BellOutlined className="text-lg text-slate-600" />} />
-              </Badge>
-            </Popover>
-
-            {/* User Profile */}
-            <Dropdown menu={userMenu} placement="bottomRight">
-              <div className="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1.5 rounded-full transition-colors">
-                <Avatar className="bg-indigo-600 text-white font-semibold">
+        {/* User Profile Footer Widget at Bottom-Left Corner */}
+        <div className="p-2 border-t border-[#234aa0]/60 bg-[#133375] sticky bottom-0 z-20 shrink-0">
+          <Dropdown menu={userMenu} placement="topRight">
+            <div
+              className={`flex items-center cursor-pointer hover:bg-[#1f4598] p-2 rounded-xl transition-colors ${
+                collapsed ? 'justify-center' : 'justify-between'
+              }`}
+            >
+              <div className="flex items-center gap-2.5 min-w-0">
+                <Avatar className="bg-indigo-500 text-white font-bold text-xs h-7 w-7 shrink-0 flex items-center justify-center shadow-xs">
                   {user?.firstName ? user.firstName[0] : 'U'}
                 </Avatar>
-                <span className="font-semibold text-slate-700 text-sm hidden md:inline">
-                  {user?.lastName} {user?.firstName}
-                </span>
+                {!collapsed && (
+                  <div className="flex flex-col truncate">
+                    <span className="font-bold text-white text-xs truncate">
+                      {user?.lastName} {user?.firstName}
+                    </span>
+                    <span className="text-[10px] text-blue-200/70 truncate">
+                      {activeBiz?.roleName || activeBiz?.role || 'SALES'}
+                    </span>
+                  </div>
+                )}
               </div>
-            </Dropdown>
-          </div>
-        </Header>
+              {!collapsed && (
+                <Popover content={notificationContent} trigger="click" placement="top">
+                  <Badge count={unreadCount} overflowCount={99} size="small">
+                    <Button
+                      type="text"
+                      shape="circle"
+                      size="small"
+                      icon={<BellOutlined className="text-blue-200 text-xs" />}
+                      onClick={(e) => e.stopPropagation()}
+                      className="hover:bg-blue-600/40 h-6 w-6 flex items-center justify-center"
+                    />
+                  </Badge>
+                </Popover>
+              )}
+            </div>
+          </Dropdown>
+        </div>
+      </Sider>
 
-        {/* Main Content Area - Scrollable */}
-        <Content className="p-6 overflow-y-auto bg-slate-50 flex-1">
+      {/* 2. Secondary Sub-sidebar: Quản lý Phễu */}
+      {!subSiderCollapsed && (
+        <div className="w-64 h-screen bg-white border-r border-slate-200 flex flex-col shrink-0 shadow-xs z-10">
+          {/* Header */}
+          <div className="h-14 px-4 flex items-center justify-between border-b border-slate-100">
+            <span className="font-extrabold text-slate-900 text-base tracking-tight">Quản lý Phễu</span>
+            <Button
+              type="text"
+              shape="circle"
+              size="small"
+              icon={<PlusOutlined className="text-slate-600 text-xs" />}
+              onClick={() => setPipelineModalOpen(true)}
+              className="bg-slate-100 hover:bg-slate-200 flex items-center justify-center h-7 w-7"
+              title="Thêm Phễu Mới"
+            />
+          </div>
+
+          {/* Search Box */}
+          <div className="p-3 border-b border-slate-100 bg-slate-50/40">
+            <Input
+              prefix={<SearchOutlined className="text-slate-400 text-xs" />}
+              placeholder="Tìm phễu..."
+              value={pipelineSearch}
+              onChange={(e) => setPipelineSearch(e.target.value)}
+              allowClear
+              className="rounded-lg bg-white border-slate-200 text-xs py-1.5 shadow-2xs"
+            />
+          </div>
+
+          {/* Pipeline Accordions List */}
+          <div className="flex-1 overflow-y-auto p-3 space-y-3">
+            {/* Accordion 1: KHÁC */}
+            <div>
+              <div
+                className="flex items-center gap-1.5 text-slate-500 font-bold text-[11px] uppercase tracking-wider cursor-pointer py-1 select-none hover:text-slate-800"
+                onClick={() => setOtherGroupOpen(!otherGroupOpen)}
+              >
+                {otherGroupOpen ? <DownOutlined className="text-[9px]" /> : <RightOutlined className="text-[9px]" />}
+                <span>KHÁC</span>
+              </div>
+
+              {otherGroupOpen && (
+                <div className="mt-1.5 space-y-1">
+                  {/* Dynamic DB Pipelines if available, merged with screenshot sample pipelines */}
+                  {(pipelines.length > 0
+                    ? pipelines.map((p) => ({ id: p.id, name: p.name }))
+                    : filteredDefaultPipelines
+                  ).map((pipe) => {
+                    const isActive = selectedPipelineName === pipe.name;
+                    return (
+                      <div
+                        key={pipe.id}
+                        onClick={() => setSelectedPipelineName(pipe.name)}
+                        className={`px-3 py-2 rounded-lg text-xs font-semibold cursor-pointer transition-all duration-150 ${
+                          isActive
+                            ? 'bg-sky-100/90 text-sky-800 border border-sky-200/80 shadow-2xs font-bold'
+                            : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900'
+                        }`}
+                      >
+                        {pipe.name}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* Accordion 2: HOT LEAD */}
+            <div>
+              <div
+                className="flex items-center gap-1.5 text-slate-500 font-bold text-[11px] uppercase tracking-wider cursor-pointer py-1 select-none hover:text-slate-800"
+                onClick={() => setHotGroupOpen(!hotGroupOpen)}
+              >
+                {hotGroupOpen ? <DownOutlined className="text-[9px]" /> : <RightOutlined className="text-[9px]" />}
+                <span>HOT LEAD</span>
+              </div>
+
+              {hotGroupOpen && (
+                <div className="mt-1.5 space-y-1">
+                  {filteredHotPipelines.map((pipe) => {
+                    const isActive = selectedPipelineName === pipe.name;
+                    return (
+                      <div
+                        key={pipe.id}
+                        onClick={() => setSelectedPipelineName(pipe.name)}
+                        className={`px-3 py-2 rounded-lg text-xs font-semibold cursor-pointer transition-all duration-150 ${
+                          isActive
+                            ? 'bg-sky-100/90 text-sky-800 border border-sky-200/80 shadow-2xs font-bold'
+                            : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900'
+                        }`}
+                      >
+                        {pipe.name}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 3. Main Workspace Container (No Top Header Bar) */}
+      <div className="flex-1 flex flex-col h-screen overflow-hidden min-w-0">
+        {/* Router Outlet Content Area */}
+        <Content className="flex-1 overflow-y-auto bg-slate-50 p-4">
           <Outlet />
         </Content>
-      </Layout>
+      </div>
 
       {/* Global Quick Create Lead Modal */}
       <QuickCreateLeadModal
         visible={createLeadModalOpen}
         onClose={() => setCreateLeadModalOpen(false)}
       />
+
+      {/* Pipeline Management Modal */}
+      <PipelineManagementModal
+        open={pipelineModalOpen}
+        onClose={() => setPipelineModalOpen(false)}
+        onPipelinesUpdated={() => fetchPipelines()}
+      />
     </Layout>
   );
 };
+
+
