@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { PrimaryButton } from '../../components/common/PrimaryButton';
+
 import { Table, Card, Button, Tag, Checkbox, Modal, Form, Input, message, Tabs, Alert } from 'antd';
 import {
   SafetyCertificateOutlined,
@@ -92,14 +94,12 @@ export const RolesPermissionsPage: React.FC = () => {
           <Button icon={<ReloadOutlined />} onClick={fetchRoles} loading={loading}>
             Làm mới
           </Button>
-          <Button
-            type="primary"
+          <PrimaryButton
             icon={<PlusOutlined />}
             onClick={() => setIsModalOpen(true)}
-            className="bg-indigo-600 hover:bg-indigo-700"
           >
             Thêm Vai Trò Mới
-          </Button>
+          </PrimaryButton>
         </div>
       </div>
 

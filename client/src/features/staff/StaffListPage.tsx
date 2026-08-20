@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { PrimaryButton } from '../../components/common/PrimaryButton';
+
 import { Table, Card, Button, Input, Tag, Space, Avatar, Modal, Form, Select, message, Statistic, Progress, Tooltip } from 'antd';
 import {
   IdcardOutlined,
@@ -215,14 +217,12 @@ export const StaffListPage: React.FC = () => {
           <Button icon={<ReloadOutlined />} onClick={fetchStaff} loading={loading}>
             Làm mới
           </Button>
-          <Button
-            type="primary"
+          <PrimaryButton
             icon={<UserAddOutlined />}
             onClick={() => setIsModalOpen(true)}
-            className="bg-indigo-600 hover:bg-indigo-700"
           >
             Thêm Nhân viên
-          </Button>
+          </PrimaryButton>
         </div>
       </div>
 

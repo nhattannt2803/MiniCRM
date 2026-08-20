@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { PrimaryButton } from '../../components/common/PrimaryButton';
+
 import {
   Card,
   Table,
@@ -255,9 +257,9 @@ export const ProductMappingPage: React.FC = () => {
             Đồng bộ mã sản phẩm bên ngoài (Make, Zapier, Chatbot, Smax.ai, E-commerce) với danh mục Sản phẩm CRM.
           </p>
         </div>
-        <Button type="primary" icon={<PlusOutlined />} onClick={handleOpenCreate} className="bg-indigo-600 hover:bg-indigo-700 border-none shadow-sm">
+        <PrimaryButton icon={<PlusOutlined />} onClick={handleOpenCreate}>
           Thêm Mapping Mới
-        </Button>
+        </PrimaryButton>
       </div>
 
       {/* Main Table Card */}

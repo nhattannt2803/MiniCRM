@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { PrimaryButton } from '../../components/common/PrimaryButton';
 import {
   Table,
   Input,
@@ -319,14 +320,13 @@ export const CourseListPage: React.FC = () => {
             Tuỳ chỉnh bảng
           </Button>
 
-          <Button
-            type="primary"
+          <PrimaryButton
             icon={<PlusOutlined />}
             onClick={handleCreateNew}
-            className="bg-indigo-900 hover:bg-indigo-950 text-white rounded-lg h-9 text-xs font-semibold px-4 flex items-center gap-1.5 shadow-sm"
           >
             Thêm khóa học
-          </Button>
+          </PrimaryButton>
+
         </div>
       </div>
 

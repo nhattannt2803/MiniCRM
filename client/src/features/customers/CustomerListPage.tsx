@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { crmService } from '../../services/crmService';
 import { Customer, User } from '../../types';
 import { useSettingsStore } from '../../stores/settingsStore';
+import { PrimaryButton } from '../../components/common/PrimaryButton';
 
 export const CustomerListPage: React.FC = () => {
   const { defaultEntityType } = useSettingsStore();
@@ -277,10 +278,8 @@ export const CustomerListPage: React.FC = () => {
           <h1 className="text-2xl font-bold text-slate-900 tracking-tight">{t('customers.title')}</h1>
           <p className="text-sm text-slate-500">Danh sách và quản lý thông tin khách hàng chính thức</p>
         </div>
-        <Button
-          type="primary"
+        <PrimaryButton
           icon={<PlusOutlined />}
-          className="bg-indigo-600 hover:bg-indigo-700 shadow-sm"
           onClick={() => {
             createForm.resetFields();
             setEntityType(defaultEntityType);
@@ -288,7 +287,7 @@ export const CustomerListPage: React.FC = () => {
           }}
         >
           {t('customers.addCustomer')}
-        </Button>
+        </PrimaryButton>
       </div>
 
       <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs flex flex-wrap items-center justify-between gap-3">

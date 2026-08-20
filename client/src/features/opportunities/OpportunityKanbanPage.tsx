@@ -7,6 +7,7 @@ import { crmService } from '../../services/crmService';
 import { KanbanBoard, KanbanColumn } from '../../components/Kanban/KanbanBoard';
 import { Opportunity, Pipeline, PipelineStage, User } from '../../types';
 import { PipelineManagementModal } from './PipelineManagementModal';
+import { PrimaryButton } from '../../components/common/PrimaryButton';
 
 export const OpportunityKanbanPage: React.FC = () => {
   const [pipelines, setPipelines] = useState<Pipeline[]>([]);
@@ -154,14 +155,12 @@ export const OpportunityKanbanPage: React.FC = () => {
             {t('opportunities.listView')}
           </Button>
 
-          <Button
-            type="primary"
+          <PrimaryButton
             icon={<PlusOutlined />}
-            className="bg-indigo-600 font-semibold"
             onClick={() => handleOpenAddDrawer()}
           >
             {t('opportunities.addOpportunity')}
-          </Button>
+          </PrimaryButton>
         </div>
       </div>
 

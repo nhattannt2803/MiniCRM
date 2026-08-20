@@ -5,6 +5,7 @@ import { useBizNavigate } from '../../hooks/useBizNavigate';
 import { useTranslation } from 'react-i18next';
 import { crmService } from '../../services/crmService';
 import { Company } from '../../types';
+import { PrimaryButton } from '../../components/common/PrimaryButton';
 
 export const CompanyListPage: React.FC = () => {
   const [companies, setCompanies] = useState<Company[]>([]);
@@ -144,15 +145,12 @@ export const CompanyListPage: React.FC = () => {
           <h1 className="text-2xl font-bold text-slate-900 tracking-tight">{t('companies.title')}</h1>
           <p className="text-sm text-slate-500">Quản lý doanh nghiệp B2B và thông tin đối tác</p>
         </div>
-        <Button
-          type="primary"
+        <PrimaryButton
           icon={<PlusOutlined />}
-          size="large"
-          className="bg-indigo-600 font-semibold rounded-lg"
           onClick={handleOpenCreateDrawer}
         >
           {t('companies.addCompany')}
-        </Button>
+        </PrimaryButton>
       </div>
 
       <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">

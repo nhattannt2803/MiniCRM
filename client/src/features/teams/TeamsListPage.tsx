@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { PrimaryButton } from '../../components/common/PrimaryButton';
+
 import { Table, Card, Button, Input, Tag, Space, Avatar, Modal, Form, Select, message, Progress, Statistic } from 'antd';
 import {
   ClusterOutlined,
@@ -129,14 +131,12 @@ export const TeamsListPage: React.FC = () => {
           <Button icon={<ReloadOutlined />} onClick={fetchTeams} loading={loading}>
             Làm mới
           </Button>
-          <Button
-            type="primary"
+          <PrimaryButton
             icon={<PlusOutlined />}
             onClick={() => setIsModalOpen(true)}
-            className="bg-indigo-600 hover:bg-indigo-700"
           >
             Thêm Teams Mới
-          </Button>
+          </PrimaryButton>
         </div>
       </div>
 

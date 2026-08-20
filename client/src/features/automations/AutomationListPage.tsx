@@ -5,6 +5,7 @@ import { useBizNavigate } from '../../hooks/useBizNavigate';
 import { useTranslation } from 'react-i18next';
 import { crmService } from '../../services/crmService';
 import { Automation, Pipeline, PipelineStage } from '../../types';
+import { PrimaryButton } from '../../components/common/PrimaryButton';
 
 export const AutomationListPage: React.FC = () => {
   const [automations, setAutomations] = useState<Automation[]>([]);
@@ -384,13 +385,12 @@ export const AutomationListPage: React.FC = () => {
           <Button icon={<HistoryOutlined />} onClick={() => navigate('/automations/executions')}>
             {t('automations.executionHistory')}
           </Button>
-          <Button
-            type="primary"
+          <PrimaryButton
             icon={<PlusOutlined />}
             onClick={() => navigate('/automations/create')}
           >
             {t('automations.addAutomation')}
-          </Button>
+          </PrimaryButton>
         </div>
       </div>
 

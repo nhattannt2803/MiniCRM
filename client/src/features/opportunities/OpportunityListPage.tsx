@@ -5,6 +5,7 @@ import { useBizNavigate } from '../../hooks/useBizNavigate';
 import { useTranslation } from 'react-i18next';
 import { crmService } from '../../services/crmService';
 import { Opportunity, Pipeline, PipelineStage, User } from '../../types';
+import { PrimaryButton } from '../../components/common/PrimaryButton';
 
 export const OpportunityListPage: React.FC = () => {
   const [opportunities, setOpportunities] = useState<Opportunity[]>([]);
@@ -124,14 +125,12 @@ export const OpportunityListPage: React.FC = () => {
           <Button icon={<AppstoreOutlined />} onClick={() => navigate('/opportunities')}>
             {t('opportunities.kanbanView')}
           </Button>
-          <Button
-            type="primary"
+          <PrimaryButton
             icon={<PlusOutlined />}
-            className="bg-indigo-600 font-semibold"
             onClick={() => setDrawerVisible(true)}
           >
             {t('opportunities.addOpportunity')}
-          </Button>
+          </PrimaryButton>
         </div>
       </div>
 

@@ -4,6 +4,7 @@ import { PlusOutlined, SearchOutlined, EditOutlined, DeleteOutlined } from '@ant
 import { useTranslation } from 'react-i18next';
 import { crmService } from '../../services/crmService';
 import { Product } from '../../types';
+import { PrimaryButton } from '../../components/common/PrimaryButton';
 
 export const ProductListPage: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
@@ -172,15 +173,12 @@ export const ProductListPage: React.FC = () => {
           <h1 className="text-2xl font-bold text-slate-900 tracking-tight">{t('products.title')}</h1>
           <p className="text-sm text-slate-500">Danh mục sản phẩm và dịch vụ dành cho báo giá và hợp đồng</p>
         </div>
-        <Button
-          type="primary"
+        <PrimaryButton
           icon={<PlusOutlined />}
-          size="large"
-          className="bg-indigo-600 font-semibold rounded-lg"
           onClick={handleOpenAdd}
         >
           {t('products.addProduct')}
-        </Button>
+        </PrimaryButton>
       </div>
 
       <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
