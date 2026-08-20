@@ -4,9 +4,20 @@
 set -e
 
 PROJECT_DIR="/var/www/minicrm"
+SEED_DATA=false
+
+# Check if user passed --seed parameter or SEED=true env variable
+if [ "$1" == "--seed" ] || [ "$SEED" == "true" ]; then
+  SEED_DATA=true
+fi
 
 echo "=============================================="
 echo " Starting Application Deployment for Mini CRM "
+if [ "$SEED_DATA" = true ]; then
+  echo " 🟢 Mode: FRESH SERVER INSTALLATION (WITH SEED DATA 🌱)"
+else
+  echo " 🔒 Mode: CODE UPDATE ONLY (SAFE - NO SEED DATA)"
+fi
 echo "=============================================="
 
 # Go to project directory
@@ -32,7 +43,13 @@ npm install --production=false
 echo "🗄️ Running Prisma migrations & generator..."
 npx prisma generate
 npx prisma db push
-npm run prisma:seed
+
+if [ "$SEED_DATA" = true ]; then
+  echo "🌱 [FRESH INSTALL] Populating database with initial seed data..."
+  npm run prisma:seed
+else
+  echo "ℹ️ [UPDATE MODE] Skipped DB seed to protect existing live data."
+fi
 
 # Build Backend TypeScript to JS
 echo "🛠️ Compiling Backend TypeScript..."

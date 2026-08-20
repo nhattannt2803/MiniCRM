@@ -80,6 +80,28 @@ Open [http://localhost:5173](http://localhost:5173) in your browser.
 
 ---
 
+## Production Deployment (VPS)
+
+### 1. Initial VPS Server Setup (One-time only)
+Executes initial system package updates, Node.js v20, MySQL 8, Redis, PM2, and Nginx configuration. Automatically reads database configuration from `server/.env`:
+```bash
+sudo bash deploy/setup.sh
+```
+
+### 2. Regular Code Updates (Safe Update - Protect Live Data)
+Fetches latest code from Git, installs packages, runs Prisma migration safely, builds frontend/backend, and reloads PM2 & Nginx **WITHOUT clearing live database data**:
+```bash
+bash deploy/deploy.sh
+```
+
+### 3. Fresh Server Installation (With Sample Seed Data)
+Use this flag only when deploying a brand new server from scratch and you want to populate initial sample demo datasets:
+```bash
+bash deploy/deploy.sh --seed
+```
+
+---
+
 ## Pre-configured Seed Accounts
 
 | Role | Email | Password | Description |
