@@ -4,6 +4,7 @@ import { tenantGuard } from '../middleware/tenantMiddleware';
 import { apiLimiter, authLimiter } from '../middleware/rateLimitMiddleware';
 import * as crm from '../controllers/crmControllers';
 import * as courseCtrl from '../controllers/courseControllers';
+import * as analyticsCtrl from '../controllers/analyticsController';
 
 const router = Router();
 
@@ -145,6 +146,12 @@ router.get('/campaigns', crm.getCampaigns);
 router.get('/dashboard', crm.getDashboardStats);
 router.get('/dashboard/leader', crm.getLeaderDashboardStats);
 router.post('/dashboard/nudge-sales', crm.nudgeSalesRep);
+
+// Lead Analytics & Ads Performance
+router.get('/analytics/leads/time-series', analyticsCtrl.getLeadsTimeSeries);
+router.get('/analytics/leads/top-ads', analyticsCtrl.getTopAds);
+router.get('/analytics/leads/summary', analyticsCtrl.getAnalyticsSummary);
+router.post('/analytics/leads/backfill', analyticsCtrl.triggerBackfill);
 
 // Automations
 router.get('/automations', crm.getAutomations);

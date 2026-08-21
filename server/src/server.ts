@@ -1,6 +1,7 @@
 import app from './app';
 import { startOutboxPoller } from './automation/workers/outboxWorker';
 import { startAutomationWorker } from './automation/workers/automationWorker';
+import { startAnalyticsPoller } from './automation/workers/analyticsWorker';
 
 const PORT = process.env.PORT || 5000;
 
@@ -11,6 +12,9 @@ app.listen(PORT, () => {
 
   // Start Transactional Outbox Poller
   startOutboxPoller(3000);
+
+  // Start Lead Analytics Aggregate Worker
+  startAnalyticsPoller(5000);
 
   // Start BullMQ Automation Worker
   try {
