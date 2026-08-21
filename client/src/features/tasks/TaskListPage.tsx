@@ -25,14 +25,20 @@ export const TaskListPage: React.FC = () => {
   const [callResultModalVisible, setCallResultModalVisible] = useState(false);
   const [callResultTask, setCallResultTask] = useState<Task | null>(null);
 
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [total, setTotal] = useState(0);
+
   const [form] = Form.useForm();
   const { t, i18n } = useTranslation();
 
 
-  const fetchTasks = async () => {
+  const fetchTasks = async (p = page, s = pageSize) => {
     setLoading(true);
     try {
       const params: any = {
+        page: p,
+        pageSize: s,
         status: statusFilter && statusFilter !== 'ALL' ? statusFilter : undefined,
         preset: presetFilter || undefined,
       };
@@ -46,7 +52,10 @@ export const TaskListPage: React.FC = () => {
       }
 
       const res: any = await crmService.getTasks(params);
-      if (res.success) setTasks(res.data);
+      if (res.success) {
+        setTasks(res.data || []);
+        setTotal(res.pagination?.total ?? (res.data?.length || 0));
+      }
     } catch (err) {
       console.error(err);
     } finally {
@@ -64,8 +73,12 @@ export const TaskListPage: React.FC = () => {
   };
 
   useEffect(() => {
-    fetchTasks();
+    setPage(1);
   }, [statusFilter, presetFilter, assigneeFilter, user?.id]);
+
+  useEffect(() => {
+    fetchTasks(page, pageSize);
+  }, [page, pageSize, statusFilter, presetFilter, assigneeFilter, user?.id]);
 
   useEffect(() => {
     fetchUsers();
@@ -348,12 +361,36 @@ export const TaskListPage: React.FC = () => {
         }
       >
         <div className="text-xs text-slate-500">
-          Hiển thị: <strong className="text-indigo-600 font-semibold">{tasks.length}</strong> công việc
+          Tổng số: <strong className="text-indigo-600 font-semibold">{total}</strong> công việc
         </div>
       </TableToolbar>
 
       <div className="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden">
-        <Table columns={columns} dataSource={tasks} rowKey="id" loading={loading} pagination={false} />
+        <Table
+          columns={columns}
+          dataSource={tasks}
+          rowKey="id"
+          loading={loading}
+          pagination={{
+            current: page,
+            pageSize,
+            total,
+            showSizeChanger: true,
+            pageSizeOptions: ['10', '20', '50', '100'],
+            onChange: (p, size) => {
+              setPage(p);
+              if (size && size !== pageSize) {
+                setPageSize(size);
+                setPage(1);
+              }
+            },
+            showTotal: (totalCount, range) => (
+              <span className="text-xs text-slate-500 font-medium">
+                Hiển thị {range[0]}-{range[1]} / {totalCount} nhiệm vụ
+              </span>
+            ),
+          }}
+        />
       </div>
 
       {/* Edit Task Modal */}

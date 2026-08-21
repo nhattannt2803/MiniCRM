@@ -668,8 +668,15 @@ export const createActivity = async (req: AuthenticatedRequest, res: Response, n
 
 export const getTasks = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
-    const tasks = await TaskService.getTasks(req.bizId!, req.query);
-    res.json({ success: true, data: tasks });
+    const result = await TaskService.getTasks(req.bizId!, req.query);
+    if (Array.isArray(result)) {
+      return res.json({ success: true, data: result });
+    }
+    return res.json({
+      success: true,
+      data: result.data,
+      pagination: result.pagination,
+    });
   } catch (err) {
     next(err);
   }

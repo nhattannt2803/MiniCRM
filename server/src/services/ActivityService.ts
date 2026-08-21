@@ -75,6 +75,9 @@ export class TaskService {
     isOverdue?: boolean;
     preset?: string;
     limit?: string | number;
+    page?: string | number;
+    pageSize?: string | number;
+    unpaginated?: string | boolean;
   }) {
     const where: any = { bizId };
     if (params.status) {
@@ -99,48 +102,46 @@ export class TaskService {
     const endOfNext2Days = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 2, 23, 59, 59, 999);
 
     if (params.preset === 'OVERDUE_TODAY') {
-      const statusCondition = where.status || { in: ['TODO', 'IN_PROGRESS'] };
-      delete where.status;
-      where.OR = [
-        {
-          status: statusCondition,
-          dueAt: { lt: startOfToday },
-        },
-        {
-          status: statusCondition,
-          dueAt: { gte: startOfToday, lte: endOfToday },
-        },
-      ];
+      where.dueAt = { lte: endOfToday };
     } else if (params.preset === 'OVERDUE') {
-      if (!params.status) {
-        where.status = { in: ['TODO', 'IN_PROGRESS'] };
-      }
       where.dueAt = { lt: now };
     } else if (params.preset === 'TODAY') {
-      where.dueAt = { gte: startOfToday, lte: endOfToday };
+      where.dueAt = { lte: endOfToday };
     } else if (params.preset === 'NEXT_2_DAYS') {
-      where.dueAt = { gte: startOfToday, lte: endOfNext2Days };
+      where.dueAt = { lte: endOfNext2Days };
     } else if (params.isOverdue === true || String(params.isOverdue) === 'true') {
-      if (!params.status) {
-        where.status = { in: ['TODO', 'IN_PROGRESS'] };
-      }
       where.dueAt = { lt: now };
     }
 
-    let take: number | undefined;
-    if (params.limit && params.limit !== 'all' && params.limit !== 'unlimited') {
+    const isUnpaginated = params.unpaginated === true || params.unpaginated === 'true' || params.limit === 'all' || params.limit === 'unlimited';
+
+    let page = 1;
+    let pageSize = 10;
+    let skip: number | undefined = undefined;
+    let take: number | undefined = undefined;
+
+    if (!isUnpaginated) {
+      page = Math.max(1, parseInt(String(params.page || '1'), 10));
+      pageSize = Math.max(1, Math.min(100, parseInt(String(params.pageSize || params.limit || '10'), 10)));
+      skip = (page - 1) * pageSize;
+      take = pageSize;
+    } else if (params.limit) {
       take = Number(params.limit);
     }
 
-    const tasks = await prisma.task.findMany({
-      where,
-      orderBy: { dueAt: 'asc' },
-      ...(take ? { take } : {}),
-      include: {
-        assignee: { select: { id: true, firstName: true, lastName: true } },
-        creator: { select: { id: true, firstName: true, lastName: true } },
-      },
-    });
+    const [total, tasks] = await Promise.all([
+      prisma.task.count({ where }),
+      prisma.task.findMany({
+        where,
+        orderBy: { dueAt: 'asc' },
+        ...(skip !== undefined ? { skip } : {}),
+        ...(take !== undefined ? { take } : {}),
+        include: {
+          assignee: { select: { id: true, firstName: true, lastName: true } },
+          creator: { select: { id: true, firstName: true, lastName: true } },
+        },
+      }),
+    ]);
 
     const leadIds = tasks.filter((t) => t.relatedType === 'LEAD').map((t) => t.relatedId);
     const customerIds = tasks.filter((t) => t.relatedType === 'CUSTOMER').map((t) => t.relatedId);
@@ -163,7 +164,7 @@ export class TaskService {
     const leadMap = new Map(leads.map((l) => [l.id.toString(), l]));
     const customerMap = new Map(customers.map((c) => [c.id.toString(), c]));
 
-    return tasks.map((t) => {
+    const formatted = tasks.map((t) => {
       let relatedInfo: any = null;
       if (t.relatedType === 'LEAD') {
         const lead = leadMap.get(t.relatedId.toString());
@@ -198,6 +199,20 @@ export class TaskService {
         isOverdue: t.status !== 'COMPLETED' && t.status !== 'CANCELLED' && t.dueAt < now,
       };
     });
+
+    if (isUnpaginated) {
+      return formatted;
+    }
+
+    return {
+      data: formatted,
+      pagination: {
+        page,
+        pageSize,
+        total,
+        totalPages: Math.ceil(total / pageSize),
+      },
+    };
   }
 
   public static async createTask(bizId: bigint, data: any) {
