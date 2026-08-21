@@ -75,6 +75,9 @@ export class TaskService {
     isOverdue?: boolean;
     preset?: string;
     limit?: string | number;
+    page?: string | number;
+    pageSize?: string | number;
+    unpaginated?: string | boolean;
   }) {
     const where: any = { bizId };
     if (params.status) {
@@ -99,48 +102,46 @@ export class TaskService {
     const endOfNext2Days = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 2, 23, 59, 59, 999);
 
     if (params.preset === 'OVERDUE_TODAY') {
-      const statusCondition = where.status || { in: ['TODO', 'IN_PROGRESS'] };
-      delete where.status;
-      where.OR = [
-        {
-          status: statusCondition,
-          dueAt: { lt: startOfToday },
-        },
-        {
-          status: statusCondition,
-          dueAt: { gte: startOfToday, lte: endOfToday },
-        },
-      ];
+      where.dueAt = { lte: endOfToday };
     } else if (params.preset === 'OVERDUE') {
-      if (!params.status) {
-        where.status = { in: ['TODO', 'IN_PROGRESS'] };
-      }
       where.dueAt = { lt: now };
     } else if (params.preset === 'TODAY') {
-      where.dueAt = { gte: startOfToday, lte: endOfToday };
+      where.dueAt = { lte: endOfToday };
     } else if (params.preset === 'NEXT_2_DAYS') {
-      where.dueAt = { gte: startOfToday, lte: endOfNext2Days };
+      where.dueAt = { lte: endOfNext2Days };
     } else if (params.isOverdue === true || String(params.isOverdue) === 'true') {
-      if (!params.status) {
-        where.status = { in: ['TODO', 'IN_PROGRESS'] };
-      }
       where.dueAt = { lt: now };
     }
 
-    let take: number | undefined;
-    if (params.limit && params.limit !== 'all' && params.limit !== 'unlimited') {
+    const isUnpaginated = params.unpaginated === true || params.unpaginated === 'true' || params.limit === 'all' || params.limit === 'unlimited';
+
+    let page = 1;
+    let pageSize = 10;
+    let skip: number | undefined = undefined;
+    let take: number | undefined = undefined;
+
+    if (!isUnpaginated) {
+      page = Math.max(1, parseInt(String(params.page || '1'), 10));
+      pageSize = Math.max(1, Math.min(100, parseInt(String(params.pageSize || params.limit || '10'), 10)));
+      skip = (page - 1) * pageSize;
+      take = pageSize;
+    } else if (params.limit) {
       take = Number(params.limit);
     }
 
-    const tasks = await prisma.task.findMany({
-      where,
-      orderBy: { dueAt: 'asc' },
-      ...(take ? { take } : {}),
-      include: {
-        assignee: { select: { id: true, firstName: true, lastName: true } },
-        creator: { select: { id: true, firstName: true, lastName: true } },
-      },
-    });
+    const [total, tasks] = await Promise.all([
+      prisma.task.count({ where }),
+      prisma.task.findMany({
+        where,
+        orderBy: { dueAt: 'asc' },
+        ...(skip !== undefined ? { skip } : {}),
+        ...(take !== undefined ? { take } : {}),
+        include: {
+          assignee: { select: { id: true, firstName: true, lastName: true } },
+          creator: { select: { id: true, firstName: true, lastName: true } },
+        },
+      }),
+    ]);
 
     const leadIds = tasks.filter((t) => t.relatedType === 'LEAD').map((t) => t.relatedId);
     const customerIds = tasks.filter((t) => t.relatedType === 'CUSTOMER').map((t) => t.relatedId);
@@ -163,7 +164,7 @@ export class TaskService {
     const leadMap = new Map(leads.map((l) => [l.id.toString(), l]));
     const customerMap = new Map(customers.map((c) => [c.id.toString(), c]));
 
-    return tasks.map((t) => {
+    const formatted = tasks.map((t) => {
       let relatedInfo: any = null;
       if (t.relatedType === 'LEAD') {
         const lead = leadMap.get(t.relatedId.toString());
@@ -198,6 +199,20 @@ export class TaskService {
         isOverdue: t.status !== 'COMPLETED' && t.status !== 'CANCELLED' && t.dueAt < now,
       };
     });
+
+    if (isUnpaginated) {
+      return formatted;
+    }
+
+    return {
+      data: formatted,
+      pagination: {
+        page,
+        pageSize,
+        total,
+        totalPages: Math.ceil(total / pageSize),
+      },
+    };
   }
 
   public static async createTask(bizId: bigint, data: any) {
@@ -230,16 +245,161 @@ export class TaskService {
     return { ...task, id: task.id.toString() };
   }
 
-  public static async updateTaskStatus(bizId: bigint, id: string | number, status: string) {
+  private static getCallFollowUpDueAt(hoursToAdd: number, from = new Date()) {
+    const dueAt = new Date(from.getTime() + hoursToAdd * 60 * 60 * 1000);
+    const hour = dueAt.getHours();
+    const minute = dueAt.getMinutes();
+
+    // 20:00–23:39: move to 09:00 next day; 00:00–06:59: move to 09:00 that day.
+    if (hour >= 20 && (hour < 23 || minute <= 39)) {
+      dueAt.setDate(dueAt.getDate() + 1);
+      dueAt.setHours(9, 0, 0, 0);
+    } else if (hour < 7) {
+      dueAt.setHours(9, 0, 0, 0);
+    }
+
+    return dueAt;
+  }
+
+  public static async updateTaskStatus(bizId: bigint, id: string | number, status: string, result?: string) {
     const taskId = BigInt(id);
     const existing = await prisma.task.findFirst({ where: { id: taskId, bizId } });
     if (!existing) throw new AppError('Task not found', 404, 'TASK_NOT_FOUND');
 
-    const completedAt = status === 'COMPLETED' ? new Date() : null;
+    if (existing.status === 'COMPLETED' && status === 'COMPLETED') {
+      return {
+        ...existing,
+        id: existing.id.toString(),
+        assignedTo: existing.assignedTo?.toString(),
+        createdBy: existing.createdBy?.toString(),
+        relatedId: existing.relatedId?.toString(),
+      };
+    }
 
-    const updated = await prisma.task.update({
-      where: { id: taskId },
-      data: { status, completedAt },
+    const normalizedResult = result?.trim().toUpperCase();
+    const isCallTask = /^Gọi (lại )?khách hàng/i.test(existing.title.trim()) || /^Gọi /i.test(existing.title.trim());
+    const isCallResult = ['BUSY', 'UNREACHABLE', 'WRONG_NUMBER'].includes(normalizedResult || '');
+    if (status === 'COMPLETED' && isCallTask && !isCallResult) {
+      throw new AppError('Vui lòng chọn kết quả cuộc gọi trước khi xác nhận hoàn thành', 400, 'CALL_RESULT_REQUIRED');
+    }
+
+    const completedAt = status === 'COMPLETED' ? new Date() : null;
+    const updated = await prisma.$transaction(async (tx) => {
+      const freshTask = await tx.task.findFirst({ where: { id: taskId, bizId } });
+      if (!freshTask) throw new AppError('Task not found', 404, 'TASK_NOT_FOUND');
+      if (freshTask.status === 'COMPLETED' && status === 'COMPLETED') {
+        return freshTask;
+      }
+
+      const completed = await tx.task.update({
+        where: { id: taskId },
+        data: { status, completedAt },
+      });
+
+      if (status === 'COMPLETED' && isCallTask) {
+        const attemptMatch = existing.title.match(/Lần (\d)$/);
+        const attempt = attemptMatch ? Number(attemptMatch[1]) : 1;
+        const customer = await tx.customer.findFirst({
+          where: { id: existing.relatedId, bizId },
+          include: { company: { select: { name: true } }, contact: { select: { firstName: true, lastName: true } } },
+        });
+        const customerName = customer?.company?.name || (customer?.contact ? `${customer.contact.lastName} ${customer.contact.firstName}`.trim() : `#${existing.relatedId}`);
+
+        if ((normalizedResult === 'BUSY' || normalizedResult === 'UNREACHABLE') && attempt < 3) {
+          const nextAttempt = attempt + 1;
+          const nextTitle = `Gọi lại khách hàng - Lần ${nextAttempt}`;
+          const existingNextTask = await tx.task.findFirst({
+            where: {
+              bizId,
+              relatedType: 'CUSTOMER',
+              relatedId: existing.relatedId,
+              title: nextTitle,
+            },
+          });
+
+          if (!existingNextTask) {
+            const dueAt = this.getCallFollowUpDueAt(nextAttempt === 2 ? 0.5 : 2, completedAt!);
+            await tx.task.create({
+              data: {
+                bizId,
+                title: nextTitle,
+                description: `Tự động tạo sau cuộc gọi lần ${attempt}: ${normalizedResult === 'BUSY' ? 'Máy bận' : 'Không liên lạc được'}.`,
+                priority: 'HIGH',
+                status: 'TODO',
+                assignedTo: existing.assignedTo,
+                createdBy: existing.createdBy,
+                dueAt,
+                relatedType: 'CUSTOMER',
+                relatedId: existing.relatedId,
+              },
+            });
+          }
+        }
+
+        if (normalizedResult === 'WRONG_NUMBER') {
+          const verifyTitle = 'Hỏi xác thực người';
+          const existingVerifyTask = await tx.task.findFirst({
+            where: {
+              bizId,
+              relatedType: 'CUSTOMER',
+              relatedId: existing.relatedId,
+              title: verifyTitle,
+            },
+          });
+
+          if (!existingVerifyTask) {
+            await tx.task.create({
+              data: {
+                bizId,
+                title: verifyTitle,
+                description: `Xác thực lại thông tin liên hệ cho khách hàng ${customerName} do số điện thoại sai.`,
+                priority: 'HIGH',
+                status: 'TODO',
+                assignedTo: existing.assignedTo,
+                createdBy: existing.createdBy,
+                dueAt: this.getCallFollowUpDueAt(2, completedAt!),
+                relatedType: 'CUSTOMER',
+                relatedId: existing.relatedId,
+              },
+            });
+          }
+
+          if (existing.assignedTo) {
+            const existingNotif = await tx.notification.findFirst({
+              where: {
+                bizId,
+                userId: existing.assignedTo,
+                type: 'WRONG_CUSTOMER_PHONE',
+                entityType: 'CUSTOMER',
+                entityId: existing.relatedId,
+              },
+            });
+
+            if (!existingNotif) {
+              await tx.notification.create({
+                data: {
+                  bizId,
+                  userId: existing.assignedTo,
+                  type: 'WRONG_CUSTOMER_PHONE',
+                  title: 'Số điện thoại khách hàng không chính xác',
+                  message: `Khách hàng ${customerName} được báo số điện thoại sai. Vui lòng xác thực lại người liên hệ.`,
+                  entityType: 'CUSTOMER',
+                  entityId: existing.relatedId,
+                },
+              });
+            }
+          }
+        }
+      }
+
+      await publishOutboxEvent(tx, bizId, 'TASK_COMPLETED', 'TASK', taskId, {
+        task_id: completed.id.toString(),
+        title: completed.title,
+        assigned_to: completed.assignedTo?.toString() || null,
+        completed_at: completedAt?.toISOString() || null,
+        result: normalizedResult || null,
+      });
+      return completed;
     });
 
     return { ...updated, id: updated.id.toString() };

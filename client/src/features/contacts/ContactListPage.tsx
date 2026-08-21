@@ -4,6 +4,7 @@ import { PlusOutlined, SearchOutlined, EditOutlined } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
 import { crmService } from '../../services/crmService';
 import { Contact, Company } from '../../types';
+import { PrimaryButton } from '../../components/common/PrimaryButton';
 
 export const ContactListPage: React.FC = () => {
   const [contacts, setContacts] = useState<Contact[]>([]);
@@ -121,15 +122,12 @@ export const ContactListPage: React.FC = () => {
           <h1 className="text-2xl font-bold text-slate-900 tracking-tight">{t('contacts.title')}</h1>
           <p className="text-sm text-slate-500">Danh bạ người liên hệ liên kết với các doanh nghiệp</p>
         </div>
-        <Button
-          type="primary"
+        <PrimaryButton
           icon={<PlusOutlined />}
-          size="large"
-          className="bg-indigo-600 font-semibold rounded-lg"
           onClick={handleOpenCreateDrawer}
         >
           {t('contacts.addContact')}
-        </Button>
+        </PrimaryButton>
       </div>
 
       <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">

@@ -1,4 +1,9 @@
 import React, { useState, useEffect } from 'react';
+import { PrimaryButton } from '../../components/common/PrimaryButton';
+import { PageHeader } from '../../components/common/PageHeader';
+import { TableToolbar } from '../../components/common/TableToolbar';
+
+
 import {
   Card,
   Table,
@@ -245,32 +250,28 @@ export const ProductMappingPage: React.FC = () => {
 
   return (
     <div className="max-w-5xl space-y-6">
-      {/* Header section */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
+      <PageHeader
+        title={
+          <span className="flex items-center gap-2">
             <LinkOutlined className="text-indigo-600" /> Mapping Mã Sản Phẩm Webhook
-          </h1>
-          <p className="text-sm text-slate-500 mt-1">
-            Đồng bộ mã sản phẩm bên ngoài (Make, Zapier, Chatbot, Smax.ai, E-commerce) với danh mục Sản phẩm CRM.
-          </p>
-        </div>
-        <Button type="primary" icon={<PlusOutlined />} onClick={handleOpenCreate} className="bg-indigo-600 hover:bg-indigo-700 border-none shadow-sm">
+          </span>
+        }
+        subtitle="Đồng bộ mã sản phẩm bên ngoài (Make, Zapier, Chatbot, Smax.ai, E-commerce) với danh mục Sản phẩm CRM."
+      />
+
+      <TableToolbar
+        searchPlaceholder="Tìm kiếm mã SKU bên ngoài, tên sản phẩm CRM..."
+        searchValue={searchText}
+        onSearchChange={(e) => setSearchText(e.target.value)}
+      >
+        <PrimaryButton icon={<PlusOutlined />} onClick={handleOpenCreate}>
           Thêm Mapping Mới
-        </Button>
-      </div>
+        </PrimaryButton>
+      </TableToolbar>
 
       {/* Main Table Card */}
       <Card className="shadow-sm border-slate-200">
         <div className="flex items-center justify-between mb-4 gap-4">
-          <Input
-            placeholder="Tìm kiếm mã SKU bên ngoài, tên sản phẩm CRM..."
-            prefix={<SearchOutlined className="text-slate-400" />}
-            value={searchText}
-            onChange={(e) => setSearchText(e.target.value)}
-            className="max-w-md"
-            allowClear
-          />
           <div className="text-xs text-slate-500">Tổng cộng: <strong className="text-slate-800">{filteredMappings.length}</strong> mã mapping</div>
         </div>
 

@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { PrimaryButton } from '../../components/common/PrimaryButton';
+
 import { Card, Table, Button, Modal, Form, Input, Tag, Switch, Popconfirm, notification, Tooltip, Alert } from 'antd';
 import { KeyOutlined, PlusOutlined, CopyOutlined, DeleteOutlined, CheckOutlined, InfoCircleOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
@@ -190,14 +192,12 @@ export const ApiKeySettingsCard: React.FC = () => {
                 <span className="text-xs text-slate-500 font-normal">Cấp mã API Key bảo mật cho Make/Zapier, Chatbot hoặc Landing page gọi API Lead.</span>
               </div>
             </div>
-            <Button
-              type="primary"
+            <PrimaryButton
               icon={<PlusOutlined />}
               onClick={() => setModalOpen(true)}
-              className="bg-indigo-600 hover:bg-indigo-700 font-semibold"
             >
               Tạo Key Mới
-            </Button>
+            </PrimaryButton>
           </div>
         }
         className="shadow-xs border-slate-200 rounded-xl bg-white mb-6"

@@ -1,7 +1,24 @@
 import prisma from '../config/database';
 import { AppError } from '../middleware/errorMiddleware';
+import { publishOutboxEvent } from '../events/outboxPublisher';
 
 export class CustomerService {
+  private static getCallFollowUpDueAt(hoursToAdd: number, from = new Date()) {
+    const dueAt = new Date(from.getTime() + hoursToAdd * 60 * 60 * 1000);
+    const hour = dueAt.getHours();
+    const minute = dueAt.getMinutes();
+
+    // 20:00–23:39: move to 09:00 the next day; 00:00–06:59: move to 09:00 that day.
+    if (hour >= 20 && (hour < 23 || minute <= 39)) {
+      dueAt.setDate(dueAt.getDate() + 1);
+      dueAt.setHours(9, 0, 0, 0);
+    } else if (hour < 7) {
+      dueAt.setHours(9, 0, 0, 0);
+    }
+
+    return dueAt;
+  }
+
   public static async getCustomers(bizId: bigint, params: { page?: number; limit?: number; search?: string; entityType?: string; status?: string }) {
     const page = Math.max(Number(params.page) || 1, 1);
     const limit = Math.min(Math.max(Number(params.limit) || 10, 1), 100);
@@ -282,6 +299,28 @@ export class CustomerService {
           create: { customerId: customer.id, type: 'FB_PSID', identityValue: fbPsid.trim(), isVerified: true },
         });
       }
+
+      // Customer-created automation: initial call task due in 2 hours.
+      const createdAt = new Date();
+      const initialDueAt = this.getCallFollowUpDueAt(2, createdAt);
+      await tx.task.create({
+        data: {
+          bizId,
+          title: 'Gọi khách hàng - Lần 1',
+          description: 'Tự động tạo khi khách hàng mới được tạo.',
+          priority: 'HIGH',
+          status: 'TODO',
+          assignedTo: parsedOwnerId,
+          dueAt: initialDueAt,
+          relatedType: 'CUSTOMER',
+          relatedId: customer.id,
+        },
+      });
+
+      await publishOutboxEvent(tx, bizId, 'CUSTOMER_CREATED', 'CUSTOMER', customer.id, {
+        customer_id: customer.id.toString(),
+        owner_id: parsedOwnerId?.toString() || null,
+      });
 
       return customer;
     });

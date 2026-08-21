@@ -7,6 +7,9 @@ import dayjs from 'dayjs';
 import { crmService } from '../../services/crmService';
 import { useAuthStore } from '../../stores/authStore';
 import { Task, User } from '../../types';
+import { PageHeader } from '../../components/common/PageHeader';
+import { TableToolbar } from '../../components/common/TableToolbar';
+
 
 export const TaskListPage: React.FC = () => {
   const navigate = useBizNavigate();
@@ -19,15 +22,23 @@ export const TaskListPage: React.FC = () => {
   const [assigneeFilter, setAssigneeFilter] = useState<string>('MY_TASKS');
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
+  const [callResultModalVisible, setCallResultModalVisible] = useState(false);
+  const [callResultTask, setCallResultTask] = useState<Task | null>(null);
+
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [total, setTotal] = useState(0);
 
   const [form] = Form.useForm();
   const { t, i18n } = useTranslation();
 
 
-  const fetchTasks = async () => {
+  const fetchTasks = async (p = page, s = pageSize) => {
     setLoading(true);
     try {
       const params: any = {
+        page: p,
+        pageSize: s,
         status: statusFilter && statusFilter !== 'ALL' ? statusFilter : undefined,
         preset: presetFilter || undefined,
       };
@@ -41,7 +52,10 @@ export const TaskListPage: React.FC = () => {
       }
 
       const res: any = await crmService.getTasks(params);
-      if (res.success) setTasks(res.data);
+      if (res.success) {
+        setTasks(res.data || []);
+        setTotal(res.pagination?.total ?? (res.data?.length || 0));
+      }
     } catch (err) {
       console.error(err);
     } finally {
@@ -59,24 +73,41 @@ export const TaskListPage: React.FC = () => {
   };
 
   useEffect(() => {
-    fetchTasks();
+    setPage(1);
   }, [statusFilter, presetFilter, assigneeFilter, user?.id]);
+
+  useEffect(() => {
+    fetchTasks(page, pageSize);
+  }, [page, pageSize, statusFilter, presetFilter, assigneeFilter, user?.id]);
 
   useEffect(() => {
     fetchUsers();
   }, []);
 
-  const handleConfirmCompleteTask = async (task: Task) => {
+  const isCallFollowUpTask = (task: Task) => /^Gọi (lại )?khách hàng/i.test(task?.title?.trim() || '') || /^Gọi /i.test(task?.title?.trim() || '');
+
+  const handleConfirmCompleteTask = async (task: Task, result?: 'BUSY' | 'UNREACHABLE' | 'WRONG_NUMBER') => {
     try {
-      await crmService.updateTaskStatus(task.id, 'COMPLETED');
+      await crmService.updateTaskStatus(task.id, 'COMPLETED', result);
       notification.success({
-        message: 'Xác nhận hoàn thành thành công',
-        description: `Đã hoàn thành nhiệm vụ: "${task.title}"`,
+        message: t('tasks.completeSuccessTitle'),
+        description: t('tasks.completeSuccessDesc', { title: task.title }),
       });
+      setCallResultModalVisible(false);
+      setCallResultTask(null);
       fetchTasks();
     } catch (err: any) {
       notification.error({ message: t('common.error'), description: err.message });
     }
+  };
+
+  const handleCompleteClick = (task: Task) => {
+    if (isCallFollowUpTask(task)) {
+      setCallResultTask(task);
+      setCallResultModalVisible(true);
+      return;
+    }
+    handleConfirmCompleteTask(task);
   };
 
   const handleOpenEditModal = (task: Task) => {
@@ -132,11 +163,23 @@ export const TaskListPage: React.FC = () => {
             </Tag>
           );
         }
-        return (
+        return isCallFollowUpTask(r) ? (
+          <Tooltip title={t('tasks.selectCallResultTooltip')}>
+            <Button
+              type="dashed"
+              size="small"
+              icon={<CheckOutlined className="text-emerald-600 font-bold" />}
+              className="border-emerald-400 text-emerald-700 hover:bg-emerald-50 hover:border-emerald-600 font-medium"
+              onClick={() => handleCompleteClick(r)}
+            >
+              {t('tasks.confirmComplete')}
+            </Button>
+          </Tooltip>
+        ) : (
           <Popconfirm
             title="Xác nhận hoàn thành nhiệm vụ?"
             description={`Bạn có chắc chắn muốn xác nhận hoàn thành công việc "${r.title}"?`}
-            onConfirm={() => handleConfirmCompleteTask(r)}
+            onConfirm={() => handleCompleteClick(r)}
             okText="Đồng ý hoàn thành"
             cancelText="Hủy"
             okButtonProps={{ type: 'primary', className: 'bg-emerald-600' }}
@@ -257,70 +300,97 @@ export const TaskListPage: React.FC = () => {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">{t('tasks.title')}</h1>
-          <p className="text-sm text-slate-500">Quản lý danh sách công việc, nhắc nhở và theo dõi tiến độ</p>
-        </div>
-      </div>
+      <PageHeader
+        title={t('tasks.title')}
+        subtitle="Quản lý danh sách công việc, nhắc nhở và theo dõi tiến độ"
+      />
 
-      <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs flex flex-wrap items-center gap-4">
-        <div>
-          <span className="text-xs font-semibold text-slate-500 block mb-1">Phạm vi công việc:</span>
-          <Select
-            value={assigneeFilter}
-            onChange={(v) => setAssigneeFilter(v)}
-            className="w-52"
-          >
-            <Select.Option value="MY_TASKS">👤 Task của tôi</Select.Option>
-            <Select.Option value="ALL">👥 Tất cả mọi người</Select.Option>
-            {users.map((u) => (
-              <Select.Option key={u.id} value={u.id.toString()}>
-                👤 {u.lastName} {u.firstName}
-              </Select.Option>
-            ))}
-          </Select>
-        </div>
+      <TableToolbar
+        showSearch={false}
+        extraLeft={
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-semibold text-slate-500 whitespace-nowrap">Phạm vi:</span>
+              <Select
+                value={assigneeFilter}
+                onChange={(v) => setAssigneeFilter(v)}
+                className="w-44 text-xs"
+              >
+                <Select.Option value="MY_TASKS">👤 Task của tôi</Select.Option>
+                <Select.Option value="ALL">👥 Tất cả mọi người</Select.Option>
+                {users.map((u) => (
+                  <Select.Option key={u.id} value={u.id.toString()}>
+                    👤 {u.lastName} {u.firstName}
+                  </Select.Option>
+                ))}
+              </Select>
+            </div>
 
-        <div>
-          <span className="text-xs font-semibold text-slate-500 block mb-1">{t('common.status')}:</span>
-          <Select
-            value={statusFilter}
-            className="w-60"
-            onChange={(v) => setStatusFilter(v)}
-          >
-            <Select.Option value="TODO,IN_PROGRESS">⚡ Đang thực hiện & Chờ xử lý</Select.Option>
-            <Select.Option value="TODO">⌛ {t('tasks.status.PENDING')}</Select.Option>
-            <Select.Option value="IN_PROGRESS">🔄 {t('tasks.status.IN_PROGRESS')}</Select.Option>
-            <Select.Option value="COMPLETED">✅ {t('tasks.status.COMPLETED')}</Select.Option>
-            <Select.Option value="CANCELLED">🚫 Đã hủy</Select.Option>
-            <Select.Option value="ALL">🌐 Tất cả trạng thái</Select.Option>
-          </Select>
-        </div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-semibold text-slate-500 whitespace-nowrap">{t('common.status')}:</span>
+              <Select
+                value={statusFilter}
+                className="w-52 text-xs"
+                onChange={(v) => setStatusFilter(v)}
+              >
+                <Select.Option value="TODO,IN_PROGRESS">⚡ Đang thực hiện & Chờ xử lý</Select.Option>
+                <Select.Option value="TODO">⌛ {t('tasks.status.PENDING')}</Select.Option>
+                <Select.Option value="IN_PROGRESS">🔄 {t('tasks.status.IN_PROGRESS')}</Select.Option>
+                <Select.Option value="COMPLETED">✅ {t('tasks.status.COMPLETED')}</Select.Option>
+                <Select.Option value="CANCELLED">🚫 Đã hủy</Select.Option>
+                <Select.Option value="ALL">🌐 Tất cả trạng thái</Select.Option>
+              </Select>
+            </div>
 
-        <div>
-          <span className="text-xs font-semibold text-slate-500 block mb-1">Bộ lọc thời gian:</span>
-          <Select
-            value={presetFilter}
-            onChange={(v) => setPresetFilter(v)}
-            placeholder="Tất cả thời gian"
-            className="w-64"
-            allowClear
-          >
-            <Select.Option value="OVERDUE_TODAY">🔥 Chỉ xem quá hạn & Việc Hôm Nay</Select.Option>
-            <Select.Option value="OVERDUE">⚠️ Chỉ Xem Quá Hạn</Select.Option>
-            <Select.Option value="TODAY">📅 Việc Hôm Nay</Select.Option>
-            <Select.Option value="NEXT_2_DAYS">⏳ Việc trong 2 ngày tới</Select.Option>
-          </Select>
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-semibold text-slate-500 whitespace-nowrap">Thời gian:</span>
+              <Select
+                value={presetFilter}
+                onChange={(v) => setPresetFilter(v)}
+                placeholder="Tất cả thời gian"
+                className="w-56 text-xs"
+                allowClear
+              >
+                <Select.Option value="OVERDUE_TODAY">🔥 Quá hạn & Việc Hôm Nay</Select.Option>
+                <Select.Option value="OVERDUE">⚠️ Chỉ Xem Quá Hạn</Select.Option>
+                <Select.Option value="TODAY">📅 Việc Hôm Nay</Select.Option>
+                <Select.Option value="NEXT_2_DAYS">⏳ Việc trong 2 ngày tới</Select.Option>
+              </Select>
+            </div>
+          </div>
+        }
+      >
+        <div className="text-xs text-slate-500">
+          Tổng số: <strong className="text-indigo-600 font-semibold">{total}</strong> công việc
         </div>
-
-        <div className="ml-auto text-xs text-slate-500 self-end mb-1">
-          Hiển thị: <strong className="text-indigo-600 font-semibold">{tasks.length}</strong> công việc
-        </div>
-      </div>
+      </TableToolbar>
 
       <div className="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden">
-        <Table columns={columns} dataSource={tasks} rowKey="id" loading={loading} pagination={false} />
+        <Table
+          columns={columns}
+          dataSource={tasks}
+          rowKey="id"
+          loading={loading}
+          pagination={{
+            current: page,
+            pageSize,
+            total,
+            showSizeChanger: true,
+            pageSizeOptions: ['10', '20', '50', '100'],
+            onChange: (p, size) => {
+              setPage(p);
+              if (size && size !== pageSize) {
+                setPageSize(size);
+                setPage(1);
+              }
+            },
+            showTotal: (totalCount, range) => (
+              <span className="text-xs text-slate-500 font-medium">
+                Hiển thị {range[0]}-{range[1]} / {totalCount} nhiệm vụ
+              </span>
+            ),
+          }}
+        />
       </div>
 
       {/* Edit Task Modal */}
@@ -377,6 +447,25 @@ export const TaskListPage: React.FC = () => {
             <Input.TextArea rows={3} placeholder="Ghi chú chi tiết công việc..." />
           </Form.Item>
         </Form>
+      </Modal>
+
+      <Modal
+        title={t('tasks.callResultModalTitle')}
+        open={callResultModalVisible}
+        onCancel={() => { setCallResultModalVisible(false); setCallResultTask(null); }}
+        footer={null}
+      >
+        <div className="flex flex-col gap-3">
+          <Button block onClick={() => callResultTask && handleConfirmCompleteTask(callResultTask, 'BUSY')}>
+            {t('tasks.callResults.BUSY')}
+          </Button>
+          <Button block onClick={() => callResultTask && handleConfirmCompleteTask(callResultTask, 'UNREACHABLE')}>
+            {t('tasks.callResults.UNREACHABLE')}
+          </Button>
+          <Button block danger onClick={() => callResultTask && handleConfirmCompleteTask(callResultTask, 'WRONG_NUMBER')}>
+            {t('tasks.callResults.WRONG_NUMBER')}
+          </Button>
+        </div>
       </Modal>
     </div>
   );

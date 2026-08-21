@@ -3,6 +3,8 @@ import { authenticate, authorize, requireSuperAdmin } from '../middleware/authMi
 import { tenantGuard } from '../middleware/tenantMiddleware';
 import { apiLimiter, authLimiter } from '../middleware/rateLimitMiddleware';
 import * as crm from '../controllers/crmControllers';
+import * as courseCtrl from '../controllers/courseControllers';
+import * as analyticsCtrl from '../controllers/analyticsController';
 
 const router = Router();
 
@@ -145,6 +147,12 @@ router.get('/dashboard', crm.getDashboardStats);
 router.get('/dashboard/leader', crm.getLeaderDashboardStats);
 router.post('/dashboard/nudge-sales', crm.nudgeSalesRep);
 
+// Lead Analytics & Ads Performance
+router.get('/analytics/leads/time-series', analyticsCtrl.getLeadsTimeSeries);
+router.get('/analytics/leads/top-ads', analyticsCtrl.getTopAds);
+router.get('/analytics/leads/summary', analyticsCtrl.getAnalyticsSummary);
+router.post('/analytics/leads/backfill', analyticsCtrl.triggerBackfill);
+
 // Automations
 router.get('/automations', crm.getAutomations);
 router.post('/automations', crm.createAutomation);
@@ -180,5 +188,12 @@ router.get('/system/smax-token', requireSuperAdmin, crm.getSmaxToken);
 router.post('/system/smax-token', requireSuperAdmin, crm.updateSmaxToken);
 router.get('/settings/smax-biz-slug', crm.getSmaxBizSlug);
 router.post('/settings/smax-biz-slug', crm.updateSmaxBizSlug);
+
+// Courses (Khoá học / Sự kiện)
+router.get('/courses', courseCtrl.listCourses);
+router.get('/courses/:id', courseCtrl.getCourseById);
+router.post('/courses', courseCtrl.createCourse);
+router.put('/courses/:id', courseCtrl.updateCourse);
+router.delete('/courses/:id', courseCtrl.deleteCourse);
 
 export default router;

@@ -46,12 +46,14 @@
     "leadAllocation": "Phân bổ Lead",
     "allLeads": "Tất cả Lead",
     "leads": "Tất cả Lead",
+    "leadAnalytics": "Thống kê Lead & Quảng cáo",
     "companies": "Công ty / Doanh nghiệp",
     "contacts": "Người liên hệ",
     "customers": "Khách hàng",
     "customersList": "Danh sách khách hàng",
     "opportunities": "Phễu",
     "products": "Sản phẩm & Dịch vụ",
+    "courses": "Khóa học",
     "quotes": "Báo giá",
     "tasks": "Nhiệm vụ & Cần làm",
     "activities": "Lịch sử hoạt động",
@@ -61,6 +63,7 @@
     "users": "Users",
     "teams": "Teams",
     "roles": "Roles & Permissions",
+    "leadEvents": "Lịch sử sự kiện Lead",
     "settings": "Cài đặt hệ thống",
     "leadEvents": "Sự kiện tạo Lead",
     "notifications": "Thông báo",
@@ -248,7 +251,18 @@
       "IN_PROGRESS": "Đang thực hiện",
       "COMPLETED": "Đã hoàn thành",
       "CANCELLED": "Đã hủy"
-    }
+    },
+    "callResultModalTitle": "Chọn kết quả cuộc gọi",
+    "selectCallResultTooltip": "Chọn kết quả cuộc gọi để xác nhận",
+    "confirmComplete": "Xác nhận",
+    "callResults": {
+      "BUSY": "Máy bận",
+      "UNREACHABLE": "Không liên lạc được (thuê bao)",
+      "WRONG_NUMBER": "Sai số"
+    },
+    "completeSuccessTitle": "Xác nhận hoàn thành thành công",
+    "completeSuccessDesc": "Đã hoàn thành nhiệm vụ: \"{{title}}\"",
+    "completeErrorTitle": "Xác nhận hoàn thành thất bại"
   },
   "activities": {
     "title": "Nhật ký Hoạt động",

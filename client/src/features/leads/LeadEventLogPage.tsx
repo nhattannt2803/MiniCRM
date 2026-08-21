@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { PageHeader } from '../../components/common/PageHeader';
 import {
   Table,
   Card,
@@ -275,26 +276,25 @@ export const LeadEventLogPage: React.FC = () => {
           ]}
           className="mb-2 text-xs"
         />
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
-              <HistoryOutlined className="text-indigo-600" />
-              Lịch sử & Sự kiện Tạo Lead
-            </h1>
-            <p className="text-sm text-slate-500 mt-1">
-              Nhật ký chi tiết các sự kiện tạo lead, phương án xử lý trùng lặp và phương thức tạo của doanh nghiệp hiện tại.
-            </p>
-          </div>
+      <PageHeader
+        title={
+          <span className="flex items-center gap-2">
+            <HistoryOutlined className="text-indigo-600" />
+            Lịch sử & Sự kiện Tạo Lead
+          </span>
+        }
+        subtitle="Nhật ký chi tiết các sự kiện tạo lead, phương án xử lý trùng lặp và phương thức tạo của doanh nghiệp hiện tại."
+        extra={
           <Button
-            type="primary"
-            icon={<ReloadOutlined />}
+            icon={<ReloadOutlined className="text-slate-600 text-xs" />}
             onClick={() => fetchLogs()}
             loading={loading}
-            className="bg-indigo-600 hover:bg-indigo-700 border-none shadow-sm"
+            className="text-xs font-semibold text-slate-700 bg-white border border-slate-200 rounded-lg h-8 px-3 flex items-center gap-1.5 shadow-2xs hover:border-slate-300"
           >
             Làm mới
           </Button>
-        </div>
+        }
+      />
       </div>
 
       {/* Summary Statistics Cards */}

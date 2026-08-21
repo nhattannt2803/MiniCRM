@@ -56,11 +56,10 @@ export const SystemLayout: React.FC = () => {
               type={location.pathname === '/system/users' ? 'primary' : 'text'}
               icon={<UserOutlined />}
               onClick={() => navigate('/system/users')}
-              className={`rounded-xl text-xs font-semibold h-9 ${
-                location.pathname === '/system/users'
+              className={`rounded-xl text-xs font-semibold h-9 ${location.pathname === '/system/users'
                   ? 'bg-indigo-600 text-white'
                   : 'text-slate-300 hover:text-white hover:bg-slate-800'
-              }`}
+                }`}
             >
               Quản Lý Tất Cả Users
             </Button>
@@ -69,11 +68,10 @@ export const SystemLayout: React.FC = () => {
               type={location.pathname === '/system/businesses' ? 'primary' : 'text'}
               icon={<ShopOutlined />}
               onClick={() => navigate('/system/businesses')}
-              className={`rounded-xl text-xs font-semibold h-9 ${
-                location.pathname === '/system/businesses'
+              className={`rounded-xl text-xs font-semibold h-9 ${location.pathname === '/system/businesses'
                   ? 'bg-emerald-600 text-white'
                   : 'text-slate-300 hover:text-white hover:bg-slate-800'
-              }`}
+                }`}
             >
               Quản Lý Doanh Nghiệp
             </Button>
@@ -91,7 +89,7 @@ export const SystemLayout: React.FC = () => {
             <Button
               type="default"
               icon={<ShopOutlined />}
-              onClick={() => navigate('/')}
+              onClick={() => navigate(`/${businesses[0].slug}/overview`)}
               className="bg-slate-800 border-slate-700 text-slate-200 hover:text-white hover:bg-slate-700 rounded-xl text-xs font-semibold h-9"
             >
               Vào CRM Doanh Nghiệp ({businesses[0].name})

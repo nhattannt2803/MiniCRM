@@ -5,6 +5,8 @@ import { useTranslation } from 'react-i18next';
 import { crmService } from '../../services/crmService';
 import { Quote } from '../../types';
 import { QuoteCreateModal } from './QuoteCreateModal';
+import { PrimaryButton } from '../../components/common/PrimaryButton';
+
 
 export const QuoteListPage: React.FC = () => {
   const [quotes, setQuotes] = useState<Quote[]>([]);
@@ -64,15 +66,12 @@ export const QuoteListPage: React.FC = () => {
           <h1 className="text-2xl font-bold text-slate-900 tracking-tight">{t('quotes.title')}</h1>
           <p className="text-sm text-slate-500">Bảng tổng hợp báo giá và đơn giá chính thức gửi khách hàng</p>
         </div>
-        <Button
-          type="primary"
+        <PrimaryButton
           icon={<PlusOutlined />}
-          size="large"
-          className="bg-indigo-600 font-semibold rounded-lg"
           onClick={() => setCreateModalVisible(true)}
         >
           {t('quotes.createQuote')}
-        </Button>
+        </PrimaryButton>
       </div>
 
       <div className="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden">

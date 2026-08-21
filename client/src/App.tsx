@@ -43,6 +43,8 @@ import { AutomationExecutionPage } from './features/automations/AutomationExecut
 import { SettingsPage } from './features/settings/SettingsPage';
 import { ApiKeyPage } from './features/settings/ApiKeyPage';
 import { ProductMappingPage } from './features/products/ProductMappingPage';
+import { CourseListPage } from './features/courses/CourseListPage';
+import { LeadAnalyticsPage } from './features/analytics/LeadAnalyticsPage';
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { isAuthenticated, isLoading, businesses, user } = useAuthStore();
@@ -160,6 +162,8 @@ export const App: React.FC = () => {
             <Route path="leads/allocation" element={<LeadAllocationPage />} />
             <Route path="leads/events" element={<LeadEventLogPage />} />
             <Route path="leads/:id" element={<LeadDetailPage />} />
+            <Route path="analytics/leads" element={<LeadAnalyticsPage />} />
+            <Route path="analytics" element={<Navigate to="analytics/leads" replace />} />
             <Route path="staff" element={<StaffListPage />} />
             <Route path="users" element={<UsersListPage />} />
             <Route path="teams" element={<TeamsListPage />} />
@@ -182,6 +186,7 @@ export const App: React.FC = () => {
             <Route path="settings" element={<SettingsPage />} />
             <Route path="api-keys" element={<ApiKeyPage />} />
             <Route path="product-mappings" element={<ProductMappingPage />} />
+            <Route path="courses" element={<CourseListPage />} />
           </Route>
 
           <Route path="*" element={<ProtectedRoute><RootRedirect /></ProtectedRoute>} />

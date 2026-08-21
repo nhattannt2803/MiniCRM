@@ -52,10 +52,15 @@ echo " Target Database: ${DB_NAME}"
 echo " Target DB User:  ${DB_USER}"
 echo "=============================================="
 
-# Check if running as root
-if [ "$EUID" -ne 0 ]; then
-  echo "❌ Please run this script with sudo (e.g., sudo ./setup.sh)"
-  exit 1
+# Go to project directory
+cd "$PROJECT_DIR"
+
+# 1. Update source code if using git
+if [ -d ".git" ]; then
+  echo "📥 Fetching latest code from Git..."
+  git pull origin main # Hoặc tên branch của bạn (e.g. master, dev)
+else
+  echo "ℹ️ Skipping Git pull (Not a git repository or manually uploaded)"
 fi
 
 # 1. Update system packages

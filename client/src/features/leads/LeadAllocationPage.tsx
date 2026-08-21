@@ -11,6 +11,9 @@ import {
 } from '@ant-design/icons';
 import { crmService } from '../../services/crmService';
 import { Lead } from '../../types';
+import { PageHeader } from '../../components/common/PageHeader';
+import { PrimaryButton } from '../../components/common/PrimaryButton';
+
 
 const { Option } = Select;
 
@@ -156,30 +159,28 @@ export const LeadAllocationPage: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
+      <PageHeader
+        title={
+          <span className="flex items-center gap-2">
             <ShareAltOutlined className="text-indigo-600" /> Phân bổ Lead (Lead Allocation)
-          </h1>
-          <p className="text-sm text-slate-500">
-            Quản lý kho Lead chờ điều phối, phân bổ thủ công theo số lượng hoặc tự động xoay vòng (Round-Robin)
-          </p>
-        </div>
-        <div className="flex items-center gap-3">
-          <Button icon={<SyncOutlined />} onClick={fetchData} loading={loading}>
-            Làm mới
-          </Button>
-          <Button
-            type="primary"
-            className="bg-indigo-600 hover:bg-indigo-700"
-            icon={<SwapOutlined />}
-            onClick={handleAutoDistributeRoundRobin}
-            loading={allocating}
-          >
-            Phân bổ tự động Round-Robin
-          </Button>
-        </div>
-      </div>
+          </span>
+        }
+        subtitle="Quản lý kho Lead chờ điều phối, phân bổ thủ công theo số lượng hoặc tự động xoay vòng (Round-Robin)"
+        extra={
+          <>
+            <Button icon={<SyncOutlined />} onClick={fetchData} loading={loading}>
+              Làm mới
+            </Button>
+            <PrimaryButton
+              icon={<SwapOutlined />}
+              onClick={handleAutoDistributeRoundRobin}
+              loading={allocating}
+            >
+              Phân bổ tự động Round-Robin
+            </PrimaryButton>
+          </>
+        }
+      />
 
       {/* Staff Capacity & Distribution Cards */}
       <div>

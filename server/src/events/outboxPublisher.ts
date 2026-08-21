@@ -13,7 +13,9 @@ export type EventType =
   | 'STATUS_CHANGED'
   | 'STAGE_CHANGED'
   | 'TASK_CREATED'
+  | 'TASK_COMPLETED'
   | 'TASK_OVERDUE'
+  | 'CUSTOMER_CREATED'
   | 'ACTIVITY_CREATED';
 
 export type EntityType = 'LEAD' | 'COMPANY' | 'CONTACT' | 'CUSTOMER' | 'OPPORTUNITY' | 'TASK' | 'ACTIVITY';

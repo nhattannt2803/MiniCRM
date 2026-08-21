@@ -6,6 +6,15 @@ export const crmService = {
   getLeaderDashboardStats: () => api.get('/dashboard/leader'),
   nudgeSales: (userId: string, message?: string) => api.post('/dashboard/nudge-sales', { userId, message }),
 
+  // Lead Analytics & Ads Performance API
+  getAnalyticsTimeSeries: (params?: { range?: string; fbPageId?: string; source?: string }) =>
+    api.get('/analytics/leads/time-series', { params }),
+  getAnalyticsTopAds: (params?: { range?: string; limit?: number; fbPageId?: string; source?: string }) =>
+    api.get('/analytics/leads/top-ads', { params }),
+  getAnalyticsSummary: (params?: { range?: string }) =>
+    api.get('/analytics/leads/summary', { params }),
+  triggerAnalyticsBackfill: () => api.post('/analytics/leads/backfill'),
+
   // Identity Resolution & Check
   checkIdentity: (data: { phone?: string; email?: string; name?: string; fbPsid?: string; zaloUid?: string; webVisitorId?: string }) =>
     api.post('/leads/check-identity', data),
@@ -99,7 +108,8 @@ export const crmService = {
   getTasks: (params?: any) => api.get('/tasks', { params }),
   createTask: (data: any) => api.post('/tasks', data),
   updateTask: (id: string, data: any) => api.patch(`/tasks/${id}`, data),
-  updateTaskStatus: (id: string, status: string) => api.patch(`/tasks/${id}/status`, { status }),
+  updateTaskStatus: (id: string, status: string, result?: 'BUSY' | 'UNREACHABLE' | 'WRONG_NUMBER') =>
+    api.patch(`/tasks/${id}/status`, { status, result }),
 
   // Campaigns
   getCampaigns: () => api.get('/campaigns'),

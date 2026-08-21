@@ -46,12 +46,14 @@
     "leadAllocation": "Lead Allocation",
     "allLeads": "All Leads",
     "leads": "All Leads",
+    "leadAnalytics": "Lead & Ad Analytics",
     "companies": "Companies",
     "contacts": "Contacts",
     "customers": "Customers",
     "customersList": "Customer List",
     "opportunities": "Funnel",
     "products": "Products & Services",
+    "courses": "Courses",
     "quotes": "Quotes",
     "tasks": "Tasks",
     "activities": "Activities",
@@ -61,6 +63,7 @@
     "users": "Users",
     "teams": "Teams",
     "roles": "Roles & Permissions",
+    "leadEvents": "Lead Event History",
     "settings": "Settings",
     "leadEvents": "Lead Events",
     "notifications": "Notifications",
@@ -248,7 +251,18 @@
       "IN_PROGRESS": "In Progress",
       "COMPLETED": "Completed",
       "CANCELLED": "Cancelled"
-    }
+    },
+    "callResultModalTitle": "Select Call Outcome",
+    "selectCallResultTooltip": "Select call outcome to confirm",
+    "confirmComplete": "Confirm",
+    "callResults": {
+      "BUSY": "Line Busy",
+      "UNREACHABLE": "Unreachable / No Answer",
+      "WRONG_NUMBER": "Wrong Number"
+    },
+    "completeSuccessTitle": "Task completed successfully",
+    "completeSuccessDesc": "Completed task: \"{{title}}\"",
+    "completeErrorTitle": "Failed to complete task"
   },
   "activities": {
     "title": "Activity History",

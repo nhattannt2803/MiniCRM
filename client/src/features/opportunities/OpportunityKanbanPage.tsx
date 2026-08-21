@@ -7,6 +7,10 @@ import { crmService } from '../../services/crmService';
 import { KanbanBoard, KanbanColumn } from '../../components/Kanban/KanbanBoard';
 import { Opportunity, Pipeline, PipelineStage, User } from '../../types';
 import { PipelineManagementModal } from './PipelineManagementModal';
+import { PrimaryButton } from '../../components/common/PrimaryButton';
+import { PageHeader } from '../../components/common/PageHeader';
+import { TableToolbar } from '../../components/common/TableToolbar';
+
 
 export const OpportunityKanbanPage: React.FC = () => {
   const [pipelines, setPipelines] = useState<Pipeline[]>([]);
@@ -123,47 +127,50 @@ export const OpportunityKanbanPage: React.FC = () => {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">{t('opportunities.title')} (Kanban)</h1>
-          <p className="text-sm text-slate-500">Kéo và thả cơ hội giữa các giai đoạn bán hàng</p>
-        </div>
-
-        <div className="flex items-center gap-3">
-          <Select
-            value={selectedPipelineId}
-            onChange={(val) => setSelectedPipelineId(val)}
-            className="w-64"
-          >
-            {pipelines.map((p) => (
-              <Select.Option key={p.id} value={p.id}>
-                {p.name} {p.isDefault ? '⭐ (Mặc định)' : ''}
-              </Select.Option>
-            ))}
-          </Select>
-
+      <PageHeader
+        title={`${t('opportunities.title')} (Kanban)`}
+        subtitle="Kéo và thả cơ hội giữa các giai đoạn bán hàng"
+        viewMode="kanban"
+        onViewModeChange={(mode) => {
+          if (mode === 'list' || mode === 'table') navigate('/opportunities/list');
+        }}
+        extra={
           <Button
-            icon={<SettingOutlined />}
+            icon={<SettingOutlined className="text-slate-600 text-xs" />}
             onClick={() => setPipelineModalOpen(true)}
-            title="Quản lý quy trình và các cột trạng thái"
+            className="text-xs font-semibold text-slate-700 rounded-lg bg-white border border-slate-200 shadow-2xs h-8 px-3 flex items-center gap-1 hover:border-slate-300"
           >
             Quản lý quy trình
           </Button>
+        }
+      />
 
-          <Button icon={<TableOutlined />} onClick={() => navigate('/opportunities/list')}>
-            {t('opportunities.listView')}
-          </Button>
-
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            className="bg-indigo-600 font-semibold"
-            onClick={() => handleOpenAddDrawer()}
-          >
-            {t('opportunities.addOpportunity')}
-          </Button>
-        </div>
-      </div>
+      <TableToolbar
+        showSearch={false}
+        extraLeft={
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-semibold text-slate-500">Quy trình:</span>
+            <Select
+              value={selectedPipelineId}
+              onChange={(val) => setSelectedPipelineId(val)}
+              className="w-60 text-xs"
+            >
+              {pipelines.map((p) => (
+                <Select.Option key={p.id} value={p.id}>
+                  {p.name} {p.isDefault ? '⭐ (Mặc định)' : ''}
+                </Select.Option>
+              ))}
+            </Select>
+          </div>
+        }
+      >
+        <PrimaryButton
+          icon={<PlusOutlined />}
+          onClick={() => handleOpenAddDrawer()}
+        >
+          {t('opportunities.addOpportunity')}
+        </PrimaryButton>
+      </TableToolbar>
 
       {loading ? (
         <div className="h-96 flex items-center justify-center"><Spin size="large" /></div>

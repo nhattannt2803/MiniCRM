@@ -1,4 +1,9 @@
 import React, { useState, useEffect } from 'react';
+import { PrimaryButton } from '../../components/common/PrimaryButton';
+import { PageHeader } from '../../components/common/PageHeader';
+import { TableToolbar } from '../../components/common/TableToolbar';
+
+
 import { Table, Card, Button, Input, Tag, Space, Avatar, Modal, Form, Select, message, Statistic, Progress, Tooltip } from 'antd';
 import {
   IdcardOutlined,
@@ -202,29 +207,32 @@ export const StaffListPage: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
+      <PageHeader
+        title={
+          <span className="flex items-center gap-2">
             <IdcardOutlined className="text-indigo-600" /> Quản lý Nhân viên
-          </h1>
-          <p className="text-sm text-slate-500">
-            Danh sách nhân sự, phân bổ KPI doanh số và theo dõi năng suất làm việc của đội ngũ sales
-          </p>
-        </div>
-        <div className="flex items-center gap-3">
-          <Button icon={<ReloadOutlined />} onClick={fetchStaff} loading={loading}>
-            Làm mới
-          </Button>
-          <Button
-            type="primary"
-            icon={<UserAddOutlined />}
-            onClick={() => setIsModalOpen(true)}
-            className="bg-indigo-600 hover:bg-indigo-700"
-          >
-            Thêm Nhân viên
-          </Button>
-        </div>
-      </div>
+          </span>
+        }
+        subtitle="Danh sách nhân sự, phân bổ KPI doanh số và theo dõi năng suất làm việc của đội ngũ sales"
+      />
+
+      <TableToolbar
+        searchPlaceholder="Tìm theo tên, email, SĐT, phòng ban..."
+        searchValue={searchText}
+        onSearchChange={(e) => setSearchText(e.target.value)}
+      >
+        <Button icon={<ReloadOutlined className="text-slate-600 text-xs" />} onClick={fetchStaff} loading={loading} className="text-xs font-semibold text-slate-700 bg-white border border-slate-200 rounded-lg h-8 px-3 flex items-center gap-1.5 shadow-2xs hover:border-slate-300">
+          Làm mới
+        </Button>
+        <PrimaryButton
+          icon={<UserAddOutlined />}
+          onClick={() => setIsModalOpen(true)}
+        >
+          Thêm Nhân viên
+        </PrimaryButton>
+      </TableToolbar>
+
+      {/* Metric Cards */}
 
       {/* Metric Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -256,15 +264,6 @@ export const StaffListPage: React.FC = () => {
 
       {/* Staff Table */}
       <Card className="shadow-xs border-slate-200 rounded-xl">
-        <div className="mb-4">
-          <Input
-            placeholder="Tìm theo tên, email, SĐT, phòng ban..."
-            prefix={<SearchOutlined className="text-slate-400" />}
-            value={searchText}
-            onChange={(e) => setSearchText(e.target.value)}
-            className="w-full sm:w-80 rounded-lg"
-          />
-        </div>
         <Table
           rowKey="id"
           loading={loading}

@@ -1,4 +1,8 @@
 import React, { useState, useEffect } from 'react';
+import { PrimaryButton } from '../../components/common/PrimaryButton';
+import { PageHeader } from '../../components/common/PageHeader';
+
+
 import { Table, Card, Button, Tag, Checkbox, Modal, Form, Input, message, Tabs, Alert } from 'antd';
 import {
   SafetyCertificateOutlined,
@@ -79,29 +83,27 @@ export const RolesPermissionsPage: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
+      <PageHeader
+        title={
+          <span className="flex items-center gap-2">
             <SafetyCertificateOutlined className="text-indigo-600" /> Roles & Permissions (Vai trò & Phân quyền)
-          </h1>
-          <p className="text-sm text-slate-500">
-            Quản lý ma trận phân quyền chi tiết (Access Control Matrix) cho từng vai trò trong hệ thống CRM
-          </p>
-        </div>
-        <div className="flex items-center gap-3">
-          <Button icon={<ReloadOutlined />} onClick={fetchRoles} loading={loading}>
-            Làm mới
-          </Button>
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            onClick={() => setIsModalOpen(true)}
-            className="bg-indigo-600 hover:bg-indigo-700"
-          >
-            Thêm Vai Trò Mới
-          </Button>
-        </div>
-      </div>
+          </span>
+        }
+        subtitle="Quản lý ma trận phân quyền chi tiết (Access Control Matrix) cho từng vai trò trong hệ thống CRM"
+        extra={
+          <>
+            <Button icon={<ReloadOutlined className="text-slate-600 text-xs" />} onClick={fetchRoles} loading={loading} className="text-xs font-semibold text-slate-700 bg-white border border-slate-200 rounded-lg h-8 px-3 flex items-center gap-1.5 shadow-2xs hover:border-slate-300">
+              Làm mới
+            </Button>
+            <PrimaryButton
+              icon={<PlusOutlined />}
+              onClick={() => setIsModalOpen(true)}
+            >
+              Thêm Vai Trò Mới
+            </PrimaryButton>
+          </>
+        }
+      />
 
       <Alert
         message="Chính sách bảo mật phân quyền"
