@@ -39,6 +39,7 @@ import {
   MenuUnfoldOutlined,
   UsergroupAddOutlined,
   ShareAltOutlined,
+  BarChartOutlined,
 } from '@ant-design/icons';
 import { useNavigate, useLocation, useParams, Outlet } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -235,6 +236,7 @@ export const MainLayout: React.FC = () => {
         { key: `/${currentBizSlug}/leads/my`, icon: <UserOutlined />, label: t('nav.myLeads') },
         { key: `/${currentBizSlug}/leads/allocation`, icon: <ShareAltOutlined />, label: t('nav.leadAllocation') },
         { key: `/${currentBizSlug}/leads`, icon: <TeamOutlined />, label: t('nav.allLeads') },
+        { key: `/${currentBizSlug}/analytics/leads`, icon: <BarChartOutlined />, label: t('nav.leadAnalytics') },
       ],
     },
   ];
