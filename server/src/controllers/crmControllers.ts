@@ -1517,4 +1517,32 @@ export const deleteBizProductMapping = async (req: AuthenticatedRequest, res: Re
   }
 };
 
+export const importBizProductMappings = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  try {
+    const { mappings, updateExisting } = req.body;
+    const result = await ProductMappingService.bulkImportProductMappings(
+      req.bizId!,
+      mappings,
+      { updateExisting: updateExisting !== undefined ? Boolean(updateExisting) : true }
+    );
+    res.json({
+      success: true,
+      message: `Nhập dữ liệu hoàn tất: Tạo mới ${result.createdCount}/${result.total} (Bỏ qua trùng dữ liệu: ${result.skippedCount}, Thất bại: ${result.failedCount})`,
+      data: result,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const exportBizProductMappings = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  try {
+    const mappings = await ProductMappingService.getProductMappings(req.bizId!);
+    res.json({ success: true, data: mappings });
+  } catch (err) {
+    next(err);
+  }
+};
+
+
 

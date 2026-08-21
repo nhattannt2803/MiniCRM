@@ -216,6 +216,31 @@
     "deleteSuccess": "Product deleted successfully",
     "deleteConfirm": "Are you sure you want to delete this product/service?"
   },
+  "productMappings": {
+    "title": "Product Code Mapping",
+    "subtitle": "Synchronize external product codes with CRM Product catalog.",
+    "exportButton": "Export Mapping Data (CSV)",
+    "importButton": "Import Mapping Data",
+    "downloadTemplate": "Download CSV Template",
+    "importModalTitle": "Import Product Mappings",
+    "importModalDesc": "Select a CSV/JSON file or paste CSV content below for bulk importing product mappings.",
+    "overwriteOption": "Update record if external product code already exists",
+    "previewTitle": "Preview parsed data ({{count}} rows)",
+    "uploadPlaceholder": "Drag & drop a CSV file here or click to select from computer",
+    "pastePlaceholder": "Or paste CSV content here (Row 1: externalCode, externalName, productCode)...",
+    "processImport": "Start Importing Data",
+    "importSuccessTitle": "Import completed!",
+    "importSuccessDesc": "Success: {{createdCount}}/{{total}} (Skipped duplicate: {{skippedCount}})",
+    "importFailedCount": "Failed rows: {{failedCount}}",
+    "errorLine": "Line {{line}}",
+    "externalCodeCol": "External Code",
+    "externalNameCol": "External Note Name",
+    "crmProductCodeCol": "CRM Product Code",
+    "notesCol": "Duplicate Notes",
+    "reasonCol": "Error Reason"
+  },
+
+
   "quotes": {
     "title": "Quote Management",
     "createQuote": "Create Quote",

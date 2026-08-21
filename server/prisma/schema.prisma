@@ -920,13 +920,14 @@ model ProductMapping {
   externalCode String   @map("external_code") @db.VarChar(100)
   externalName String?  @map("external_name") @db.VarChar(200)
   productId    BigInt   @map("product_id") @db.UnsignedBigInt
+  notes        String?  @map("notes") @db.VarChar(255)
   createdAt    DateTime @default(now()) @map("created_at") @db.DateTime(3)
   updatedAt    DateTime @default(now()) @updatedAt @map("updated_at") @db.DateTime(3)
 
   business Business @relation(fields: [bizId], references: [id], onDelete: Cascade)
   product  Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
 
-  @@unique([bizId, externalCode], map: "uk_product_mapping_biz_code")
+  @@unique([bizId, externalCode, productId], map: "uk_product_mapping_biz_code_prod")
   @@index([bizId, externalCode], map: "idx_product_mapping_biz_code")
   @@map("product_mappings")
 }

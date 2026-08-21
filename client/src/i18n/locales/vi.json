@@ -216,6 +216,31 @@
     "deleteSuccess": "Xóa sản phẩm thành công",
     "deleteConfirm": "Bạn có chắc chắn muốn xóa sản phẩm/dịch vụ này không?"
   },
+  "productMappings": {
+    "title": "Mapping Mã Sản Phẩm Webhook",
+    "subtitle": "Đồng bộ mã sản phẩm bên ngoài với danh mục Sản phẩm CRM.",
+    "exportButton": "Xuất Data Mapping (CSV)",
+    "importButton": "Nhập Data Mapping (Import)",
+    "downloadTemplate": "Tải file mẫu CSV",
+    "importModalTitle": "Nhập dữ liệu Mapping Sản Phẩm",
+    "importModalDesc": "Chọn file CSV/JSON hoặc dán nội dung CSV bên dưới để nhập mã ánh xạ hàng loạt.",
+    "overwriteOption": "Cập nhật dữ liệu nếu Mã sản phẩm bên ngoài đã tồn tại",
+    "previewTitle": "Xem trước dữ liệu trùng khớp ({{count}} dòng)",
+    "uploadPlaceholder": "Kéo thả file CSV vào đây hoặc click để chọn file từ máy tính",
+    "pastePlaceholder": "Hoặc dán nội dung CSV vào đây (Dòng 1: Mã bên ngoài, Tên gợi nhớ, Mã SP CRM)...",
+    "processImport": "Tiến hành Nhập dữ liệu",
+    "importSuccessTitle": "Nhập dữ liệu hoàn tất!",
+    "importSuccessDesc": "Thành công: {{createdCount}}/{{total}} (Bỏ qua trùng: {{skippedCount}})",
+    "importFailedCount": "Số dòng lỗi: {{failedCount}}",
+    "errorLine": "Dòng {{line}}",
+    "externalCodeCol": "Mã SP bên ngoài",
+    "externalNameCol": "Tên ghi chú bên ngoài",
+    "crmProductCodeCol": "Mã SP CRM",
+    "notesCol": "Ghi chú trùng lặp",
+    "reasonCol": "Lý do lỗi"
+  },
+
+
   "quotes": {
     "title": "Quản lý Báo giá",
     "createQuote": "Tạo báo giá mới",

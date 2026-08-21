@@ -199,6 +199,10 @@ export class ProductMappingService {
    * Resolves a raw list of product items passed in webhook/API (e.g. [{ code: 'SP001' }, 'SP002'])
    * to CRM product IDs and collects any unmapped product codes into a warning string.
    */
+  /**
+   * Resolves a raw list of product items passed in webhook/API (e.g. [{ code: 'SP001' }, 'SP002'])
+   * to CRM product IDs and collects any unmapped product codes into a warning string.
+   */
   static async resolveProductCodes(bizId: bigint, inputProducts: any[]) {
     if (!Array.isArray(inputProducts) || inputProducts.length === 0) {
       return { matchedProductIds: [], missingCodes: [], warningMessage: null };
@@ -250,8 +254,13 @@ export class ProductMappingService {
       },
     });
 
-    const mappingMap = new Map<string, bigint>();
-    mappings.forEach((m) => mappingMap.set(m.externalCode.toLowerCase(), m.productId));
+    const mappingMap = new Map<string, bigint[]>();
+    mappings.forEach((m) => {
+      const key = m.externalCode.toLowerCase();
+      const list = mappingMap.get(key) || [];
+      list.push(m.productId);
+      mappingMap.set(key, list);
+    });
 
     const directProductMap = new Map<string, bigint>();
     directProducts.forEach((p) => {
@@ -264,16 +273,29 @@ export class ProductMappingService {
 
     uniqueCodes.forEach((code) => {
       const lower = code.toLowerCase();
-      let foundId = mappingMap.get(lower);
-      if (!foundId) {
-        foundId = directProductMap.get(lower);
+      const foundIds = mappingMap.get(lower);
+      let matched = false;
+
+      if (foundIds && foundIds.length > 0) {
+        foundIds.forEach((pId) => {
+          if (!matchedProductIds.includes(pId)) {
+            matchedProductIds.push(pId);
+          }
+        });
+        matched = true;
       }
 
-      if (foundId) {
-        if (!matchedProductIds.includes(foundId)) {
-          matchedProductIds.push(foundId);
+      if (!matched) {
+        const directId = directProductMap.get(lower);
+        if (directId) {
+          if (!matchedProductIds.includes(directId)) {
+            matchedProductIds.push(directId);
+          }
+          matched = true;
         }
-      } else {
+      }
+
+      if (!matched) {
         missingCodes.push(code);
       }
     });
@@ -289,4 +311,180 @@ export class ProductMappingService {
       warningMessage,
     };
   }
+
+  /**
+   * Bulk import product mappings for a business.
+   * Logic:
+   * - If exact match (externalCode + productId exists), SKIP row.
+   * - If externalCode exists for a DIFFERENT CRM product, create BOTH and add notes referencing the previous product.
+   * - If externalCode is new, create mapping normally.
+   */
+  static async bulkImportProductMappings(
+    bizId: bigint,
+    records: Array<{
+      externalCode: string;
+      externalName?: string;
+      productCode?: string;
+      productId?: string | number | bigint;
+      productName?: string;
+    }>,
+    options: { updateExisting?: boolean } = { updateExisting: true }
+  ) {
+    if (!Array.isArray(records) || records.length === 0) {
+      throw new AppError('Danh sách data import không được để trống', 400, 'EMPTY_IMPORT_DATA');
+    }
+
+    const crmProducts = await prisma.product.findMany({
+      where: { bizId, deletedAt: null },
+      select: { id: true, code: true, name: true },
+    });
+
+    const codeToIdMap = new Map<string, bigint>();
+    const idToIdMap = new Map<string, bigint>();
+    const nameToIdMap = new Map<string, bigint>();
+    const productByIdMap = new Map<string, { id: bigint; code: string; name: string }>();
+
+    crmProducts.forEach((p) => {
+      idToIdMap.set(p.id.toString(), p.id);
+      productByIdMap.set(p.id.toString(), p);
+      if (p.code) codeToIdMap.set(p.code.trim().toLowerCase(), p.id);
+      if (p.name) nameToIdMap.set(p.name.trim().toLowerCase(), p.id);
+    });
+
+    const existingMappings = await prisma.productMapping.findMany({
+      where: { bizId },
+      include: {
+        product: {
+          select: { id: true, code: true, name: true },
+        },
+      },
+    });
+
+    type MappingItem = {
+      id: bigint;
+      productId: bigint;
+      productCode: string;
+      productName: string;
+    };
+
+    const existingMap = new Map<string, MappingItem[]>();
+    existingMappings.forEach((m) => {
+      const key = m.externalCode.trim().toLowerCase();
+      const list = existingMap.get(key) || [];
+      list.push({
+        id: m.id,
+        productId: m.productId,
+        productCode: m.product?.code || '',
+        productName: m.product?.name || '',
+      });
+      existingMap.set(key, list);
+    });
+
+    let createdCount = 0;
+    let skippedCount = 0;
+    let failedCount = 0;
+    const errors: Array<{ line: number; externalCode: string; reason: string }> = [];
+
+    for (let i = 0; i < records.length; i++) {
+      const row = records[i];
+      const lineNum = i + 1;
+      const rawExtCode = row.externalCode ? String(row.externalCode).trim() : '';
+
+      if (!rawExtCode) {
+        failedCount++;
+        errors.push({
+          line: lineNum,
+          externalCode: '',
+          reason: 'Mã sản phẩm bên ngoài (externalCode) bị trống',
+        });
+        continue;
+      }
+
+      let matchedProductId: bigint | undefined;
+
+      if (row.productId) {
+        matchedProductId = idToIdMap.get(String(row.productId).trim());
+      }
+
+      if (!matchedProductId && row.productCode) {
+        matchedProductId = codeToIdMap.get(String(row.productCode).trim().toLowerCase());
+      }
+
+      if (!matchedProductId && row.productName) {
+        matchedProductId = nameToIdMap.get(String(row.productName).trim().toLowerCase());
+      }
+
+      if (!matchedProductId) {
+        failedCount++;
+        const targetStr = row.productCode || row.productId || row.productName || 'chưa chọn';
+        errors.push({
+          line: lineNum,
+          externalCode: rawExtCode,
+          reason: `Không tìm thấy sản phẩm CRM tương ứng với mã/tên '${targetStr}'`,
+        });
+        continue;
+      }
+
+      const lowerExtCode = rawExtCode.toLowerCase();
+      const existingList = existingMap.get(lowerExtCode) || [];
+
+      // Check if exact same mapping already exists (same externalCode AND same CRM product)
+      const exactMatch = existingList.find((item) => item.productId === matchedProductId);
+      if (exactMatch) {
+        skippedCount++;
+        continue;
+      }
+
+      // If existing mappings exist for different CRM products, create new mapping with notes referencing previous mapping
+      let noteText: string | null = null;
+      if (existingList.length > 0) {
+        const prevProds = existingList.map((item) => `${item.productName} (${item.productCode})`).join(', ');
+        noteText = `Trùng mã với SP trước đó: ${prevProds}`;
+      }
+
+      const targetProductObj = productByIdMap.get(matchedProductId.toString());
+
+      try {
+        const created = await prisma.productMapping.create({
+          data: {
+            bizId,
+            externalCode: rawExtCode,
+            externalName: row.externalName ? String(row.externalName).trim() : null,
+            productId: matchedProductId,
+            notes: noteText,
+          },
+        });
+
+        const newItem: MappingItem = {
+          id: created.id,
+          productId: matchedProductId,
+          productCode: targetProductObj?.code || '',
+          productName: targetProductObj?.name || '',
+        };
+
+        existingList.push(newItem);
+        existingMap.set(lowerExtCode, existingList);
+        createdCount++;
+      } catch (err: any) {
+        failedCount++;
+        errors.push({
+          line: lineNum,
+          externalCode: rawExtCode,
+          reason: err.message || 'Lỗi tạo dữ liệu trong CSDL',
+        });
+      }
+    }
+
+    return {
+      total: records.length,
+      createdCount,
+      updatedCount: 0,
+      skippedCount,
+      failedCount,
+      successCount: createdCount,
+      errors,
+    };
+  }
 }
+
+
