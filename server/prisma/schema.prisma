@@ -48,6 +48,7 @@ model Business {
   productMappings ProductMapping[]
   leadCreationLogs LeadCreationLog[]
   courses         Course[]
+  leadsDailySummaries LeadsDailySummary[]
 
   @@index([status], map: "idx_biz_status")
   @@map("businesses")
@@ -277,6 +278,9 @@ model Lead {
   smaxBizSlug              String?      @map("smax_biz_slug") @db.VarChar(100)
   fbPageId                 String?      @map("fb_page_id") @db.VarChar(50)
   fbPageName               String?      @map("fb_page_name") @db.VarChar(200)
+  score                    Int?         @default(50)
+  cost                     Decimal?     @db.Decimal(12, 4)
+  utm                      Json?
   convertedOpportunityId   BigInt?      @map("converted_opportunity_id") @db.UnsignedBigInt
   convertedCustomerId      BigInt?      @map("converted_customer_id") @db.UnsignedBigInt
   convertedAt              DateTime?    @map("converted_at") @db.DateTime(3)
@@ -307,6 +311,8 @@ model Lead {
   @@index([bizId, campaignId], map: "idx_leads_biz_campaign")
   @@index([bizId, customerId], map: "idx_leads_biz_customer")
   @@index([bizId, fbPageId], map: "idx_leads_biz_fb_page")
+  @@index([bizId, fbPageId, createdAt], map: "idx_leads_biz_fb_page_created")
+  @@index([bizId, status, createdAt], map: "idx_leads_biz_status_created")
   @@map("leads")
 }
 
@@ -1023,5 +1029,34 @@ model CoursePromotion {
 
   @@index([courseId], map: "idx_cp_course_id")
   @@map("course_promotions")
+}
+
+// =============================================================================
+// Analytics Pre-Aggregates: Daily Lead & Ad Metrics
+// =============================================================================
+
+model LeadsDailySummary {
+  id             BigInt   @id @default(autoincrement()) @db.UnsignedBigInt
+  bizId          BigInt   @map("biz_id") @db.UnsignedBigInt
+  day            DateTime @db.Date
+  source         String   @default("UNKNOWN") @db.VarChar(50)
+  fbPageId       String   @default("UNKNOWN") @map("fb_page_id") @db.VarChar(50)
+  fbPageName     String?  @map("fb_page_name") @db.VarChar(200)
+  adId           String   @default("UNKNOWN") @map("ad_id") @db.VarChar(191)
+  adName         String?  @map("ad_name") @db.VarChar(255)
+  leadsCount     Int      @default(0) @map("leads_count")
+  convertedCount Int      @default(0) @map("converted_count")
+  costSum        Decimal  @default(0.00) @map("cost_sum") @db.Decimal(15, 2)
+  clicksCount    Int      @default(0) @map("clicks_count")
+  createdAt      DateTime @default(now()) @map("created_at") @db.DateTime(3)
+  updatedAt      DateTime @default(now()) @updatedAt @map("updated_at") @db.DateTime(3)
+
+  business Business @relation(fields: [bizId], references: [id], onDelete: Cascade)
+
+  @@unique([bizId, day, source, fbPageId, adId], map: "uk_lds_biz_day_source_page_ad")
+  @@index([bizId, day], map: "idx_lds_biz_day")
+  @@index([bizId, adId, day], map: "idx_lds_biz_ad_day")
+  @@index([bizId, fbPageId, day], map: "idx_lds_biz_page_day")
+  @@map("leads_daily_summary")
 }
 
