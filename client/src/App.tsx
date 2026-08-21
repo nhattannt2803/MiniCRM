@@ -45,6 +45,7 @@ import { ApiKeyPage } from './features/settings/ApiKeyPage';
 import { ProductMappingPage } from './features/products/ProductMappingPage';
 import { CourseListPage } from './features/courses/CourseListPage';
 import { LeadAnalyticsPage } from './features/analytics/LeadAnalyticsPage';
+import { GoogleSheetsMoveDataPage } from './features/googleSheets/GoogleSheetsMoveDataPage';
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { isAuthenticated, isLoading, businesses, user } = useAuthStore();
@@ -187,6 +188,7 @@ export const App: React.FC = () => {
             <Route path="api-keys" element={<ApiKeyPage />} />
             <Route path="product-mappings" element={<ProductMappingPage />} />
             <Route path="courses" element={<CourseListPage />} />
+            <Route path="google-sheets/move-data" element={<GoogleSheetsMoveDataPage />} />
           </Route>
 
           <Route path="*" element={<ProtectedRoute><RootRedirect /></ProtectedRoute>} />

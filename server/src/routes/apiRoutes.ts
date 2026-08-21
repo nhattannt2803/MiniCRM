@@ -5,6 +5,7 @@ import { apiLimiter, authLimiter } from '../middleware/rateLimitMiddleware';
 import * as crm from '../controllers/crmControllers';
 import * as courseCtrl from '../controllers/courseControllers';
 import * as analyticsCtrl from '../controllers/analyticsController';
+import * as googleSheetCtrl from '../controllers/googleSheetController';
 
 const router = Router();
 
@@ -195,5 +196,8 @@ router.get('/courses/:id', courseCtrl.getCourseById);
 router.post('/courses', courseCtrl.createCourse);
 router.put('/courses/:id', courseCtrl.updateCourse);
 router.delete('/courses/:id', courseCtrl.deleteCourse);
+
+// Google Sheets Integration
+router.get('/google-sheets/move-data', googleSheetCtrl.getMoveDataSheet);
 
 export default router;

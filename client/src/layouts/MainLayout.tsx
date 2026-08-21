@@ -40,6 +40,7 @@ import {
   UsergroupAddOutlined,
   ShareAltOutlined,
   BarChartOutlined,
+  FileExcelOutlined,
 } from '@ant-design/icons';
 import { useNavigate, useLocation, useParams, Outlet } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -545,6 +546,18 @@ export const MainLayout: React.FC = () => {
                     >
                       <LinkOutlined className="text-sm" />
                       {!collapsed && <span>📦 Mapping Sản Phẩm</span>}
+                    </div>
+                  </Tooltip>
+
+                  <Tooltip title={collapsed ? t('nav.googleSheetsMoveData') : undefined} placement="right">
+                    <div
+                      onClick={() => navigate(`/${currentBizSlug}/google-sheets/move-data`)}
+                      className={`flex items-center rounded-lg text-xs font-medium cursor-pointer ${collapsed ? 'justify-center py-2' : 'gap-2.5 px-3 py-2'
+                        } ${location.pathname.includes('/google-sheets') ? 'bg-[#2853b8] text-white' : 'text-blue-100/80 hover:bg-[#1f4598]'
+                        }`}
+                    >
+                      <FileExcelOutlined className="text-sm" />
+                      {!collapsed && <span>{t('nav.googleSheetsMoveData')}</span>}
                     </div>
                   </Tooltip>
 

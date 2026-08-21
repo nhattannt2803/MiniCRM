@@ -173,4 +173,8 @@ export const crmService = {
   updateProductMapping: (id: string, data: { externalCode?: string; externalName?: string; productId?: string }) =>
     api.put(`/businesses/current/product-mappings/${id}`, data),
   deleteProductMapping: (id: string) => api.delete(`/businesses/current/product-mappings/${id}`),
+
+  // Google Sheets API Integration
+  getMoveDataSheet: (params?: { spreadsheetId?: string; sheetName?: string }) =>
+    api.get('/google-sheets/move-data', { params }),
 };
